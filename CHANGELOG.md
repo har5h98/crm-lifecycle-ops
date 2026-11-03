@@ -3,6 +3,13 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.4.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.3.0...v0.4.0) (2026-11-03)
+
+
+### Features
+
+* content card and webhook QA, team-wide ops report, operator guide ([c1caba2](https://github.com/har5h98/crm-lifecycle-ops/commit/c1caba2ae492a471577d249cc5a5114e8843a072))
+
 ## [0.3.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.2.0...v0.3.0) (2026-11-03)
 
 
