@@ -17,29 +17,29 @@ accounts; keep this list in sync with the README):
 
 | Stage | Command | What it does | Status |
 |---|---|---|---|
-| Start | `/start-here` | This overview | ✅ |
-| Start | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, personas, strictness | ✅ |
-| Start | `/house-rules` | View or change those rules; mark a finding "fine for us" | ✅ |
-| Setup | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
-| Setup | `/refresh` | Pull the latest campaigns, journeys, segments and templates (or load the demo) | 🧪 |
-| QA | `/check-email` | Full QA on one email | ✅ |
-| QA | `/check-push` | Push QA: lock-screen length for your longest names, deep links, personalization blanks | ✅ |
-| QA | `/check-sms` | SMS QA: billed segments and Unicode traps, opt-out wording, sender name, links | ✅ |
-| QA | `/check-in-app` | In-app QA: length, buttons and their links, HTML structure | ✅ |
-| QA | `/check-campaign` | QA a whole campaign or journey: every message on every channel plus settings and structure | 🧪 |
-| Impact | `/what-breaks` | "If I change or delete this, what live things are affected?" | 🧪 |
-| Impact | `/what-changed` | What changed in the account since last time | 🧪 |
-| Plan | `/plan-journey` | Design a journey and check it against what's live | 🧪 |
-| Plan | `/show-journey` | Draw a live journey as a diagram | 🧪 |
-| Build | `/build-plan` | Step-by-step build instructions in your platform\'s own terms, filled in with your house rules and reusable assets | 🧪 |
-| Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
-| Build | `/bulk-edit` | Find-and-replace preview across every email | 🧪 |
-| Launch | `/watch-launch` | Health check after a send | 🧪 |
-| Report | `/ops-report` | What the checks caught and time saved, for you or the whole team | ✅ |
-| Feedback | `/report-problem` | Report a wrong result; it becomes a test and gets fixed | ✅ |
+| Get started | `/start-here` | This overview | ✅ |
+| Get started | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, test customers, strictness | ✅ |
+| Get started | `/house-rules` | View or change those rules; mark a finding "fine for us" | ✅ |
+| Get started | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
+| Get started | `/refresh` | Pull the latest campaigns, journeys, segments, templates and content blocks (or load the demo) | 🧪 |
+| Plan and build | `/plan-journey` | Design a journey and check it for overlap with what's already live | 🧪 |
+| Plan and build | `/build-plan` | Step-by-step build instructions in your platform's own terms | 🧪 |
+| Plan and build | `/bulk-edit` | Preview a find-and-replace across every subject, body and content block | 🧪 |
+| Change safely | `/what-breaks` | What's affected if you change or delete an attribute, segment, block, event or link | 🧪 |
+| Change safely | `/what-changed` | What changed in the account since last time, live items first | 🧪 |
+| Change safely | `/edit-plan` | The safe way to change something live (copy, running journeys, shared blocks, audiences) | 🧪 |
+| Change safely | `/show-journey` | Draw a live journey as a diagram, with structural problems flagged | 🧪 |
+| Send with confidence | `/check-campaign` | A whole campaign or journey: every message, settings and structure | 🧪 |
+| Send with confidence | `/check-email` | One email: HTML, links, unsubscribe, UTMs, personalization, house rules | ✅ |
+| Send with confidence | `/check-push` | One push: lock-screen length for your longest names, deep links, blanks | ✅ |
+| Send with confidence | `/check-sms` | One text: billed segments, Unicode traps, opt-out wording, sender name | ✅ |
+| Send with confidence | `/check-in-app` | One in-app message or content card: length, buttons, links | ✅ |
+| Prove the impact | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against thresholds | 🧪 |
+| Prove the impact | `/ops-report` | Messages checked, problems caught, hours saved, for you or the whole team | ✅ |
+| Prove the impact | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
 
-**Best first steps:**
-1. `/setup` (5 minutes) so checks follow your team's conventions.
-2. Paste an email and run `/check-email`.
-3. No account connected yet? `/refresh demo` loads a fictional brand so you can try `/what-breaks loyalty_tier`,
-   `/show-journey Welcome Series` or `/check-campaign Price Drop Alert`.
+**Best first steps** (pick the one that fits; don't list all three if one clearly applies):
+1. **Just looking?** `/refresh demo` loads a fictional brand's Braze workspace (no account needed). Then try
+   `/check-campaign Price Drop Alert`, `/what-breaks loyalty_tier` or `/show-journey Welcome Series`.
+2. **Have an email to check?** Paste it and run `/check-email`.
+3. **Using it for real?** `/setup` (about 5 minutes) so checks follow your team's conventions, then `/connect`.

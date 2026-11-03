@@ -35,6 +35,13 @@ const checks = await call("list_checks", {});
 if (!checks.checks?.length || checks.version === "unknown") fail("list_checks: no checks or no version");
 console.log(`✓ list_checks: ${checks.checks.length} checks, v${checks.version}`);
 
+// First run with nothing connected: a Klaviyo question must point at /connect or the Braze demo,
+// not at a demo refresh that only works for Braze.
+const cold = await client.callTool({ name: "what_breaks", arguments: { platform: "klaviyo", kind: "attribute", value: "x" } });
+if (!cold.isError || !/connect/.test(cold.content[0].text) || !/platform braze/.test(cold.content[0].text))
+  fail(`cold start (klaviyo): unhelpful message: ${cold.content?.[0]?.text}`);
+console.log("✓ cold start points to /connect or the Braze demo");
+
 const refresh = await call("refresh_account", { platform: "braze", demo: true });
 if (!refresh.counts?.campaigns) fail("refresh_account demo: no campaigns");
 console.log("✓ refresh_account (demo)");

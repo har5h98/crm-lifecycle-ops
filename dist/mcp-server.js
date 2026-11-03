@@ -54083,10 +54083,15 @@ function resolveWorkspace(platform, workspace) {
 async function latest(platform, workspace) {
   const ws = resolveWorkspace(platform, workspace);
   const { latest: latest2 } = await loadLatest(platform, ws);
-  if (!latest2)
+  if (!latest2) {
+    if (ws === "demo" && platform !== "braze")
+      throw new Error(
+        `${platform} isn't connected yet. Run /connect to add a read-only key, or try the demo account (a Braze workspace): /refresh demo, then use platform braze.`
+      );
     throw new Error(
-      `No snapshot of ${platform} (${ws}) yet. Run /refresh first${ws === "demo" ? ", or refresh with demo: true to try the demo account" : ""}.`
+      `No snapshot of ${platform} (${ws}) yet. Run /refresh first${ws === "demo" ? ", or /refresh demo to load the demo account" : ""}.`
     );
+  }
   return latest2;
 }
 var server = new McpServer({ name: "crm-lifecycle-ops", version: VERSION });
