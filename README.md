@@ -1,49 +1,58 @@
 # crm-lifecycle-ops
 
-**An AI copilot for lifecycle & CRM marketing operations on Braze, Klaviyo and Iterable.**
-QA every email, push, SMS and in-app message before it sends, see what breaks before you change
-something, and get step-by-step build and edit instructions written for your platform. A Claude Code
-plugin with an MCP server; read-only by design.
+**The AI copilot for lifecycle and CRM operations on Braze, Klaviyo and Iterable.**
+Plan, build, check and change campaigns faster, without breaking what's live. It's a Claude Code plugin,
+read-only by design: it never sends or edits anything.
 
 [![CI](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/har5h98/crm-lifecycle-ops)](https://github.com/har5h98/crm-lifecycle-ops/releases)
 ![Status: early alpha](https://img.shields.io/badge/status-early%20alpha-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /check-sms flagging curly quotes that double SMS cost, and /what-breaks listing live programs that use loyalty_tier" width="820"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /what-breaks listing live programs that use loyalty_tier, and /edit-plan warning that a footer block is shared by three other live programs before giving Braze steps" width="820"></p>
 
-**Built for** campaign operators, lifecycle and CRM marketers, and marketing-ops teams who build and
-QA campaigns by hand. **Try it in 2 minutes** with the built-in demo account; no platform access needed.
+Lifecycle teams lose hours to work that lives in people's heads: how to build this in our platform, what this
+segment feeds, whether this message looks right for someone with no first name. crm-lifecycle-ops knows your live
+account and your team's rules, and helps at every step of an operator's job:
 
-> **Status: early alpha.** Every command below exists. ✅ means it works fully today. 🧪 means it works
-> on the built-in demo account and against mocked Braze/Klaviyo/Iterable API responses, but hasn't been
-> field-tested on real accounts yet. If you run it on yours and something's off, `/report-problem`
-> turns it into a test case and a fix.
+| | What you get | Commands |
+|---|---|---|
+| **Plan and build faster** | Design journeys that don't collide with what's live, and get click-by-click build steps in *your* platform's terms, with your naming, UTMs and reusable segments | `/plan-journey` · `/build-plan` · `/bulk-edit` |
+| **Change safely** | Before you edit an attribute, segment, content block or live journey: what depends on it, what changed overnight, and the safe way to make the change | `/what-breaks` · `/what-changed` · `/edit-plan` · `/show-journey` |
+| **Send with confidence** | Every email, push, SMS, in-app, content card and webhook checked as every kind of customer, against your team's rules | `/check-campaign` · `/check-email` · `/check-push` · `/check-sms` · `/check-in-app` |
+| **Prove the impact** | Delivery health after launch, plus problems caught and hours saved, for you or the whole team | `/watch-launch` · `/ops-report` |
 
-## Commands
+**Built for** lifecycle, CRM and marketing-ops teams who build campaigns by hand. **Try it in 2 minutes** with the
+built-in demo account; no platform access needed.
 
-| Stage | Command | What it does | Status |
+> **Status: early alpha.** ✅ works fully today. 🧪 works on the built-in demo account and against mocked
+> Braze/Klaviyo/Iterable API responses, but hasn't been field-tested on real accounts yet. If something's off,
+> `/report-problem` turns it into a test case and a fix.
+
+## All commands
+
+| | Command | What it does | Status |
 |---|---|---|---|
-| Start | `/start-here` | Overview and the best first step | ✅ |
-| Start | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, test personas, strictness | ✅ |
-| Start | `/house-rules` | View or change those rules; mark a finding "fine for us" | ✅ |
-| Setup | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
-| Setup | `/refresh` | Pull the latest campaigns, journeys, segments, templates and content blocks (or load the demo) | 🧪 |
-| QA | `/check-email` | Full QA on one email: HTML, links, unsubscribe, UTMs, personalization for several test profiles, house rules | ✅ |
-| QA | `/check-push` | Push QA: lock-screen length for your longest names, deep links, personalization blanks | ✅ |
-| QA | `/check-sms` | SMS QA: billed segments and Unicode traps, opt-out wording, sender name, links | ✅ |
-| QA | `/check-in-app` | In-app QA: length, buttons and their links, HTML structure | ✅ |
-| QA | `/check-campaign` | QA a whole campaign or journey: every message on every channel (content blocks expanded), settings and structure | 🧪 |
-| Impact | `/what-breaks` | "If I change or delete this attribute, segment, block, event or link, what live things are affected?" | 🧪 |
-| Impact | `/what-changed` | What changed in the account since last time, live items first | 🧪 |
-| Plan | `/plan-journey` | Design a journey and check it for overlap with what's already live | 🧪 |
-| Plan | `/show-journey` | Draw a live journey as a diagram, with structural problems flagged | 🧪 |
-| Build | `/build-plan` | Step-by-step build instructions in your platform\'s own terms, filled in with your house rules and reusable assets | 🧪 |
-| Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
-| Build | `/bulk-edit` | Find-and-replace preview across every subject, body and content block | 🧪 |
-| Launch | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against stated thresholds | 🧪 |
-| Report | `/ops-report` | Messages checked, problems caught, hours saved, for you or the whole team | ✅ |
-| Feedback | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
+| **Get started** | `/start-here` | Overview and the best first step | ✅ |
+| | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, test customers, strictness | ✅ |
+| | `/house-rules` | View or change those rules; mark a finding "fine for us" | ✅ |
+| | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
+| | `/refresh` | Pull the latest campaigns, journeys, segments, templates and content blocks (or load the demo) | 🧪 |
+| **Plan and build** | `/plan-journey` | Design a journey and check it for overlap with what's already live | 🧪 |
+| | `/build-plan` | Step-by-step build instructions in your platform's own terms, with your rules and reusable assets | 🧪 |
+| | `/bulk-edit` | Preview a find-and-replace across every subject, body and content block | 🧪 |
+| **Change safely** | `/what-breaks` | What's affected if you change or delete an attribute, segment, block, event or link | 🧪 |
+| | `/what-changed` | What changed in the account since last time, live items first | 🧪 |
+| | `/edit-plan` | The safe way to change something live (copy, running journeys, shared blocks, audiences) | 🧪 |
+| | `/show-journey` | Draw a live journey as a diagram, with structural problems flagged | 🧪 |
+| **Send with confidence** | `/check-campaign` | Check a whole campaign or journey: every message on every channel, settings and structure | 🧪 |
+| | `/check-email` | One email: HTML, links, unsubscribe, UTMs, personalization, house rules | ✅ |
+| | `/check-push` | One push: lock-screen length for your longest names, deep links, blanks | ✅ |
+| | `/check-sms` | One text: billed segments, Unicode traps, opt-out wording, sender name | ✅ |
+| | `/check-in-app` | One in-app message or content card: length, buttons, links | ✅ |
+| **Prove the impact** | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against stated thresholds | 🧪 |
+| | `/ops-report` | Messages checked, problems caught, hours saved, for you or the whole team | ✅ |
+| | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
 
 ## Install
 
@@ -77,7 +86,7 @@ What's "wrong" depends on the team, so checks come in three layers:
 exception with a reason (`/house-rules`), which is different from "the tool is wrong" (`/report-problem`).
 Teams share one rulebook by pointing `CLO_RULES` at a shared file.
 
-## What gets checked
+## What "check" covers
 
 | Channel | Catches |
 |---|---|

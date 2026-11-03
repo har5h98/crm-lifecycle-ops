@@ -5,13 +5,13 @@
     "url": "https://github.com/har5h98"
   },
   "metadata": {
-    "description": "Lifecycle & CRM marketing ops tools for Braze, Klaviyo and Iterable."
+    "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable."
   },
   "plugins": [
     {
       "name": "crm-lifecycle-ops",
       "source": "./",
-      "description": "Email QA, dependency checks, journey maps and launch monitoring for Braze, Klaviyo and Iterable.",
+      "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable: plan, build, check and change campaigns faster without breaking what's live.",
       "version": "0.4.0",
       "author": {
         "name": "Harsh Singhal"
