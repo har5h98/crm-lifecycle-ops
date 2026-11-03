@@ -31760,10 +31760,10 @@ var error37 = () => {
       case "too_big": {
         const adj = issue2.inclusive ? "<=" : "<";
         const sizing = getSizing(issue2.origin);
-        const longName = issue2.origin === "date" ? "laat" : issue2.origin === "string" ? "lang" : "groot";
+        const longName2 = issue2.origin === "date" ? "laat" : issue2.origin === "string" ? "lang" : "groot";
         if (sizing)
-          return `Te ${longName}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementen"} ${sizing.verb}`;
-        return `Te ${longName}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} is`;
+          return `Te ${longName2}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementen"} ${sizing.verb}`;
+        return `Te ${longName2}: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} is`;
       }
       case "too_small": {
         const adj = issue2.inclusive ? ">=" : ">";
@@ -51120,14 +51120,23 @@ function checkLinks(html, opts = {}) {
   const findings = [];
   const links = extractLinks(html);
   if (opts.transactional) {
-  } else if (!/unsubscrib/i.test(html)) {
+  } else if (!/unsubscrib|opt[- ]?out/i.test(html)) {
     const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
-    findings.push({
-      checkId: "links.no-unsubscribe",
-      severity: blocks.length ? "warn" : "fail",
-      message: blocks.length ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.` : "No unsubscribe link or unsubscribe tag found.",
-      fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules)."
-    });
+    const prefCenter = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i.test(html);
+    if (prefCenter)
+      findings.push({
+        checkId: "links.no-unsubscribe",
+        severity: "warn",
+        message: "There's a preference-center link but no explicit unsubscribe link.",
+        fix: 'Fine if the preference page has a one-click "unsubscribe from all"; otherwise add an unsubscribe link (CAN-SPAM, Gmail/Yahoo bulk-sender rules).'
+      });
+    else
+      findings.push({
+        checkId: "links.no-unsubscribe",
+        severity: blocks.length ? "warn" : "fail",
+        message: blocks.length ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.` : "No unsubscribe link or unsubscribe tag found.",
+        fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules)."
+      });
   }
   const tracked = [];
   for (const link of links) {
@@ -51326,6 +51335,11 @@ function setPath(target, path, value) {
 }
 var ACCENTED_PERSONA = "Accented name";
 var NAME_LIKE = /(^|[._])(first_?name|last_?name|full_?name|name)$/i;
+function longName(leaf) {
+  if (/first/i.test(leaf)) return "Alexandra-Catherine";
+  if (/last/i.test(leaf)) return "Montgomery-Whitfield";
+  return "Alexandra-Catherine Montgomery-Whitfield";
+}
 function defaultPersonas(variables) {
   const complete = {};
   const long = {};
@@ -51333,7 +51347,7 @@ function defaultPersonas(variables) {
   for (const v of variables) {
     const leaf = v.split(".").pop() ?? v;
     complete[v] = `Sample ${leaf}`;
-    long[v] = NAME_LIKE.test(v) ? "Alexandra-Catherine Montgomery-Whitfield" : `Sample ${leaf} with a much longer value than usual`;
+    long[v] = NAME_LIKE.test(v) ? longName(leaf) : `Sample ${leaf} with a much longer value than usual`;
     accented[v] = NAME_LIKE.test(v) ? "Zo\xEB \xD1\xFA\xF1ez" : `Sample ${leaf}`;
   }
   const personas = [
@@ -51498,6 +51512,8 @@ function registerIterableHelpers(hb, notVerified) {
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
     return "";
   });
+  for (const name of ["unsubscribeUrl", "unsubscribeMessageTypeUrl", "hostedUnsubscribeUrl", "viewInBrowserUrl"])
+    hb.registerHelper(name, () => `https://links.iterable.com/${name}`);
   hb.registerHelper("helperMissing", function(...args) {
     const opts = args[args.length - 1];
     notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);

@@ -93,17 +93,28 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
 
   if (opts.transactional) {
     // Nothing to check: transactional mail is exempt from unsubscribe rules.
-  } else if (!/unsubscrib/i.test(html)) {
+  } else if (!/unsubscrib|opt[- ]?out/i.test(html)) {
     // An unexpanded Braze content block (often the footer) may hold the link; say so rather than cry wolf.
     const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
-    findings.push({
-      checkId: "links.no-unsubscribe",
-      severity: blocks.length ? "warn" : "fail",
-      message: blocks.length
-        ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.`
-        : "No unsubscribe link or unsubscribe tag found.",
-      fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules).",
-    });
+    // A preference-center link (Braze ${preference_center_url}, Klaviyo {% manage_preferences %}) is a
+    // valid opt-out route if that page offers "unsubscribe from all", so it's a question, not a failure.
+    const prefCenter = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i.test(html);
+    if (prefCenter)
+      findings.push({
+        checkId: "links.no-unsubscribe",
+        severity: "warn",
+        message: "There's a preference-center link but no explicit unsubscribe link.",
+        fix: 'Fine if the preference page has a one-click "unsubscribe from all"; otherwise add an unsubscribe link (CAN-SPAM, Gmail/Yahoo bulk-sender rules).',
+      });
+    else
+      findings.push({
+        checkId: "links.no-unsubscribe",
+        severity: blocks.length ? "warn" : "fail",
+        message: blocks.length
+          ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.`
+          : "No unsubscribe link or unsubscribe tag found.",
+        fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules).",
+      });
   }
 
   const tracked: { link: Link; hasUtm: boolean }[] = [];

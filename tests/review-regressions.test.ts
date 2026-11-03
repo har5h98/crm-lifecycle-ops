@@ -154,3 +154,41 @@ describe("operator-facing output (from a simulated session)", () => {
     expect(p.places[0]!.before.join(" ")).not.toMatch(/mso-hide|<|>/);
   });
 });
+
+describe("unsubscribe routes (improvement pass, 2026-11-03)", () => {
+  it("a preference-center link alone is a question, not a hard failure", async () => {
+    for (const html of ['<a href="{{${preference_center_url}}}">Manage preferences</a>', "<p>{% manage_preferences %}</p>"]) {
+      const r = await checkEmail({ platform: "braze", html });
+      const f = r.findings.find((x) => x.checkId === "links.no-unsubscribe");
+      expect(f?.severity).toBe("warn");
+    }
+  });
+  it("no opt-out route at all still fails", async () => {
+    const r = await checkEmail({ platform: "braze", html: '<a href="https://fernbrook.com">Shop</a>' });
+    expect(r.findings.find((x) => x.checkId === "links.no-unsubscribe")?.severity).toBe("fail");
+  });
+  it("Iterable's system links render instead of being reported as unknown helpers", async () => {
+    const r = await checkEmail({
+      platform: "iterable",
+      html: '<a href="{{hostedUnsubscribeUrl}}">Opt out</a> <a href="{{viewInBrowserUrl}}">View</a>',
+    });
+    expect(r.notVerified.join(" ")).not.toMatch(/helper/);
+    expect(ids(r)).not.toContain("links.no-unsubscribe");
+  });
+  it("a short personalized push title isn't flagged; a genuinely long one still is", async () => {
+    const short = await checkChannelMessage({
+      channel: "push",
+      platform: "braze",
+      title: "Hey {{${first_name}}}",
+      body: "Your cart misses you",
+    });
+    expect(ids(short)).not.toContain("push.title-long");
+    const long = await checkChannelMessage({
+      channel: "push",
+      platform: "braze",
+      title: "Hey {{${first_name}}}, your 25% off code expires tonight",
+      body: "Shop now",
+    });
+    expect(ids(long)).toContain("push.title-long");
+  });
+});

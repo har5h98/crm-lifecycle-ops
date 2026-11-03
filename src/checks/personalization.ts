@@ -105,6 +105,13 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
 export const ACCENTED_PERSONA = "Accented name";
 const NAME_LIKE = /(^|[._])(first_?name|last_?name|full_?name|name)$/i;
 
+/** A long but real-world value for each kind of name field: a first name shouldn't be a whole full name. */
+function longName(leaf: string): string {
+  if (/first/i.test(leaf)) return "Alexandra-Catherine";
+  if (/last/i.test(leaf)) return "Montgomery-Whitfield";
+  return "Alexandra-Catherine Montgomery-Whitfield";
+}
+
 /**
  * Synthetic personas derived from the variables the template actually uses: complete, empty,
  * long values (plain ASCII, so length is judged without changing SMS encoding) and, when the
@@ -117,7 +124,7 @@ export function defaultPersonas(variables: string[]): Persona[] {
   for (const v of variables) {
     const leaf = v.split(".").pop() ?? v;
     complete[v] = `Sample ${leaf}`;
-    long[v] = NAME_LIKE.test(v) ? "Alexandra-Catherine Montgomery-Whitfield" : `Sample ${leaf} with a much longer value than usual`;
+    long[v] = NAME_LIKE.test(v) ? longName(leaf) : `Sample ${leaf} with a much longer value than usual`;
     accented[v] = NAME_LIKE.test(v) ? "Zoë Ñúñez" : `Sample ${leaf}`;
   }
   const personas: Persona[] = [
@@ -299,6 +306,9 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
     return "";
   });
+  // Iterable fills these system links in at send time; render them as placeholder URLs, not "unknown helper".
+  for (const name of ["unsubscribeUrl", "unsubscribeMessageTypeUrl", "hostedUnsubscribeUrl", "viewInBrowserUrl"])
+    hb.registerHelper(name, () => `https://links.iterable.com/${name}`);
   hb.registerHelper("helperMissing", function (...args: unknown[]) {
     const opts = args[args.length - 1] as { name: string };
     notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);
