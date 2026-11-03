@@ -13,7 +13,11 @@ export class ApiError extends Error {
 
 export type Fetcher = typeof fetch;
 
-export async function getJson<T>(url: string, headers: Record<string, string>, opts: { fetcher?: Fetcher; method?: string; body?: unknown } = {}): Promise<T> {
+export async function getJson<T>(
+  url: string,
+  headers: Record<string, string>,
+  opts: { fetcher?: Fetcher; method?: string; body?: unknown } = {},
+): Promise<T> {
   const fetcher = opts.fetcher ?? fetch;
   for (let attempt = 0; ; attempt++) {
     const res = await fetcher(url, {
@@ -58,4 +62,5 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) =>
 /** Loose accessors for API payloads whose exact shape varies by revision. */
 export const str = (v: unknown): string | undefined => (typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined);
 export const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
-export const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+export const obj = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};

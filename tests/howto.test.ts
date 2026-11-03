@@ -11,7 +11,10 @@ describe("procedure library", () => {
       for (const t of Object.keys(TASKS) as TaskId[]) {
         const p = g.tasks[t];
         expect(p.steps.length, `${g.platform} ${t}`).toBeGreaterThan(0);
-        expect(p.docs.every((d) => d.startsWith("https://")), `${g.platform} ${t}`).toBe(true);
+        expect(
+          p.docs.every((d) => d.startsWith("https://")),
+          `${g.platform} ${t}`,
+        ).toBe(true);
       }
     }
   });
@@ -30,7 +33,10 @@ describe("how_to", () => {
     personalization: { greetingFallback: "friend" },
   });
   it("fills a build plan with house rules and assets to reuse", () => {
-    const r = howTo("braze", "create-journey", rules, demoSnapshot(), { audience: "lapsed customers", attributes: ["first_name", "loyalty_tier"] });
+    const r = howTo("braze", "create-journey", rules, demoSnapshot(), {
+      audience: "lapsed customers",
+      attributes: ["first_name", "loyalty_tier"],
+    });
     const setup = r.yourSetup.join(" ");
     expect(setup).toContain("LC_email_lapsed_202611");
     expect(setup).toContain("hello@fernbrook.example");

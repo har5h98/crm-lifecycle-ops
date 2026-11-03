@@ -67,7 +67,11 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   // SMS (/check-sms)
   { id: "sms.empty", severity: "fail", catches: "Text with an empty body" },
   { id: "sms.too-many-segments", severity: "warn", catches: "More billed segments than the house limit (2 by default)" },
-  { id: "sms.unicode", severity: "warn", catches: "Characters (smart quotes, emoji, dashes) that switch the text to Unicode and halve segment length" },
+  {
+    id: "sms.unicode",
+    severity: "warn",
+    catches: "Characters (smart quotes, emoji, dashes) that switch the text to Unicode and halve segment length",
+  },
   { id: "sms.unicode-names", severity: "info", catches: "Accented customer names switch a personalized text to Unicode (more segments)" },
   { id: "sms.no-opt-out", severity: "warn", catches: "No opt-out wording such as 'Reply STOP to opt out'" },
   { id: "sms.no-brand-name", severity: "warn", catches: "Text that never names the sender" },
@@ -79,7 +83,11 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   // Platform-specific behaviour
   { id: "sms.duplicate-opt-out", severity: "info", catches: "Opt-out line in the copy when the platform already appends one" },
   { id: "push.button-personalization", severity: "fail", catches: "Handlebars in Iterable push buttons, which don't support it" },
-  { id: "personalization.iterable-empty-comparison", severity: "warn", catches: "Iterable comparisons on fields that may be empty, which skip the send for that person" },
+  {
+    id: "personalization.iterable-empty-comparison",
+    severity: "warn",
+    catches: "Iterable comparisons on fields that may be empty, which skip the send for that person",
+  },
   { id: "sms.over-platform-limit", severity: "fail", catches: "More segments than the platform accepts (Braze: 10)" },
   { id: "push.android-no-title", severity: "fail", catches: "Android push in Braze without a title, which can't be sent" },
   { id: "push.title-newline", severity: "warn", catches: "Line break in a push title, which hides the rest on iOS" },

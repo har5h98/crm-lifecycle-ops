@@ -12,7 +12,8 @@ const TEMPLATE_SYNTAX = /\{\{|\{%|\$\{/;
 const NON_PROD_LABEL = /^(localhost|staging|stage|stg|dev|test|qa|uat|sandbox|preview)$|-(staging|stage|dev|test|qa|uat|sandbox|preview)$/;
 const PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
 // Click-tracking redirect hosts used by common ESPs (Braze/SendGrid/SparkPost/Klaviyo/Iterable/Mailchimp).
-const CLICK_TRACKING = /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
+const CLICK_TRACKING =
+  /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
 
 export function extractLinks(html: string): Link[] {
   const links: Link[] = [];
@@ -43,7 +44,25 @@ export function extractLinks(html: string): Link[] {
 
 // Two-part public suffixes common in marketing domains (brand.co.uk). Not a full public-suffix
 // list; it only decides which labels are "the domain" versus subdomains.
-const TWO_PART_SUFFIXES = new Set(["co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au", "co.nz", "co.jp", "co.in", "com.br", "com.mx", "co.za", "com.sg", "com.hk", "co.kr", "com.tr", "com.cn"]);
+const TWO_PART_SUFFIXES = new Set([
+  "co.uk",
+  "org.uk",
+  "ac.uk",
+  "com.au",
+  "net.au",
+  "org.au",
+  "co.nz",
+  "co.jp",
+  "co.in",
+  "com.br",
+  "com.mx",
+  "co.za",
+  "com.sg",
+  "com.hk",
+  "co.kr",
+  "com.tr",
+  "com.cn",
+]);
 
 /** The registrable domain: "staging.brand.co.uk" → "brand.co.uk". */
 export function registrableDomain(host: string): string {
@@ -92,7 +111,12 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
     const { href } = link;
     const label = link.text || "(no link text)";
     if (href === "" || href === "#") {
-      findings.push({ checkId: "links.empty-href", severity: "warn", message: `Link "${label}" has no destination.`, evidence: `href="${href}"` });
+      findings.push({
+        checkId: "links.empty-href",
+        severity: "warn",
+        message: `Link "${label}" has no destination.`,
+        evidence: `href="${href}"`,
+      });
       continue;
     }
     if (/^(mailto|tel|sms):/i.test(href) || href.startsWith("#")) continue; // in-page anchors are fine
@@ -128,7 +152,12 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
       });
     }
     if (url.protocol === "http:") {
-      findings.push({ checkId: "links.insecure-http", severity: "warn", message: `Link "${label}" uses http:// instead of https://.`, evidence: href });
+      findings.push({
+        checkId: "links.insecure-http",
+        severity: "warn",
+        message: `Link "${label}" uses http:// instead of https://.`,
+        evidence: href,
+      });
     }
     if (!/unsubscrib|preference/i.test(href + link.text)) {
       tracked.push({ link, hasUtm: /[?&]utm_source=/i.test(href) });
@@ -159,8 +188,17 @@ export async function checkLinksLive(html: string, timeoutMs = 8000): Promise<{ 
   const unsafe = (l: Link) =>
     /unsubscrib|preference|optout|opt-out/i.test(l.href + l.text) || CLICK_TRACKING.test(new URL(l.href).hostname);
   const candidates = extractLinks(html).filter((l) => /^https?:\/\//i.test(l.href) && !TEMPLATE_SYNTAX.test(l.href));
-  const skipped = candidates.filter((l) => { try { return unsafe(l); } catch { return true; } });
-  if (skipped.length) notVerified.push(`${skipped.length} unsubscribe or click-tracking link(s) were deliberately not requested, so they can't unsubscribe or click as anyone.`);
+  const skipped = candidates.filter((l) => {
+    try {
+      return unsafe(l);
+    } catch {
+      return true;
+    }
+  });
+  if (skipped.length)
+    notVerified.push(
+      `${skipped.length} unsubscribe or click-tracking link(s) were deliberately not requested, so they can't unsubscribe or click as anyone.`,
+    );
   const urls = [...new Set(candidates.filter((l) => !skipped.includes(l)).map((l) => l.href))];
 
   for (let i = 0; i < urls.length; i += 5) {

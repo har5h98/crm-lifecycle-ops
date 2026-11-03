@@ -21,7 +21,11 @@ export interface HowToContext {
   attributes?: string[];
 }
 
-const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+const words = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2);
 
 export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: Snapshot, ctx: HowToContext = {}) {
   const guide = GUIDES[platform];
@@ -32,7 +36,9 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
 
   // ---- house rules → concrete values for this build
   if (rules.naming.campaignPattern || rules.naming.example) {
-    yourSetup.push(`Name it to match your convention${rules.naming.example ? `, e.g. "${rules.naming.example}"` : ""}${rules.naming.campaignPattern ? ` (pattern ${rules.naming.campaignPattern})` : ""}.`);
+    yourSetup.push(
+      `Name it to match your convention${rules.naming.example ? `, e.g. "${rules.naming.example}"` : ""}${rules.naming.campaignPattern ? ` (pattern ${rules.naming.campaignPattern})` : ""}.`,
+    );
   }
   if (channels.includes("email") && rules.senders.allowed.length) {
     yourSetup.push(`Sender: use an approved address (${rules.senders.allowed.join(", ")}).`);
@@ -50,14 +56,20 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
       .map((x) => `\`${x}\``)
       .join(" · ")}.`,
   );
-  if (rules.compliance.requiredText.length) yourSetup.push(`Footer must include: ${rules.compliance.requiredText.map((t) => `"${t}"`).join(", ")}.`);
+  if (rules.compliance.requiredText.length)
+    yourSetup.push(`Footer must include: ${rules.compliance.requiredText.map((t) => `"${t}"`).join(", ")}.`);
   if (channels.includes("push")) {
-    yourSetup.push(`Push: title ≤ ${rules.push.titleMax} and body ≤ ${rules.push.bodyMax} characters for your longest names${rules.push.deepLinkPrefixes.length ? `; deep links start with ${rules.push.deepLinkPrefixes.join(" or ")}` : ""}${rules.push.requireDeepLink ? "; a deep link is required" : ""}.`);
+    yourSetup.push(
+      `Push: title ≤ ${rules.push.titleMax} and body ≤ ${rules.push.bodyMax} characters for your longest names${rules.push.deepLinkPrefixes.length ? `; deep links start with ${rules.push.deepLinkPrefixes.join(" or ")}` : ""}${rules.push.requireDeepLink ? "; a deep link is required" : ""}.`,
+    );
   }
   if (channels.includes("sms")) {
-    yourSetup.push(`SMS: at most ${rules.sms.maxSegments} segment(s); avoid smart quotes and emoji (they halve segment length)${rules.sms.requireBrandName && rules.brand.names[0] ? `; start with "${rules.brand.names[0]}"` : ""}${rules.sms.requireOptOut ? '; include "Reply STOP to opt out" unless the platform adds it' : ""}.`);
+    yourSetup.push(
+      `SMS: at most ${rules.sms.maxSegments} segment(s); avoid smart quotes and emoji (they halve segment length)${rules.sms.requireBrandName && rules.brand.names[0] ? `; start with "${rules.brand.names[0]}"` : ""}${rules.sms.requireOptOut ? '; include "Reply STOP to opt out" unless the platform adds it' : ""}.`,
+    );
   }
-  if (channels.includes("in-app")) yourSetup.push(`In-app: body ≤ ${rules.inApp.bodyMax} characters${rules.inApp.requireButton ? "; at least one button" : ""}.`);
+  if (channels.includes("in-app"))
+    yourSetup.push(`In-app: body ≤ ${rules.inApp.bodyMax} characters${rules.inApp.requireButton ? "; at least one button" : ""}.`);
 
   // ---- the account: reuse what exists, flag what's live
   const reuse: string[] = [];
@@ -70,19 +82,31 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);
-      for (const { s } of matches) reuse.push(`${s.kind === "list" ? guide.terms.list : guide.terms.segment} "${s.name}"${s.description ? `: ${s.description}` : ""}`);
+      for (const { s } of matches)
+        reuse.push(`${s.kind === "list" ? guide.terms.list : guide.terms.segment} "${s.name}"${s.description ? `: ${s.description}` : ""}`);
       if (!matches.length) reuse.push(`No existing ${guide.terms.segment.toLowerCase()} matches "${ctx.audience}"; you'll create one.`);
     }
-    const footer = snap.contentBlocks.find((b) => /unsubscrib/i.test(b.body) || rules.compliance.requiredText.some((t) => b.body.includes(t)));
-    if (footer && channels.includes("email")) reuse.push(`${guide.terms.sharedContent} "${footer.name}" (has the unsubscribe link${rules.compliance.requiredText.length ? " and required footer text" : ""}; used in ${footer.usedBy.length} messages)`);
+    const footer = snap.contentBlocks.find(
+      (b) => /unsubscrib/i.test(b.body) || rules.compliance.requiredText.some((t) => b.body.includes(t)),
+    );
+    if (footer && channels.includes("email"))
+      reuse.push(
+        `${guide.terms.sharedContent} "${footer.name}" (has the unsubscribe link${rules.compliance.requiredText.length ? " and required footer text" : ""}; used in ${footer.usedBy.length} messages)`,
+      );
 
     if (ctx.target) {
       const found = findItem(snap, ctx.target);
       if ("candidates" in found) {
-        warnings.push(`Couldn't pin down "${ctx.target}"${found.candidates.length ? `; did you mean: ${found.candidates.join("; ")}` : ""}.`);
+        warnings.push(
+          `Couldn't pin down "${ctx.target}"${found.candidates.length ? `; did you mean: ${found.candidates.join("; ")}` : ""}.`,
+        );
       } else {
         const msgIds = found.kind === "campaign" ? found.item.messageIds : found.item.steps.flatMap((s) => s.messageIds);
-        target = { name: found.item.name, kind: found.kind === "journey" ? guide.terms.journey : guide.terms.campaign, status: found.item.status };
+        target = {
+          name: found.item.name,
+          kind: found.kind === "journey" ? guide.terms.journey : guide.terms.campaign,
+          status: found.item.status,
+        };
         if (isActive(found.item.status)) {
           warnings.push(`"${found.item.name}" is ${found.item.status}. Read the gotchas below before changing it.`);
         }
@@ -90,7 +114,10 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
         for (const b of snap.contentBlocks) {
           if (b.usedBy.some((id) => msgIds.includes(id))) {
             const others = whatBreaks(snap, "content-block", b.name).dependents.filter((d) => d.active && d.id !== found.item.id);
-            if (others.length) warnings.push(`It uses ${guide.terms.sharedContent} "${b.name}", which is also in ${others.length} other live program(s): ${others.map((o) => o.name).join(", ")}. Edit the block only if they should all change.`);
+            if (others.length)
+              warnings.push(
+                `It uses ${guide.terms.sharedContent} "${b.name}", which is also in ${others.length} other live program(s): ${others.map((o) => o.name).join(", ")}. Edit the block only if they should all change.`,
+              );
           }
         }
       }

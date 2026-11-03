@@ -159,7 +159,10 @@ export async function saveSnapshot(s: Snapshot): Promise<string> {
 export async function listSnapshots(platform: Platform, workspace: string): Promise<string[]> {
   try {
     const dir = dirFor(platform, workspace);
-    return (await readdir(dir)).filter((f) => f.endsWith(".json")).sort().map((f) => join(dir, f));
+    return (await readdir(dir))
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+      .map((f) => join(dir, f));
   } catch {
     return [];
   }
@@ -192,7 +195,11 @@ export async function loadSnapshot(file: string): Promise<Snapshot> {
 }
 
 /** The newest snapshot, plus the one before it (for diffs), or the newest one taken on/before `since`. */
-export async function loadLatest(platform: Platform, workspace: string, since?: string): Promise<{ latest?: Snapshot; previous?: Snapshot }> {
+export async function loadLatest(
+  platform: Platform,
+  workspace: string,
+  since?: string,
+): Promise<{ latest?: Snapshot; previous?: Snapshot }> {
   const files = await listSnapshots(platform, workspace);
   if (files.length === 0) return {};
   const latest = await loadSnapshot(files[files.length - 1]!);
@@ -240,9 +247,17 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): Change[] {
         changes.push({ kind, id, name: x.name, change: "added", active: activeOf(x) });
         continue;
       }
-      if (old.name !== x.name) changes.push({ kind, id, name: x.name, change: "renamed", detail: `was "${old.name}"`, active: activeOf(x) });
+      if (old.name !== x.name)
+        changes.push({ kind, id, name: x.name, change: "renamed", detail: `was "${old.name}"`, active: activeOf(x) });
       if (statusOf && statusOf(old) !== statusOf(x)) {
-        changes.push({ kind, id, name: x.name, change: "status", detail: `${statusOf(old)} → ${statusOf(x)}`, active: activeOf(x) || activeOf(old) });
+        changes.push({
+          kind,
+          id,
+          name: x.name,
+          change: "status",
+          detail: `${statusOf(old)} → ${statusOf(x)}`,
+          active: activeOf(x) || activeOf(old),
+        });
       }
       const fa = fields(old);
       const fb = fields(x);
@@ -253,8 +268,22 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): Change[] {
     for (const [id, x] of A) if (!B.has(id)) changes.push({ kind, id, name: x.name, change: "removed", active: activeOf(x) });
   }
 
-  compare("campaign", before.campaigns, after.campaigns, (c) => isActive(c.status), (c) => ({ audience: c.audience, structure: c.messageIds }), (c) => c.status);
-  compare("journey", before.journeys, after.journeys, (j) => isActive(j.status), (j) => ({ audience: j.audience, structure: j.steps }), (j) => j.status);
+  compare(
+    "campaign",
+    before.campaigns,
+    after.campaigns,
+    (c) => isActive(c.status),
+    (c) => ({ audience: c.audience, structure: c.messageIds }),
+    (c) => c.status,
+  );
+  compare(
+    "journey",
+    before.journeys,
+    after.journeys,
+    (j) => isActive(j.status),
+    (j) => ({ audience: j.audience, structure: j.steps }),
+    (j) => j.status,
+  );
 
   const ownerActive = (snap: Snapshot) => {
     const active = new Set([...snap.campaigns, ...snap.journeys].filter((x) => isActive(x.status)).map((x) => x.id));
@@ -262,8 +291,20 @@ export function diffSnapshots(before: Snapshot, after: Snapshot): Change[] {
   };
   const activeAfter = ownerActive(after);
   compare("message", before.messages, after.messages, activeAfter, (m) => ({ content: [m.subject, m.preheader, m.from, m.body] }));
-  compare("segment", before.segments, after.segments, () => false, (s) => ({ content: [s.description, s.definition] }));
-  compare("content block", before.contentBlocks, after.contentBlocks, (b) => b.usedBy.length > 0, (b) => ({ content: b.body }));
+  compare(
+    "segment",
+    before.segments,
+    after.segments,
+    () => false,
+    (s) => ({ content: [s.description, s.definition] }),
+  );
+  compare(
+    "content block",
+    before.contentBlocks,
+    after.contentBlocks,
+    (b) => b.usedBy.length > 0,
+    (b) => ({ content: b.body }),
+  );
 
   return changes.sort((x, y) => Number(y.active) - Number(x.active));
 }

@@ -13,13 +13,23 @@ export const THRESHOLDS = {
 
 const pct = (x: number) => `${(x * 100).toFixed(2)}%`;
 
-export function evaluateHealth(s: LaunchStats): { verdict: "healthy" | "watch" | "act now" | "no data"; findings: Finding[]; rates: Record<string, string> } {
+export function evaluateHealth(s: LaunchStats): {
+  verdict: "healthy" | "watch" | "act now" | "no data";
+  findings: Finding[];
+  rates: Record<string, string>;
+} {
   const findings: Finding[] = [];
   const rates: Record<string, string> = {};
   if (!s.sent) {
     return {
       verdict: "no data",
-      findings: [{ checkId: "launch.no-sends", severity: "warn", message: `Nothing has been sent in the ${s.period}. If this should be live, check the schedule, the audience size and that it's switched on.` }],
+      findings: [
+        {
+          checkId: "launch.no-sends",
+          severity: "warn",
+          message: `Nothing has been sent in the ${s.period}. If this should be live, check the schedule, the audience size and that it's switched on.`,
+        },
+      ],
       rates,
     };
   }
@@ -43,7 +53,12 @@ export function evaluateHealth(s: LaunchStats): { verdict: "healthy" | "watch" |
   if (s.delivered !== undefined) {
     const d = s.delivered / s.sent;
     rates.delivery = pct(d);
-    if (d < THRESHOLDS.delivery.warn) findings.push({ checkId: "launch.delivery-low", severity: "warn", message: `Only ${pct(d)} of sends were delivered (watch below ${pct(THRESHOLDS.delivery.warn)}).` });
+    if (d < THRESHOLDS.delivery.warn)
+      findings.push({
+        checkId: "launch.delivery-low",
+        severity: "warn",
+        message: `Only ${pct(d)} of sends were delivered (watch below ${pct(THRESHOLDS.delivery.warn)}).`,
+      });
   }
   if (s.uniqueOpens !== undefined) rates.uniqueOpen = pct(s.uniqueOpens / base);
   if (s.uniqueClicks !== undefined) rates.uniqueClick = pct(s.uniqueClicks / base);

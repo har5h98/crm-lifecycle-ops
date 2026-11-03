@@ -16,7 +16,7 @@ argument-hint: "<the thing you want to change>"
      how we know, in words: *confirmed by the API* / *read from the template* / *read from the segment's description* /
      *seen on screen <date>*.
    - **Not live**: one line.
-   - **Can't rule out**: live items whose targeting the API doesn't expose, with why.
+   - **Can't rule out**: live items whose targeting the API doesn't expose, with the reason from `unknownWhy` (said once).
 4. **Close the gaps** for "can't rule out" items (Braze mostly): offer to open each item's audience page
    in the person's browser with Claude in Chrome, read the targeted segments, and call `record_audience`
    for each (stored as *seen on screen*). One page at a time, only with their OK; never crawl the

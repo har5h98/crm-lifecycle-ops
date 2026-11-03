@@ -45,13 +45,18 @@ describe("links", () => {
     expect(ids(r)).not.toContain("links.no-unsubscribe");
   });
   it("in-page anchors are fine; relative links are flagged", async () => {
-    const r = await checkEmail({ platform: "braze", html: '<a href="#deals">Deals</a><a href="/account">Account</a><a href="{{${set_user_to_unsubscribed_url}}}">u</a>' });
+    const r = await checkEmail({
+      platform: "braze",
+      html: '<a href="#deals">Deals</a><a href="/account">Account</a><a href="{{${set_user_to_unsubscribed_url}}}">u</a>',
+    });
     expect(ids(r)).not.toContain("links.malformed");
     expect(ids(r)).toContain("links.relative");
   });
   it("judges only subdomains for staging hosts", () => {
-    for (const h of ["go.dev", "brand.dev", "site.pages.dev", "shop.qa", "test.io", "stage.com", "devon.co.uk"]) expect(isNonProdHost(h), h).toBe(false);
-    for (const h of ["staging.brand.com", "dev.brand.co.uk", "brand-qa.brand.com", "localhost", "example.com"]) expect(isNonProdHost(h), h).toBe(true);
+    for (const h of ["go.dev", "brand.dev", "site.pages.dev", "shop.qa", "test.io", "stage.com", "devon.co.uk"])
+      expect(isNonProdHost(h), h).toBe(false);
+    for (const h of ["staging.brand.com", "dev.brand.co.uk", "brand-qa.brand.com", "localhost", "example.com"])
+      expect(isNonProdHost(h), h).toBe(true);
   });
 });
 
@@ -76,12 +81,23 @@ describe("sms", () => {
     expect(ids(r)).toContain("sms.no-opt-out");
   });
   it("accepts real opt-out wording", async () => {
-    for (const body of ["Fernbrook: 20% off. Reply STOP to opt out", "Fernbrook: 20% off. Text STOP to quit", "Fernbrook: 20% off. Opt out: brand.example/u"]) {
+    for (const body of [
+      "Fernbrook: 20% off. Reply STOP to opt out",
+      "Fernbrook: 20% off. Text STOP to quit",
+      "Fernbrook: 20% off. Opt out: brand.example/u",
+    ]) {
       expect(ids(await checkChannelMessage({ channel: "sms", platform: "braze", body }, rules)), body).not.toContain("sms.no-opt-out");
     }
   });
   it("a plain-ASCII personalized text isn't reported as Unicode", async () => {
-    const r = await checkChannelMessage({ channel: "sms", platform: "braze", body: "Fernbrook: Hi {{${first_name} | default: 'there'}}, order {{custom_attribute.${order_id}}} ships today. Reply STOP to opt out" }, rules);
+    const r = await checkChannelMessage(
+      {
+        channel: "sms",
+        platform: "braze",
+        body: "Fernbrook: Hi {{${first_name} | default: 'there'}}, order {{custom_attribute.${order_id}}} ships today. Reply STOP to opt out",
+      },
+      rules,
+    );
     expect(ids(r)).not.toContain("sms.unicode");
     expect(r.stats.encoding).toBe("GSM-7");
   });
@@ -97,7 +113,10 @@ describe("misc", () => {
     expect(r.findings.filter((f) => f.checkId === "html.unclosed-tag")).toHaveLength(1);
   });
   it("if/else branches with a link each aren't unclosed tags", async () => {
-    const r = await checkEmail({ platform: "braze", html: '{% if x %}<a href="https://www.b.example/a">{% else %}<a href="https://www.b.example/b">{% endif %}Shop</a><a href="{{${set_user_to_unsubscribed_url}}}">u</a>' });
+    const r = await checkEmail({
+      platform: "braze",
+      html: '{% if x %}<a href="https://www.b.example/a">{% else %}<a href="https://www.b.example/b">{% endif %}Shop</a><a href="{{${set_user_to_unsubscribed_url}}}">u</a>',
+    });
     expect(ids(r)).not.toContain("html.unclosed-tag");
   });
   it("events are found by name, and live items with hidden triggers are listed", () => {
@@ -106,5 +125,32 @@ describe("misc", () => {
     const r = whatBreaks(snap, "event", "Placed Order");
     expect(r.dependents.map((d) => d.name)).toContain("Welcome Series");
     expect(r.unknown.length).toBeGreaterThan(0);
+  });
+});
+
+describe("operator-facing output (from a simulated session)", () => {
+  it("judges subject length on what people see, not the template", async () => {
+    const r = await checkEmail({
+      platform: "braze",
+      subject: "{{${first_name} | default: 'there'}}, your weekend deals are here",
+      html: '<a href="{{${set_user_to_unsubscribed_url}}}">u</a>',
+    });
+    const f = r.findings.find((x) => x.checkId === "house.subject-length");
+    expect(f?.message ?? "").not.toMatch(/65/); // the raw template is 65 characters
+  });
+  it("journey diagrams show [field] instead of template code", async () => {
+    const { journeyDiagram } = await import("../src/core/journey.js");
+    const snap = demoSnapshot();
+    const d = journeyDiagram(
+      snap.journeys.find((j) => j.name === "Win-back")!,
+      snap,
+    );
+    expect(d).toContain("[loyalty_tier]");
+    expect(d).not.toContain("custom_attribute");
+  });
+  it("bulk-edit previews are readable text", async () => {
+    const { bulkEditPreview } = await import("../src/core/ops.js");
+    const p = bulkEditPreview(demoSnapshot(), "20%", "25%");
+    expect(p.places[0]!.before.join(" ")).not.toMatch(/mso-hide|<|>/);
   });
 });

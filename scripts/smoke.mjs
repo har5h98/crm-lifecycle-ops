@@ -9,7 +9,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const home = mkdtempSync(join(tmpdir(), "clo-smoke-"));
-const transport = new StdioClientTransport({ command: process.execPath, args: ["dist/mcp-server.js"], env: { ...process.env, CLO_HOME: home } });
+const transport = new StdioClientTransport({
+  command: process.execPath,
+  args: ["dist/mcp-server.js"],
+  env: { ...process.env, CLO_HOME: home },
+});
 const client = new Client({ name: "smoke", version: "1" });
 await client.connect(transport);
 

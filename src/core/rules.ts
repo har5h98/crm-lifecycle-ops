@@ -107,9 +107,7 @@ export const RulebookSchema = z.object({
   /** Per-check severity overrides. Locked checks ignore these. */
   severity: z.record(z.string(), z.enum(["fail", "warn", "info", "off"])).default({}),
   /** "This is fine for us" decisions, each with a reason, so they're auditable later. */
-  exceptions: z
-    .array(z.object({ checkId: z.string(), match: z.string().optional(), reason: z.string(), addedAt: z.string() }))
-    .default([]),
+  exceptions: z.array(z.object({ checkId: z.string(), match: z.string().optional(), reason: z.string(), addedAt: z.string() })).default([]),
 });
 
 export type Rulebook = z.infer<typeof RulebookSchema>;

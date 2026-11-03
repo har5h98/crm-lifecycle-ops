@@ -7,14 +7,57 @@ import type { Finding, Persona, Platform } from "../core/model.js";
 
 const ABORT = "__CLO_ABORT__";
 const KEYWORDS = new Set([
-  "if", "elsif", "else", "unless", "endif", "endunless", "case", "when", "for", "in", "endfor", "each", "with",
-  "and", "or", "not", "true", "false", "nil", "null", "blank", "empty", "contains", "this", "assign", "capture",
+  "if",
+  "elsif",
+  "else",
+  "unless",
+  "endif",
+  "endunless",
+  "case",
+  "when",
+  "for",
+  "in",
+  "endfor",
+  "each",
+  "with",
+  "and",
+  "or",
+  "not",
+  "true",
+  "false",
+  "nil",
+  "null",
+  "blank",
+  "empty",
+  "contains",
+  "this",
+  "assign",
+  "capture",
   // Iterable / Handlebars helpers
-  "defaultIfEmpty", "eq", "ne", "gt", "lt", "lookup", "unless",
+  "defaultIfEmpty",
+  "eq",
+  "ne",
+  "gt",
+  "lt",
+  "lookup",
+  "unless",
   // Platform tags that are not customer data
-  "content_blocks", "unsubscribe", "unsubscribe_url", "manage_preferences", "manage_preferences_url", "web_view",
-  "unsubscribeUrl", "unsubscribeMessageTypeUrl", "hostedUnsubscribeUrl", "viewInBrowserUrl", "connected_content",
-  "abort_message", "catalog_items", "set_user_to_unsubscribed_url", "email_footer", "preference_center",
+  "content_blocks",
+  "unsubscribe",
+  "unsubscribe_url",
+  "manage_preferences",
+  "manage_preferences_url",
+  "web_view",
+  "unsubscribeUrl",
+  "unsubscribeMessageTypeUrl",
+  "hostedUnsubscribeUrl",
+  "viewInBrowserUrl",
+  "connected_content",
+  "abort_message",
+  "catalog_items",
+  "set_user_to_unsubscribed_url",
+  "email_footer",
+  "preference_center",
 ]);
 
 /** Braze writes standard attributes as {{${first_name}}}; strip the ${} so Liquid can read them. */
@@ -26,7 +69,10 @@ export function referencedVariables(src: string, platform: Platform): string[] {
   const body = platform === "braze" ? normalizeBraze(src) : src;
   const found = new Set<string>();
   // Closing tags ({{/ifEq}}) and else markers carry no data.
-  const blocks = [...body.matchAll(/\{\{\{?([#^]?)(?!\/)([\s\S]*?)\}?\}\}/g), ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless)\s+([\s\S]*?)-?%\}/g)];
+  const blocks = [
+    ...body.matchAll(/\{\{\{?([#^]?)(?!\/)([\s\S]*?)\}?\}\}/g),
+    ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless)\s+([\s\S]*?)-?%\}/g),
+  ];
   for (const m of blocks) {
     const isLiquidTag = m[0].startsWith("{%");
     // Drop quoted strings and Liquid filters ("| default: 'x'") before picking identifiers.
@@ -173,13 +219,18 @@ function parseTolerant(engine: Liquid, src: string, notVerified: Set<string>): T
       if (!unknown) throw err;
       const ends = new RegExp(`\\{%-?\\s*end${unknown}\\b`).test(src);
       const msg = `{% ${unknown} %} isn't emulated locally; its output wasn't checked.`;
-      engine.registerTag(unknown, ends ? blockStub(unknown, msg, notVerified) : class extends Tag {
-        constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
-          super(token, remain, liquid);
-          notVerified.add(msg);
-        }
-        *render(): Generator<unknown, void, unknown> {}
-      });
+      engine.registerTag(
+        unknown,
+        ends
+          ? blockStub(unknown, msg, notVerified)
+          : class extends Tag {
+              constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
+                super(token, remain, liquid);
+                notVerified.add(msg);
+              }
+              *render(): Generator<unknown, void, unknown> {}
+            },
+      );
     }
   }
   return engine.parse(src);
@@ -193,19 +244,53 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
     function (this: unknown, a: unknown, b: unknown, opts: Opts) {
       return test(a, b) ? opts.fn(this) : opts.inverse(this);
     };
-  hb.registerHelper("defaultIfEmpty", (value: unknown, fallback: unknown) => (value === undefined || value === null || value === "" ? fallback : value));
-  hb.registerHelper("ifEq", cmp((a, b) => String(a) === String(b)));
-  hb.registerHelper("ifNotEq", cmp((a, b) => String(a) !== String(b)));
-  hb.registerHelper("ifGt", cmp((a, b) => Number(a) > Number(b)));
-  hb.registerHelper("ifGte", cmp((a, b) => Number(a) >= Number(b)));
-  hb.registerHelper("ifLt", cmp((a, b) => Number(a) < Number(b)));
-  hb.registerHelper("ifLte", cmp((a, b) => Number(a) <= Number(b)));
-  hb.registerHelper("ifContainsStr", cmp((a, b) => String(a ?? "").includes(String(b))));
+  hb.registerHelper("defaultIfEmpty", (value: unknown, fallback: unknown) =>
+    value === undefined || value === null || value === "" ? fallback : value,
+  );
+  hb.registerHelper(
+    "ifEq",
+    cmp((a, b) => String(a) === String(b)),
+  );
+  hb.registerHelper(
+    "ifNotEq",
+    cmp((a, b) => String(a) !== String(b)),
+  );
+  hb.registerHelper(
+    "ifGt",
+    cmp((a, b) => Number(a) > Number(b)),
+  );
+  hb.registerHelper(
+    "ifGte",
+    cmp((a, b) => Number(a) >= Number(b)),
+  );
+  hb.registerHelper(
+    "ifLt",
+    cmp((a, b) => Number(a) < Number(b)),
+  );
+  hb.registerHelper(
+    "ifLte",
+    cmp((a, b) => Number(a) <= Number(b)),
+  );
+  hb.registerHelper(
+    "ifContainsStr",
+    cmp((a, b) => String(a ?? "").includes(String(b))),
+  );
   hb.registerHelper("eq", function (this: unknown, a: unknown, b: unknown, opts: Opts) {
     const r = String(a) === String(b);
     return opts && typeof opts.fn === "function" ? (r ? opts.fn(this) : opts.inverse(this)) : r;
   });
-  for (const name of ["capitalize", "upper", "lower", "titleCase", "trim", "urlEncode", "dateFormat", "replace", "truncate", "formatNumber"]) {
+  for (const name of [
+    "capitalize",
+    "upper",
+    "lower",
+    "titleCase",
+    "trim",
+    "urlEncode",
+    "dateFormat",
+    "replace",
+    "truncate",
+    "formatNumber",
+  ]) {
     hb.registerHelper(name, (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : ""));
   }
   hb.registerHelper("snippet", (name: unknown) => {
@@ -219,7 +304,8 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
   });
   hb.registerHelper("blockHelperMissing", function (this: unknown, ...args: unknown[]) {
     const opts = args[args.length - 1] as Opts & { name: string };
-    if (["catalog", "catalogCollection", "catalogKeys"].includes(opts.name)) notVerified.add("Iterable catalog lookups were not executed (live catalog data).");
+    if (["catalog", "catalogCollection", "catalogKeys"].includes(opts.name))
+      notVerified.add("Iterable catalog lookups were not executed (live catalog data).");
     return "";
   });
 }
@@ -235,8 +321,16 @@ function textOf(html: string): string {
 // Patterns that appear when data is missing. We only report them when a persona produces MORE
 // of them than the complete profile does, so copy that legitimately contains them isn't flagged.
 const ARTIFACTS: { id: string; pattern: RegExp; message: string }[] = [
-  { id: "personalization.dangling-punctuation", pattern: /^[ \t]*[,!?.;:](?=\s)|\w[ \t]+[,!?.;:](?=\s|$)/gm, message: "a blank where a value should be (e.g. \"Hi ,\")" },
-  { id: "personalization.literal-null", pattern: /\b(undefined|null|nil|NaN)\b|\[object Object\]/g, message: "a literal undefined/null/nil in the copy" },
+  {
+    id: "personalization.dangling-punctuation",
+    pattern: /^[ \t]*[,!?.;:](?=\s)|\w[ \t]+[,!?.;:](?=\s|$)/gm,
+    message: 'a blank where a value should be (e.g. "Hi ,")',
+  },
+  {
+    id: "personalization.literal-null",
+    pattern: /\b(undefined|null|nil|NaN)\b|\[object Object\]/g,
+    message: "a literal undefined/null/nil in the copy",
+  },
 ];
 
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
@@ -248,11 +342,7 @@ export interface PersonalizationResult {
   renders: { persona: string; output: string | null; aborted?: string }[];
 }
 
-export async function checkPersonalization(
-  source: string,
-  platform: Platform,
-  personas?: Persona[],
-): Promise<PersonalizationResult> {
+export async function checkPersonalization(source: string, platform: Platform, personas?: Persona[]): Promise<PersonalizationResult> {
   const findings: Finding[] = [];
   const notVerified = new Set<string>();
   const variables = referencedVariables(source, platform);

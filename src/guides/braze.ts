@@ -7,19 +7,29 @@ const D = "https://www.braze.com/docs/user_guide";
 export const braze: PlatformGuide = {
   platform: "braze",
   verifiedAt: "2026-11-02",
-  terms: { journey: "Canvas", campaign: "Campaign", segment: "Segment", list: "Segment", sharedContent: "Content Block", testUsers: "Content Test Group" },
+  terms: {
+    journey: "Canvas",
+    campaign: "Campaign",
+    segment: "Segment",
+    list: "Segment",
+    sharedContent: "Content Block",
+    testUsers: "Content Test Group",
+  },
   personalization: {
     attribute: (n) => `{{\${${n}}}}`,
     customAttribute: (n) => `{{custom_attribute.\${${n}}}}`,
     withFallback: (n, fb, custom) => (custom ? `{{custom_attribute.\${${n}} | default: '${fb}'}}` : `{{\${${n}} | default: '${fb}'}}`),
     conditional: (n) => `{% if \${${n}} != blank %}…{% else %}…{% endif %}`,
     notes: [
-      "default only covers empty or missing values, not whitespace (\" \"); use a blank check for those.",
+      'default only covers empty or missing values, not whitespace (" "); use a blank check for those.',
       "Filters don't work inside if/elsif; assign the filtered value to a variable first.",
       "In a Canvas, an aborted Message step doesn't exit the user; they continue to the next step.",
       "In-app message Liquid and abort logic run on the device when the message triggers, not at send.",
     ],
-    docs: [`${D}/messaging/design_and_edit/personalize/liquid/setting_default_values`, `${D}/messaging/design_and_edit/personalize/liquid/aborting_messages`],
+    docs: [
+      `${D}/messaging/design_and_edit/personalize/liquid/setting_default_values`,
+      `${D}/messaging/design_and_edit/personalize/liquid/aborting_messages`,
+    ],
   },
   channels: {
     push: {
@@ -39,7 +49,10 @@ export const braze: PlatformGuide = {
       docs: [`${D}/channels/sms_mms_and_rcs/billing_calculator`, `${D}/channels/sms_mms_and_rcs/compliance_and_delivery/best_practices`],
     },
     "in-app": {
-      notes: ["In-app messages can't be part of a multichannel campaign; use a single-channel campaign or a Canvas.", "Changes reach devices at their next session start."],
+      notes: [
+        "In-app messages can't be part of a multichannel campaign; use a single-channel campaign or a Canvas.",
+        "Changes reach devices at their next session start.",
+      ],
       docs: [`${D}/channels/in_app_messages/message_types/modal`],
     },
     email: {
@@ -83,7 +96,11 @@ export const braze: PlatformGuide = {
         "A path with no next step exits the user.",
         "Conversion events and the order of Audience Paths can't be changed after launch.",
       ],
-      docs: [`${D}/messaging/canvas/create_a_canvas`, `${D}/messaging/canvas/canvas_components/audience_paths`, `${D}/messaging/canvas/canvas_components/decision_split`],
+      docs: [
+        `${D}/messaging/canvas/create_a_canvas`,
+        `${D}/messaging/canvas/canvas_components/audience_paths`,
+        `${D}/messaging/canvas/canvas_components/decision_split`,
+      ],
     },
     "edit-live-journey": {
       steps: [
@@ -99,7 +116,10 @@ export const braze: PlatformGuide = {
         "Stopping the Canvas discards the draft.",
         "For big changes Braze recommends: stop, duplicate, edit the copy, launch it, and exclude people who got the original.",
       ],
-      docs: [`${D}/messaging/canvas/managing_canvases/change_your_canvas_after_launch`, `${D}/messaging/canvas/managing_canvases/canvas_drafts`],
+      docs: [
+        `${D}/messaging/canvas/managing_canvases/change_your_canvas_after_launch`,
+        `${D}/messaging/canvas/managing_canvases/canvas_drafts`,
+      ],
     },
     "edit-live-message": {
       steps: [
@@ -157,7 +177,10 @@ export const braze: PlatformGuide = {
         "Test sends don't fill in {{${user_id}}}.",
         "In a Canvas, {{campaign.${name}}} returns the step name; use {{canvas.${name}}} for the Canvas.",
       ],
-      docs: [`${D}/messaging/templates/email_templates/link_template`, `${D}/channels/sms_mms_and_rcs/message_features_and_optimization/link_shortening`],
+      docs: [
+        `${D}/messaging/templates/email_templates/link_template`,
+        `${D}/channels/sms_mms_and_rcs/message_features_and_optimization/link_shortening`,
+      ],
     },
     "frequency-and-quiet-hours": {
       steps: [
@@ -180,7 +203,10 @@ export const braze: PlatformGuide = {
         "Pick a type (e.g. Makes Purchase, Performs Custom Event) and a deadline (up to 30 days).",
         "Put the outcome you care about first; the primary event drives winners and optimization.",
       ],
-      gotchas: ["Conversion events can't be changed after launch. To change them, duplicate the campaign or Canvas.", "The default is Starts Session within 3 days."],
+      gotchas: [
+        "Conversion events can't be changed after launch. To change them, duplicate the campaign or Canvas.",
+        "The default is Starts Session within 3 days.",
+      ],
       docs: [`${D}/messaging/messaging_fundamentals/conversion_events`],
     },
     "ab-test": {
@@ -209,7 +235,10 @@ export const braze: PlatformGuide = {
         "Abort logic can silently block a test send.",
         "Test sends count toward SMS billing.",
       ],
-      docs: [`${D}/messaging/messaging_fundamentals/sending_test_messages`, `${D}/messaging/design_and_edit/personalize/preview_personalization`],
+      docs: [
+        `${D}/messaging/messaging_fundamentals/sending_test_messages`,
+        `${D}/messaging/design_and_edit/personalize/preview_personalization`,
+      ],
     },
     "pause-stop-duplicate": {
       steps: [

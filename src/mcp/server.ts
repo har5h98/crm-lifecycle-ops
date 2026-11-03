@@ -18,7 +18,16 @@ import { checkJourneyStructure, journeyDiagram } from "../core/journey.js";
 import type { Platform } from "../core/model.js";
 import { bulkEditPreview, opsReport } from "../core/ops.js";
 import { loadRules, LOCKED_CHECKS, saveRules } from "../core/rules.js";
-import { carryForwardSeenAudiences, diffSnapshots, homeDir, isActive, loadLatest, saveSnapshot, updateLatest, type Snapshot } from "../core/snapshot.js";
+import {
+  carryForwardSeenAudiences,
+  diffSnapshots,
+  homeDir,
+  isActive,
+  loadLatest,
+  saveSnapshot,
+  updateLatest,
+  type Snapshot,
+} from "../core/snapshot.js";
 import { demoSnapshot } from "../demo/fernbrook.js";
 import { howTo } from "../guides/howto.js";
 import { TASKS, type TaskId } from "../guides/types.js";
@@ -66,7 +75,10 @@ function resolveWorkspace(platform: Platform, workspace?: string): string {
 async function latest(platform: Platform, workspace?: string): Promise<Snapshot> {
   const ws = resolveWorkspace(platform, workspace);
   const { latest } = await loadLatest(platform, ws);
-  if (!latest) throw new Error(`No snapshot of ${platform} (${ws}) yet. Run /refresh first${ws === "demo" ? ", or refresh with demo: true to try the demo account" : ""}.`);
+  if (!latest)
+    throw new Error(
+      `No snapshot of ${platform} (${ws}) yet. Run /refresh first${ws === "demo" ? ", or refresh with demo: true to try the demo account" : ""}.`,
+    );
   return latest;
 }
 
@@ -77,7 +89,9 @@ const tool = server.registerTool.bind(server);
 
 const persona = z.object({
   name: z.string(),
-  attributes: z.record(z.string(), z.unknown()).describe('Attribute values keyed by path, e.g. {"first_name": "Ana", "custom_attribute.loyalty_tier": "Gold"}'),
+  attributes: z
+    .record(z.string(), z.unknown())
+    .describe('Attribute values keyed by path, e.g. {"first_name": "Ana", "custom_attribute.loyalty_tier": "Gold"}'),
 });
 
 tool(
@@ -96,9 +110,18 @@ tool(
       subject: z.string().optional(),
       preheader: z.string().optional(),
       from: z.string().optional().describe("Sender email address."),
-      transactional: z.boolean().optional().describe("Receipts, password resets and other transactional mail: skips the unsubscribe requirement."),
-      personas: z.array(persona).optional().describe("Synthetic test profiles. Leave empty to use the team's personas or auto-generated ones."),
-      check_links_live: z.boolean().optional().describe("Also check each link over the network (HEAD requests only; unsubscribe and click-tracking links are never requested)."),
+      transactional: z
+        .boolean()
+        .optional()
+        .describe("Receipts, password resets and other transactional mail: skips the unsubscribe requirement."),
+      personas: z
+        .array(persona)
+        .optional()
+        .describe("Synthetic test profiles. Leave empty to use the team's personas or auto-generated ones."),
+      check_links_live: z
+        .boolean()
+        .optional()
+        .describe("Also check each link over the network (HEAD requests only; unsubscribe and click-tracking links are never requested)."),
     },
   },
   async (args) => {
@@ -106,10 +129,25 @@ tool(
     if (!html) return fail("Give either `html` or `file`.");
     const { rules, exists } = await loadRules();
     const report = await checkEmail(
-      { html, platform: args.platform, name: args.name ?? args.file, subject: args.subject, preheader: args.preheader, from: args.from, transactional: args.transactional, personas: args.personas, checkLinksLive: args.check_links_live },
+      {
+        html,
+        platform: args.platform,
+        name: args.name ?? args.file,
+        subject: args.subject,
+        preheader: args.preheader,
+        from: args.from,
+        transactional: args.transactional,
+        personas: args.personas,
+        checkLinksLive: args.check_links_live,
+      },
       rules,
     );
-    await logRun({ tool: "check_email", platform: report.platform, summary: report.summary, checkIds: report.findings.map((f) => f.checkId) });
+    await logRun({
+      tool: "check_email",
+      platform: report.platform,
+      summary: report.summary,
+      checkIds: report.findings.map((f) => f.checkId),
+    });
     return json({ ...report, houseRules: exists ? "applied" : "none yet: run /setup to teach it your team's conventions" });
   },
 );
@@ -129,7 +167,10 @@ tool(
       title: z.string().optional().describe("Push title or in-app header."),
       deep_link: z.string().optional().describe("Tap-through destination: deep link or URL."),
       image_url: z.string().optional(),
-      buttons: z.array(z.object({ text: z.string(), link: z.string().optional() })).optional().describe("In-app buttons."),
+      buttons: z
+        .array(z.object({ text: z.string(), link: z.string().optional() }))
+        .optional()
+        .describe("In-app buttons."),
       name: z.string().optional(),
       personas: z.array(persona).optional(),
     },
@@ -137,10 +178,26 @@ tool(
   async (args) => {
     const { rules, exists } = await loadRules();
     const report = await checkChannelMessage(
-      { channel: args.channel, platform: args.platform, name: args.name, title: args.title, body: args.body, deepLink: args.deep_link, imageUrl: args.image_url, buttons: args.buttons, personas: args.personas },
+      {
+        channel: args.channel,
+        platform: args.platform,
+        name: args.name,
+        title: args.title,
+        body: args.body,
+        deepLink: args.deep_link,
+        imageUrl: args.image_url,
+        buttons: args.buttons,
+        personas: args.personas,
+      },
       rules,
     );
-    await logRun({ tool: "check_message", channel: args.channel, platform: args.platform, summary: report.summary, checkIds: report.findings.map((f) => f.checkId) });
+    await logRun({
+      tool: "check_message",
+      channel: args.channel,
+      platform: args.platform,
+      summary: report.summary,
+      checkIds: report.findings.map((f) => f.checkId),
+    });
     return json({ ...report, houseRules: exists ? "applied" : "none yet: run /setup to teach it your team's conventions" });
   },
 );
@@ -149,14 +206,23 @@ tool(
   "check_campaign",
   {
     title: "Check a campaign or journey",
-    description: "QA every message in a campaign or journey (Canvas/flow): emails with content blocks expanded, push, SMS and in-app, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
+    description:
+      "QA every message in a campaign or journey (Canvas/flow): emails with content blocks expanded, push, SMS and in-app, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
     inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
   },
   async ({ platform, workspace, name_or_id }) => {
     const snap = await latest(platform, workspace);
     const { rules } = await loadRules();
     const result = await checkCampaign(snap, name_or_id, rules);
-    if ("settings" in result && result.settings && result.messages) await logRun({ tool: "check_campaign", platform, summary: result.summary, checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId) });
+    if ("settings" in result && result.settings && result.messages) {
+      await logRun({
+        tool: "check_campaign",
+        platform,
+        messages: result.messages.length,
+        summary: result.summary,
+        checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId),
+      });
+    }
     return json(result);
   },
 );
@@ -165,7 +231,8 @@ tool(
   "list_checks",
   {
     title: "List all checks",
-    description: "Every check, with its id, default severity and what it catches, plus which ones are locked (can't be turned off). Use to explain a finding or fill in a problem report.",
+    description:
+      "Every check, with its id, default severity and what it catches, plus which ones are locked (can't be turned off). Use to explain a finding or fill in a problem report.",
     inputSchema: {},
   },
   async () => json({ version: VERSION, locked: [...LOCKED_CHECKS], checks: CHECKS }),
@@ -175,7 +242,11 @@ tool(
 
 tool(
   "get_house_rules",
-  { title: "Show house rules", description: "The team's rulebook (what counts as right for them) and where it's stored. Returns defaults if /setup hasn't run.", inputSchema: {} },
+  {
+    title: "Show house rules",
+    description: "The team's rulebook (what counts as right for them) and where it's stored. Returns defaults if /setup hasn't run.",
+    inputSchema: {},
+  },
   async () => {
     const { rules, path, exists } = await loadRules();
     return json({ exists, path, rules, locked: [...LOCKED_CHECKS] });
@@ -186,8 +257,11 @@ tool(
   "save_house_rules",
   {
     title: "Save house rules",
-    description: "Replace the team's rulebook. Always show the person the changes and get a yes first. Locked checks can't be overridden. Schema: locale, brand, links, compliance, senders, personalization, style, naming, severity, exceptions.",
-    inputSchema: { rules: z.record(z.string(), z.unknown()).describe("The full rulebook object (get it with get_house_rules, edit, save).") },
+    description:
+      "Replace the team's rulebook. Always show the person the changes and get a yes first. Locked checks can't be overridden. Schema: locale, brand, links, compliance, senders, personalization, style, naming, severity, exceptions.",
+    inputSchema: {
+      rules: z.record(z.string(), z.unknown()).describe("The full rulebook object (get it with get_house_rules, edit, save)."),
+    },
   },
   async ({ rules }) => {
     try {
@@ -204,8 +278,13 @@ tool(
   "add_exception",
   {
     title: "Mark a finding as fine for us",
-    description: "Record that a finding is acceptable for this team (not a tool bug), with a reason. Optionally scoped by `match` text. Locked checks can't be waived. For tool bugs use /report-problem instead.",
-    inputSchema: { check_id: z.string(), reason: z.string(), match: z.string().optional().describe("Only waive findings whose message/evidence contains this text.") },
+    description:
+      "Record that a finding is acceptable for this team (not a tool bug), with a reason. Optionally scoped by `match` text. Locked checks can't be waived. For tool bugs use /report-problem instead.",
+    inputSchema: {
+      check_id: z.string(),
+      reason: z.string(),
+      match: z.string().optional().describe("Only waive findings whose message/evidence contains this text."),
+    },
   },
   async ({ check_id, reason, match }) => {
     if (LOCKED_CHECKS.has(check_id)) return fail(`${check_id} is locked: it's wrong for every team, so it can't be waived.`);
@@ -220,7 +299,8 @@ tool(
   "learn_from_email",
   {
     title: "Learn conventions from a good email",
-    description: "Read an email the team considers correct and propose house rules from it: link domains, UTM params and values, sender, name fallback, US/GB spelling, subject style, footer and postal address. Proposals only; confirm with the person before saving.",
+    description:
+      "Read an email the team considers correct and propose house rules from it: link domains, UTM params and values, sender, name fallback, US/GB spelling, subject style, footer and postal address. Proposals only; confirm with the person before saving.",
     inputSchema: { html: z.string().optional(), file: z.string().optional(), subject: z.string().optional(), from: z.string().optional() },
   },
   async (args) => {
@@ -236,7 +316,8 @@ tool(
   "connection_status",
   {
     title: "Connection status",
-    description: "Which platforms have keys set (keys themselves are never shown), test each connection, and list the environment variables each platform needs.",
+    description:
+      "Which platforms have keys set (keys themselves are never shown), test each connection, and list the environment variables each platform needs.",
     inputSchema: { test: z.boolean().optional().describe("Also make one read-only call per connected platform.") },
   },
   async ({ test }) => {
@@ -244,7 +325,10 @@ tool(
     const results: Record<string, unknown> = {};
     for (const p of Object.keys(ENV_VARS) as Platform[]) {
       if (!connected.includes(p)) {
-        results[p] = { connected: false, needs: ENV_VARS[p].required, optional: ENV_VARS[p].optional };
+        results[p] = {
+          connected: false,
+          howToConnect: `Run /plugin configure crm-lifecycle-ops and fill in the ${p} fields (outside the plugin: set ${ENV_VARS[p].required.join(" and ")}).`,
+        };
         continue;
       }
       if (!test) {
@@ -265,7 +349,8 @@ tool(
   "refresh_account",
   {
     title: "Refresh account snapshot",
-    description: "Pull the latest campaigns, journeys, segments, templates and content blocks into a local snapshot (read-only API calls), then report what changed since the previous one. Set demo: true to load the fictional Fernbrook Market demo account instead.",
+    description:
+      "Pull the latest campaigns, journeys, segments, templates and content blocks into a local snapshot (read-only API calls), then report what changed since the previous one. Set demo: true to load the fictional Fernbrook Market demo account instead.",
     inputSchema: { platform: platformArg, demo: z.boolean().optional() },
   },
   async ({ platform, demo }) => {
@@ -309,7 +394,8 @@ tool(
   "list_items",
   {
     title: "Find campaigns, journeys, segments or blocks",
-    description: "Search the latest snapshot by name. Use it to resolve what the person means before checking, mapping or analysing impact.",
+    description:
+      "Search the latest snapshot by name. Use it to resolve what the person means before checking, mapping or analysing impact.",
     inputSchema: {
       platform: platformArg,
       workspace: workspaceArg,
@@ -324,12 +410,33 @@ tool(
     const q = (query ?? "").toLowerCase();
     const match = (name: string) => name.toLowerCase().includes(q);
     const out: Record<string, unknown> = { snapshotTakenAt: snap.takenAt, limitPerKind: limit };
-    const cap = <T,>(xs: T[]) => xs.slice(0, limit);
-    if (kind === "all" || kind === "campaign") out.campaigns = cap(snap.campaigns.filter((c) => match(c.name) && (!active_only || isActive(c.status))).map(({ id, name, status, channels }) => ({ id, name, status, channels })));
-    if (kind === "all" || kind === "journey") out.journeys = cap(snap.journeys.filter((j) => match(j.name) && (!active_only || isActive(j.status))).map(({ id, name, status, steps }) => ({ id, name, status, steps: steps.length })));
-    if (kind === "all" || kind === "segment") out.segments = cap(snap.segments.filter((s) => match(s.name)).map(({ id, name, kind: k, description }) => ({ id, name, kind: k, description })));
-    if (kind === "all" || kind === "content-block") out.contentBlocks = cap(snap.contentBlocks.filter((b) => match(b.name)).map(({ id, name, usedBy }) => ({ id, name, usedIn: usedBy.length })));
-    if (kind === "message") out.messages = cap(snap.messages.filter((m) => match(m.name) || match(m.subject ?? "")).map(({ id, name, subject, ownerId }) => ({ id, name, subject, ownerId })));
+    const cap = <T>(xs: T[]) => xs.slice(0, limit);
+    if (kind === "all" || kind === "campaign")
+      out.campaigns = cap(
+        snap.campaigns
+          .filter((c) => match(c.name) && (!active_only || isActive(c.status)))
+          .map(({ id, name, status, channels }) => ({ id, name, status, channels })),
+      );
+    if (kind === "all" || kind === "journey")
+      out.journeys = cap(
+        snap.journeys
+          .filter((j) => match(j.name) && (!active_only || isActive(j.status)))
+          .map(({ id, name, status, steps }) => ({ id, name, status, steps: steps.length })),
+      );
+    if (kind === "all" || kind === "segment")
+      out.segments = cap(
+        snap.segments.filter((s) => match(s.name)).map(({ id, name, kind: k, description }) => ({ id, name, kind: k, description })),
+      );
+    if (kind === "all" || kind === "content-block")
+      out.contentBlocks = cap(
+        snap.contentBlocks.filter((b) => match(b.name)).map(({ id, name, usedBy }) => ({ id, name, usedIn: usedBy.length })),
+      );
+    if (kind === "message")
+      out.messages = cap(
+        snap.messages
+          .filter((m) => match(m.name) || match(m.subject ?? ""))
+          .map(({ id, name, subject, ownerId }) => ({ id, name, subject, ownerId })),
+      );
     return json(out);
   },
 );
@@ -338,8 +445,15 @@ tool(
   "record_audience",
   {
     title: "Record an audience seen on screen",
-    description: "Fill an API gap: record which segment/list a campaign or journey targets, as read from the platform's dashboard (e.g. via Claude in Chrome). Stored as 'seen-on-screen' with today's date on the latest snapshot.",
-    inputSchema: { platform: platformArg, workspace: workspaceArg, item: z.string().describe("Campaign or journey name or id."), segment: z.string().describe("Segment or list name or id."), mode: z.enum(["include", "exclude"]).optional() },
+    description:
+      "Fill an API gap: record which segment/list a campaign or journey targets, as read from the platform's dashboard (e.g. via Claude in Chrome). Stored as 'seen-on-screen' with today's date on the latest snapshot.",
+    inputSchema: {
+      platform: platformArg,
+      workspace: workspaceArg,
+      item: z.string().describe("Campaign or journey name or id."),
+      segment: z.string().describe("Segment or list name or id."),
+      mode: z.enum(["include", "exclude"]).optional(),
+    },
   },
   async ({ platform, workspace, item, segment, mode = "include" }) => {
     const snap = await latest(platform, workspace);
@@ -363,7 +477,8 @@ tool(
   "what_breaks",
   {
     title: "What breaks if I change this",
-    description: "Everything that depends on an attribute, segment/list, content block, event, message or piece of text, live items first, each with how we know (api-verified, parsed from template, seen on screen…) and a list of live items we can't rule out.",
+    description:
+      "Everything that depends on an attribute, segment/list, content block, event, message or piece of text, live items first, each with how we know (api-verified, parsed from template, seen on screen…) and a list of live items we can't rule out.",
     inputSchema: {
       platform: platformArg,
       workspace: workspaceArg,
@@ -382,18 +497,34 @@ tool(
   "what_changed",
   {
     title: "What changed in the account",
-    description: "Differences between the latest snapshot and the previous one (or the newest one taken before `since`): added, removed, status changes, content, audience and structure edits. Live items first.",
+    description:
+      "Differences between the latest snapshot and the previous one (or the newest one taken before `since`): added, removed, status changes, content, audience and structure edits. Live items first.",
     inputSchema: { platform: platformArg, workspace: workspaceArg, since: z.string().optional().describe("ISO date, e.g. 2026-11-01") },
   },
   async ({ platform, workspace, since }) => {
     const ws = resolveWorkspace(platform, workspace);
     const { latest: now, previous } = await loadLatest(platform, ws, since);
     if (!now) return fail("No snapshots yet. Run /refresh.");
-    if (!previous) return fail("Only one snapshot so far, so there's nothing to compare. Run /refresh again later (or on a schedule).");
+    if (!previous)
+      return json({
+        from: null,
+        to: now.takenAt,
+        total: 0,
+        changes: [],
+        note: "Only one snapshot so far, so there's nothing to compare yet. Refresh again later, or on a schedule.",
+      });
     const changes = diffSnapshots(previous, now);
     const byKind: Record<string, number> = {};
     for (const c of changes) byKind[c.kind] = (byKind[c.kind] ?? 0) + 1;
-    return json({ from: previous.takenAt, to: now.takenAt, total: changes.length, byKind, liveChanges: changes.filter((c) => c.active).length, changes: changes.slice(0, 100), truncated: changes.length > 100 });
+    return json({
+      from: previous.takenAt,
+      to: now.takenAt,
+      total: changes.length,
+      byKind,
+      liveChanges: changes.filter((c) => c.active).length,
+      changes: changes.slice(0, 100),
+      truncated: changes.length > 100,
+    });
   },
 );
 
@@ -403,7 +534,8 @@ tool(
   "show_journey",
   {
     title: "Show a journey",
-    description: "A Mermaid diagram of a live journey (Canvas/flow) with subject lines, plus structural problems (dead ends, unreachable steps, empty message steps).",
+    description:
+      "A Mermaid diagram of a live journey (Canvas/flow) with subject lines, plus structural problems (dead ends, unreachable steps, empty message steps).",
     inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
   },
   async ({ platform, workspace, name_or_id }) => {
@@ -420,7 +552,8 @@ tool(
   "find_overlaps",
   {
     title: "Find overlaps with live programs",
-    description: "For a planned journey or campaign: which live campaigns/journeys already target the same segments or lists, trigger on the same events, or use the same attributes, and which live items can't be ruled out.",
+    description:
+      "For a planned journey or campaign: which live campaigns/journeys already target the same segments or lists, trigger on the same events, or use the same attributes, and which live items can't be ruled out.",
     inputSchema: {
       platform: platformArg,
       workspace: workspaceArg,
@@ -439,8 +572,16 @@ tool(
   "bulk_edit_preview",
   {
     title: "Preview a bulk edit",
-    description: "Find text (or a regex) across every subject, preheader, body and content block and preview the replacement, live items first. Preview only; nothing is written.",
-    inputSchema: { platform: platformArg, workspace: workspaceArg, find: z.string(), replace: z.string(), regex: z.boolean().optional(), active_only: z.boolean().optional() },
+    description:
+      "Find text (or a regex) across every subject, preheader, body and content block and preview the replacement, live items first. Preview only; nothing is written.",
+    inputSchema: {
+      platform: platformArg,
+      workspace: workspaceArg,
+      find: z.string(),
+      replace: z.string(),
+      regex: z.boolean().optional(),
+      active_only: z.boolean().optional(),
+    },
   },
   async ({ platform, workspace, find, replace, regex, active_only }) => {
     try {
@@ -460,7 +601,9 @@ tool(
       "library verified against the vendors' docs (with links). Filled in with the team's house rules (naming, sender, UTMs, fallback " +
       "syntax, footer, channel limits) and, when a snapshot exists, the account: segments and blocks to reuse, whether the target is live, " +
       "and shared content that would change other live programs. The plugin never edits the account; a person follows the steps. " +
-      `Tasks: ${Object.entries(TASKS).map(([k, v]) => `${k} (${v})`).join("; ")}.`,
+      `Tasks: ${Object.entries(TASKS)
+        .map(([k, v]) => `${k} (${v})`)
+        .join("; ")}.`,
     inputSchema: {
       platform: platformArg,
       task: z.enum(Object.keys(TASKS) as [TaskId, ...TaskId[]]),
@@ -486,7 +629,8 @@ tool(
   "launch_health",
   {
     title: "Launch health",
-    description: "Recent delivery numbers for a campaign or journey (sent, delivered, bounces, unsubscribes, spam complaints, opens, clicks) judged against stated thresholds. Needs a connected account.",
+    description:
+      "Recent delivery numbers for a campaign or journey (sent, delivered, bounces, unsubscribes, spam complaints, opens, clicks) judged against stated thresholds. Needs a connected account.",
     inputSchema: { platform: platformArg, name_or_id: z.string() },
   },
   async ({ platform, name_or_id }) => {
@@ -509,7 +653,8 @@ tool(
   "ops_report",
   {
     title: "Ops report",
-    description: "From the local usage log: emails checked, blocking problems caught, most common findings, weekly trend and estimated hours saved (assumption stated).",
+    description:
+      "From the local usage log: emails checked, blocking problems caught, most common findings, weekly trend and estimated hours saved (assumption stated).",
     inputSchema: { days: z.number().int().positive().optional(), minutes_per_manual_check: z.number().positive().optional() },
   },
   async ({ days, minutes_per_manual_check }) => json(await opsReport(days, minutes_per_manual_check)),

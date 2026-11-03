@@ -3,7 +3,7 @@ import { applyRules, DEFAULT_RULES, type Rulebook } from "../core/rules.js";
 import { checkHouseRules } from "./house.js";
 import { checkHtml } from "./html.js";
 import { checkLinks, checkLinksLive } from "./links.js";
-import { checkPersonalization } from "./personalization.js";
+import { ACCENTED_PERSONA, checkPersonalization } from "./personalization.js";
 
 export interface EmailInput {
   html: string;
@@ -48,19 +48,26 @@ export async function checkEmail(
 
   findings.push(...checkHtml(input.html));
   findings.push(...checkLinks(input.html, { transactional: input.transactional }));
-  if (input.transactional) notVerified.push("Treated as transactional: the unsubscribe check was skipped. Transactional mail must not contain marketing content.");
+  if (input.transactional)
+    notVerified.push("Treated as transactional: the unsubscribe check was skipped. Transactional mail must not contain marketing content.");
 
   const p = await checkPersonalization(input.html, input.platform, personas);
   findings.push(...p.findings);
   notVerified.push(...p.notVerified);
 
   // Subject lines are templates too: run them through the same renderer.
+  // Length and style are judged on what people see: the longest rendered subject, not the template.
+  let subjectSeen: string | undefined;
   if (input.subject) {
     const s = await checkPersonalization(input.subject, input.platform, personas);
     findings.push(...s.findings.map((f) => ({ ...f, message: `Subject line: ${f.message}` })));
+    subjectSeen = s.renders
+      .filter((r) => r.persona !== ACCENTED_PERSONA && r.output !== null)
+      .map((r) => r.output!.trim())
+      .sort((a, b) => b.length - a.length)[0];
   }
   findings.push(...checkSubject(input.subject, input.preheader));
-  findings.push(...checkHouseRules({ html: input.html, subject: input.subject, from: input.from }, rules));
+  findings.push(...checkHouseRules({ html: input.html, subject: input.subject, subjectSeen, from: input.from }, rules));
 
   if (input.checkLinksLive) {
     const live = await checkLinksLive(input.html);

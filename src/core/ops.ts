@@ -11,6 +11,7 @@ interface LogEntry {
   platform?: string;
   summary?: { fail: number; warn: number; info: number };
   checkIds?: string[];
+  messages?: number;
 }
 
 export async function opsReport(days = 30, minutesPerManualCheck = 20) {
@@ -31,8 +32,9 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
     })
     .filter((e): e is LogEntry => !!e && Date.parse(e.ts) >= since);
   // "Messages checked" counts single-message QA runs (email, push, SMS, in-app); campaign checks are counted separately.
-  const checks = entries.filter((e) => e.summary && (e.tool === "check_email" || e.tool === "check_message"));
-  const campaignChecks = entries.filter((e) => e.summary && e.tool === "check_campaign").length;
+  const checks = entries.filter((e) => e.summary && ["check_email", "check_message", "check_campaign"].includes(e.tool));
+  const campaignChecks = checks.filter((e) => e.tool === "check_campaign").length;
+  const messagesChecked = checks.reduce((n, e) => n + (e.tool === "check_campaign" ? (e.messages ?? 1) : 1), 0);
   const byCheck = new Map<string, number>();
   const byTool = new Map<string, number>();
   const byWeek = new Map<string, { runs: number; fails: number }>();
@@ -55,14 +57,17 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
     period: `last ${days} days`,
     runs: entries.length,
     runsByCommand: Object.fromEntries(byTool),
-    messagesChecked: checks.length,
+    messagesChecked,
     campaignsChecked: campaignChecks,
-    messagesWithBlockingProblems: blocked,
+    checksWithBlockingProblems: blocked,
     blockingProblemsCaught: fails,
     warningsRaised: warns,
-    mostCommonFindings: [...byCheck.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, n]) => ({ id, n })),
+    mostCommonFindings: [...byCheck.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([id, n]) => ({ id, n })),
     byWeek: [...byWeek.entries()].sort().map(([week, v]) => ({ weekStarting: week, ...v })),
-    estimatedHoursSaved: Math.round(((checks.length * minutesPerManualCheck) / 60) * 10) / 10,
+    estimatedHoursSaved: Math.round(((messagesChecked * minutesPerManualCheck) / 60) * 10) / 10,
     assumption: `${minutesPerManualCheck} minutes of manual QA per message checked (change with minutes_per_manual_check); re-checks of the same message count again, so treat this as an upper estimate.`,
   };
 }
@@ -71,14 +76,33 @@ export function bulkEditPreview(snap: Snapshot, find: string, replace: string, o
   const pattern = opts.regex ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
   const owner = new Map<string, { name: string; active: boolean }>();
   for (const c of snap.campaigns) for (const m of c.messageIds) owner.set(m, { name: c.name, active: isActive(c.status) });
-  for (const j of snap.journeys) for (const s of j.steps) for (const m of s.messageIds) owner.set(m, { name: j.name, active: isActive(j.status) });
+  for (const j of snap.journeys)
+    for (const s of j.steps) for (const m of s.messageIds) owner.set(m, { name: j.name, active: isActive(j.status) });
 
   const changes: { where: string; item: string; inside?: string; active: boolean; count: number; before: string[]; after: string[] }[] = [];
   const scan = (where: string, item: string, text: string | undefined, active: boolean, inside?: string) => {
     if (!text) return;
     const hits = [...text.matchAll(pattern)];
     if (hits.length === 0 || (opts.activeOnly && !active)) return;
-    const ctx = (s: string, i: number, len: number) => s.slice(Math.max(0, i - 30), i + len + 30).replace(/\s+/g, " ");
+    // Show readable text around each match, not raw HTML.
+    const plain = (x: string) =>
+      x
+        .replace(/<[^>]*>/g, " ")
+        .replace(/<[^>]*$|^[^<]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const ctx = (s: string, i: number, len: number) => {
+      const open = s.lastIndexOf("<", i);
+      const insideTag = open > s.lastIndexOf(">", i - 1);
+      if (insideTag) {
+        // A match in a link or attribute: show that attribute, not the page text.
+        const end = s.indexOf(">", i);
+        const tag = s.slice(open, end === -1 ? i + len + 60 : end + 1);
+        const attr = tag.match(/[\w-]+="[^"]*"/g)?.find((a) => a.includes(s.slice(i, i + len))) ?? tag;
+        return attr.slice(0, 160);
+      }
+      return `…${plain(s.slice(Math.max(0, i - 60), i + len + 60))}…`;
+    };
     changes.push({
       where,
       item,

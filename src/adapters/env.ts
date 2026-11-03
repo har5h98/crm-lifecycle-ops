@@ -3,9 +3,14 @@
 // falling back to plain environment variables for people running the server outside a plugin.
 
 const NAMES = [
-  "BRAZE_API_KEY", "BRAZE_REST_ENDPOINT", "BRAZE_WORKSPACE",
-  "KLAVIYO_API_KEY", "KLAVIYO_ACCOUNT",
-  "ITERABLE_API_KEY", "ITERABLE_REGION", "ITERABLE_PROJECT",
+  "BRAZE_API_KEY",
+  "BRAZE_REST_ENDPOINT",
+  "BRAZE_WORKSPACE",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_ACCOUNT",
+  "ITERABLE_API_KEY",
+  "ITERABLE_REGION",
+  "ITERABLE_PROJECT",
 ] as const;
 
 const set = (v: string | undefined) => (v && !v.startsWith("${") ? v.trim() : undefined);

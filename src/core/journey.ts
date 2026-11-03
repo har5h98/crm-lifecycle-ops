@@ -7,7 +7,10 @@ const BRANCH = /split|path|branch|conditional|decision|experiment|audience/i;
 export function checkJourneyStructure(j: Journey): { findings: Finding[]; notVerified: string[] } {
   const findings: Finding[] = [];
   if (!j.stepsKnown) {
-    return { findings, notVerified: [`The step order of "${j.name}" isn't available from the API, so dead ends and unreachable steps weren't checked.`] };
+    return {
+      findings,
+      notVerified: [`The step order of "${j.name}" isn't available from the API, so dead ends and unreachable steps weren't checked.`],
+    };
   }
   if (j.steps.length === 0) {
     findings.push({ checkId: "journey.empty", severity: "fail", message: `"${j.name}" has no steps.` });
@@ -17,13 +20,27 @@ export function checkJourneyStructure(j: Journey): { findings: Finding[]; notVer
 
   for (const s of j.steps) {
     for (const n of s.next) {
-      if (!byId.has(n)) findings.push({ checkId: "journey.broken-link", severity: "warn", message: `Step "${s.name}" points to a step that doesn't exist (${n}).` });
+      if (!byId.has(n))
+        findings.push({
+          checkId: "journey.broken-link",
+          severity: "warn",
+          message: `Step "${s.name}" points to a step that doesn't exist (${n}).`,
+        });
     }
     if (BRANCH.test(s.type) && s.next.length === 0) {
-      findings.push({ checkId: "journey.dead-end-branch", severity: "warn", message: `Branch step "${s.name}" leads nowhere; people who reach it exit silently.`, fix: "Connect each path to a next step, or add an explicit exit." });
+      findings.push({
+        checkId: "journey.dead-end-branch",
+        severity: "warn",
+        message: `Branch step "${s.name}" leads nowhere; people who reach it exit silently.`,
+        fix: "Connect each path to a next step, or add an explicit exit.",
+      });
     }
     if (/message|email|send/i.test(s.type) && s.messageIds.length === 0) {
-      findings.push({ checkId: "journey.empty-message-step", severity: "warn", message: `Message step "${s.name}" has no message attached.` });
+      findings.push({
+        checkId: "journey.empty-message-step",
+        severity: "warn",
+        message: `Message step "${s.name}" has no message attached.`,
+      });
     }
   }
 
@@ -41,7 +58,14 @@ export function checkJourneyStructure(j: Journey): { findings: Finding[]; notVer
     }
     const orphans = j.steps.filter((s) => !seen.has(s.id));
     if (orphans.length) {
-      findings.push({ checkId: "journey.unreachable-steps", severity: "warn", message: `${orphans.length} step(s) can never be reached: ${orphans.map((s) => `"${s.name}"`).slice(0, 5).join(", ")}.` });
+      findings.push({
+        checkId: "journey.unreachable-steps",
+        severity: "warn",
+        message: `${orphans.length} step(s) can never be reached: ${orphans
+          .map((s) => `"${s.name}"`)
+          .slice(0, 5)
+          .join(", ")}.`,
+      });
     }
   }
   return { findings, notVerified: [] };
@@ -50,7 +74,24 @@ export function checkJourneyStructure(j: Journey): { findings: Finding[]; notVer
 /** A Mermaid flowchart of a journey, labelled with each message's subject line. */
 export function journeyDiagram(j: Journey, snap: Snapshot): string {
   const subject = new Map(snap.messages.map((m) => [m.id, m.subject]));
-  const safe = (s: string) => s.replace(/["[\]{}()<>|#]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  // Show personalization as [field] rather than raw template code.
+  const readable = (s: string) =>
+    s.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) => {
+      const field =
+        tag
+          .replace(/\$\{|\}|\{|%/g, " ")
+          .replace(/\|[\s\S]*/, "")
+          .trim()
+          .split(/\s+/)
+          .pop() ?? "";
+      return `[${field.split(".").pop()}]`;
+    });
+  const safe = (s: string) =>
+    readable(s)
+      .replace(/["{}()<>|#]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 60);
   const ids = new Map(j.steps.map((s, i) => [s.id, `s${i}`]));
   const lines = ["flowchart TD", `  start(("${safe(j.name)}"))`];
   for (const s of j.steps) {

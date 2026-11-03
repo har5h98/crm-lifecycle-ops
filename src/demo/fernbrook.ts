@@ -22,18 +22,66 @@ export function demoSnapshot(): Snapshot {
       "Braze's API doesn't expose which segment a campaign or Canvas targets; those audience links are marked unknown.",
     ],
     segments: [
-      { id: "seg_lapsed", name: "Lapsed 30 days", kind: "segment", description: "Last used app more than 30 days ago AND custom attribute loyalty_tier is not blank" },
+      {
+        id: "seg_lapsed",
+        name: "Lapsed 30 days",
+        kind: "segment",
+        description: "Last used app more than 30 days ago AND custom attribute loyalty_tier is not blank",
+      },
       { id: "seg_new", name: "New signups (7 days)", kind: "segment", description: "First used app less than 7 days ago" },
       { id: "seg_vip", name: "VIP members", kind: "segment", description: "Custom attribute loyalty_tier equals Gold" },
     ],
-    contentBlocks: [{ id: "cb_footer", name: "footer_v2", body: footer, usedBy: ["m_deals", "m_drop", "m_welcome", "m_tips", "m_winback"] }],
+    contentBlocks: [
+      { id: "cb_footer", name: "footer_v2", body: footer, usedBy: ["m_deals", "m_drop", "m_welcome", "m_tips", "m_winback"] },
+    ],
     campaigns: [
-      { id: "c_deals", name: "Weekend Deals Blast", status: "live", channels: ["email"], messageIds: ["m_deals"], audience: unknown, conversionEvents: ["Order Placed"], tags: ["promo"] },
-      { id: "c_drop", name: "Price Drop Alert", status: "live", channels: ["email"], messageIds: ["m_drop"], audience: unknown, conversionEvents: [] },
+      {
+        id: "c_deals",
+        name: "Weekend Deals Blast",
+        status: "live",
+        channels: ["email"],
+        messageIds: ["m_deals"],
+        audience: unknown,
+        conversionEvents: ["Order Placed"],
+        tags: ["promo"],
+      },
+      {
+        id: "c_drop",
+        name: "Price Drop Alert",
+        status: "live",
+        channels: ["email"],
+        messageIds: ["m_drop"],
+        audience: unknown,
+        conversionEvents: [],
+      },
       { id: "c_recipes", name: "Holiday Recipes", status: "draft", channels: ["email"], messageIds: ["m_recipes"], audience: unknown },
-      { id: "c_lunch", name: "Lunch Rush Push", status: "live", channels: ["push"], messageIds: ["m_lunch_push"], audience: unknown, conversionEvents: ["Order Placed"] },
-      { id: "c_flash", name: "Flash Sale Text", status: "scheduled", channels: ["sms"], messageIds: ["m_flash_sms"], audience: unknown, conversionEvents: ["Order Placed"] },
-      { id: "c_app", name: "New App Features", status: "live", channels: ["in-app"], messageIds: ["m_app_iam"], audience: unknown, conversionEvents: [] },
+      {
+        id: "c_lunch",
+        name: "Lunch Rush Push",
+        status: "live",
+        channels: ["push"],
+        messageIds: ["m_lunch_push"],
+        audience: unknown,
+        conversionEvents: ["Order Placed"],
+      },
+      {
+        id: "c_flash",
+        name: "Flash Sale Text",
+        status: "scheduled",
+        channels: ["sms"],
+        messageIds: ["m_flash_sms"],
+        audience: unknown,
+        conversionEvents: ["Order Placed"],
+      },
+      {
+        id: "c_app",
+        name: "New App Features",
+        status: "live",
+        channels: ["in-app"],
+        messageIds: ["m_app_iam"],
+        audience: unknown,
+        conversionEvents: [],
+      },
     ],
     journeys: [
       {
@@ -95,7 +143,10 @@ export function demoSnapshot(): Snapshot {
         ownerId: "c_app",
         title: "Reorder in one tap",
         body: "Your past orders now live on the home screen.",
-        buttons: [{ text: "Try it", link: "fernbrook://orders" }, { text: "", link: "fernbrook://home" }],
+        buttons: [
+          { text: "Try it", link: "fernbrook://orders" },
+          { text: "", link: "fernbrook://home" },
+        ],
       },
       {
         id: "m_deals",
@@ -133,7 +184,10 @@ export function demoSnapshot(): Snapshot {
         channel: "email",
         ownerId: "c_recipes",
         subject: "Holiday recipes from the Fernbrook kitchen",
-        body: wrap("Five dishes, one list", `<p>Hello {{\${first_name} | default: 'there'}},</p><a href="https://www.fernbrook.example/recipes">Get recipes</a>`),
+        body: wrap(
+          "Five dishes, one list",
+          `<p>Hello {{\${first_name} | default: 'there'}},</p><a href="https://www.fernbrook.example/recipes">Get recipes</a>`,
+        ),
       },
       {
         id: "m_welcome",
@@ -142,7 +196,10 @@ export function demoSnapshot(): Snapshot {
         ownerId: "j_welcome",
         subject: "Welcome to Fernbrook Market",
         from: "hello@fernbrook.example",
-        body: wrap("Your first order ships free", `<p>Welcome, {{\${first_name} | default: 'there'}}!</p><a href="https://www.fernbrook.example/start?utm_source=braze&utm_medium=email&utm_campaign=welcome">Start shopping</a>`),
+        body: wrap(
+          "Your first order ships free",
+          `<p>Welcome, {{\${first_name} | default: 'there'}}!</p><a href="https://www.fernbrook.example/start?utm_source=braze&utm_medium=email&utm_campaign=welcome">Start shopping</a>`,
+        ),
       },
       {
         id: "m_tips",
@@ -151,7 +208,10 @@ export function demoSnapshot(): Snapshot {
         ownerId: "j_welcome",
         subject: "3 dinners in 20 minutes",
         from: "hello@fernbrook.example",
-        body: wrap("Quick, fresh, easy", `<p>Hi {{\${first_name} | default: 'there'}},</p><a href="https://www.fernbrook.example/tips?utm_source=braze&utm_medium=email&utm_campaign=welcome">Read tips</a>`),
+        body: wrap(
+          "Quick, fresh, easy",
+          `<p>Hi {{\${first_name} | default: 'there'}},</p><a href="https://www.fernbrook.example/tips?utm_source=braze&utm_medium=email&utm_campaign=welcome">Read tips</a>`,
+        ),
       },
       {
         id: "m_winback",

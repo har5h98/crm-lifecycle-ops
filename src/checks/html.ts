@@ -93,7 +93,10 @@ export function checkHtml(html: string): Finding[] {
   // One finding per tag and kind, with a count, rather than thousands of identical rows.
   const grouped = new Map<string, Finding & { n: number }>();
   for (const f of findings.splice(0)) {
-    const key = f.checkId === "html.unclosed-tag" || f.checkId === "html.unmatched-close" ? `${f.checkId}:${f.message.match(/<\/?(\w+)/)?.[1]}` : `${f.checkId}:${grouped.size}`;
+    const key =
+      f.checkId === "html.unclosed-tag" || f.checkId === "html.unmatched-close"
+        ? `${f.checkId}:${f.message.match(/<\/?(\w+)/)?.[1]}`
+        : `${f.checkId}:${grouped.size}`;
     const g = grouped.get(key);
     if (g) g.n++;
     else grouped.set(key, { ...f, n: 1 });

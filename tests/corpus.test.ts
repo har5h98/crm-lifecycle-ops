@@ -11,7 +11,10 @@ describe("regression corpus", () => {
   for (const name of cases) {
     it(name, async () => {
       const spec = JSON.parse(readFileSync(join(root, name, "case.json"), "utf8")) as {
-        platform: Platform; subject?: string; mustFind: string[]; mustNotFind: string[];
+        platform: Platform;
+        subject?: string;
+        mustFind: string[];
+        mustNotFind: string[];
       };
       const html = readFileSync(join(root, name, "email.html"), "utf8");
       const report = await checkEmail({ html, platform: spec.platform, subject: spec.subject });

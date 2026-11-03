@@ -30,7 +30,9 @@ async function fingerprint(src) {
 
 const path = new URL("../drift/baseline.json", import.meta.url);
 let baseline = {};
-try { baseline = JSON.parse(readFileSync(path, "utf8")); } catch {}
+try {
+  baseline = JSON.parse(readFileSync(path, "utf8"));
+} catch {}
 
 const current = {};
 for (const [name, src] of Object.entries(SOURCES)) current[name] = await fingerprint(src);
@@ -49,5 +51,7 @@ if (changed.length === 0) {
 console.log("The following vendor APIs changed since the last baseline:\n");
 console.log("| Source | Was | Now |\n|---|---|---|");
 for (const k of changed) console.log(`| ${k} | ${baseline[k] ?? "—"} | ${current[k]} |`);
-console.log("\nCheck the matching adapter against the new spec, then run `node scripts/check-api-drift.mjs --write` and commit `drift/baseline.json`.");
+console.log(
+  "\nCheck the matching adapter against the new spec, then run `node scripts/check-api-drift.mjs --write` and commit `drift/baseline.json`.",
+);
 process.exit(1);

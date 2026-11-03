@@ -72,34 +72,40 @@ What's "wrong" depends on the team, so checks come in three layers:
 exception with a reason (`/house-rules`), which is different from "the tool is wrong" (`/report-problem`).
 Teams share one rulebook by pointing `CLO_RULES` at a shared file.
 
-## What `/check-email` checks
+## What gets checked
 
-| Area | Catches |
+| Channel | Catches |
 |---|---|
-| **HTML** | Unbalanced Outlook `<!--[if mso]>` blocks, unclosed tables/cells/divs, images without alt text, Gmail clipping (>102 KB), missing preheader |
-| **Links** | No unsubscribe, staging/dev/localhost/example.com hosts, malformed URLs, `href="#"`, http://, inconsistent UTM tagging, broken pages (live check) |
-| **Personalization** | Renders the template for a *complete*, an *empty* and an *edge-case* profile and flags `Hi ,` blanks, literal `null`/`undefined`, leftover `{{ }}`, syntax errors, and `abort_message` firing |
-| **Subject line** | Empty, over 60 characters, personalization blanks |
+| **Email** | Broken Outlook `<!--[if mso]>` blocks, unclosed tables, missing alt text, Gmail clipping (estimated with link tracking), missing preheader; links to staging/dev/localhost, malformed or relative links, `http://`, inconsistent UTMs, broken pages (live check); unsubscribe (skipped for transactional mail) |
+| **Push** | Title and body length for your *longest* customer names, line breaks that hide titles on iOS, deep-link format and destination, Android's required title (Braze) |
+| **SMS** | Billed segments the way carriers count them, the exact character that switches a text to Unicode, opt-out wording and sender name, each platform's limits and auto-appended text |
+| **In-app** | Body length, buttons and their links, click-through destination, HTML structure |
+| **Personalization** (all) | Renders every message for a *complete*, an *empty*, a *long-values* and an *accented-name* profile (or your own): `Hi ,` blanks, literal `null`, leftover `{{ }}`, template errors, Iterable comparisons that silently skip the send |
+| **Campaigns & journeys** | Audience and conversion event set, naming convention, dead-end branches, unreachable steps, empty message steps |
 
-Braze Liquid (`{{${first_name}}}`, `custom_attribute`, `abort_message`), Klaviyo's template language and
-Iterable Handlebars (`defaultIfEmpty`) are all supported. The full list, with ids:
-[`src/checks/catalog.ts`](src/checks/catalog.ts).
+Braze Liquid, Klaviyo's template language and Iterable Handlebars are all supported; platform tags the
+engine can't reproduce locally (coupon codes, catalog lookups, Connected Content) are reported as
+*not verified*, never as passing or failing. The full list, with ids: [`src/checks/catalog.ts`](src/checks/catalog.ts).
 
 **Pass/fail is decided by deterministic code, never by AI.** Claude adds a clearly labelled advisory
 review (subject line, CTA, tone) on top.
 
-### Example
+### Example (real output from the demo account)
 
 ```
-🔴 Don't send. 2 blocking problems
+/check-campaign Price Drop Alert          🔴 Don't send. 1 blocking problem
 
-fail  html.outlook-conditionals   <!--[if mso]> is never closed. Outlook will hide everything after it
-fail  links.no-unsubscribe        No unsubscribe link or tag found
-warn  personalization.dangling…   Someone with no first name on file sees "Hi ,"
-warn  links.utm-inconsistent      1 of 2 links carry UTM tags; "Recipes" doesn't
-warn  links.empty-href            "Read more" links to "#"
+fail  links.non-production-host        "See items" points at staging.fernbrook.example
+warn  personalization.dangling-punct.  Someone with no first name on file sees "Hi ,"
+warn  links.utm-inconsistent           1 of 2 links carry UTM tags; "Help" doesn't
+warn  html.img-missing-alt             1 image has no alt text
 
-What I couldn't check: content block "footer_v2" was not expanded.
+/check-sms Flash Sale Text                🟡 Fix before sending
+
+warn  sms.unicode            "’" and "—" switch the text to Unicode: 70 characters per segment, not 160.
+                             Swap ’ → ' and — → -
+warn  sms.too-many-segments  Up to 3 billed segments; house limit is 2
+warn  sms.no-opt-out         No "Reply STOP to opt out"
 ```
 
 ## How it works

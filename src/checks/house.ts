@@ -8,12 +8,38 @@ import { extractLinks, registrableDomain } from "./links.js";
 const SUFFIX = "(s|ed|ing|ful|er|ers|ation|ations|ite|ites)?";
 // [US, GB] stems. Ambiguous pairs (program/programme, check/cheque, tire/tyre) are left out on purpose.
 const SPELLING: [string, string][] = [
-  ["color", "colour"], ["favor", "favour"], ["flavor", "flavour"], ["honor", "honour"], ["neighbor", "neighbour"],
-  ["behavior", "behaviour"], ["labor", "labour"], ["savory", "savoury"], ["center", "centre"], ["theater", "theatre"],
-  ["fiber", "fibre"], ["organiz", "organis"], ["personaliz", "personalis"], ["customiz", "customis"], ["realiz", "realis"],
-  ["recogniz", "recognis"], ["apologiz", "apologis"], ["prioritiz", "prioritis"], ["optimiz", "optimis"], ["analyz", "analys"],
-  ["catalog", "catalogue"], ["traveled", "travelled"], ["traveling", "travelling"], ["canceled", "cancelled"],
-  ["canceling", "cancelling"], ["jewelry", "jewellery"], ["gray", "grey"], ["defense", "defence"], ["aluminum", "aluminium"], ["pajamas", "pyjamas"], ["yogurt", "yoghurt"], ["donut", "doughnut"],
+  ["color", "colour"],
+  ["favor", "favour"],
+  ["flavor", "flavour"],
+  ["honor", "honour"],
+  ["neighbor", "neighbour"],
+  ["behavior", "behaviour"],
+  ["labor", "labour"],
+  ["savory", "savoury"],
+  ["center", "centre"],
+  ["theater", "theatre"],
+  ["fiber", "fibre"],
+  ["organiz", "organis"],
+  ["personaliz", "personalis"],
+  ["customiz", "customis"],
+  ["realiz", "realis"],
+  ["recogniz", "recognis"],
+  ["apologiz", "apologis"],
+  ["prioritiz", "prioritis"],
+  ["optimiz", "optimis"],
+  ["analyz", "analys"],
+  ["catalog", "catalogue"],
+  ["traveled", "travelled"],
+  ["traveling", "travelling"],
+  ["canceled", "cancelled"],
+  ["canceling", "cancelling"],
+  ["jewelry", "jewellery"],
+  ["gray", "grey"],
+  ["defense", "defence"],
+  ["aluminum", "aluminium"],
+  ["pajamas", "pyjamas"],
+  ["yogurt", "yoghurt"],
+  ["donut", "doughnut"],
   ["mom", "mum"],
 ];
 
@@ -34,8 +60,13 @@ const TEMPLATE = /\{\{|\{%|\$\{/;
 export function spellingVariant(text: string): { US: number; GB: number; examples: Record<"US" | "GB", string[]> } {
   const out = { US: 0, GB: 0, examples: { US: [] as string[], GB: [] as string[] } };
   for (const [us, gb] of SPELLING) {
-    for (const [variant, stem] of [["US", us], ["GB", gb]] as const) {
-      for (const m of text.matchAll(new RegExp(`\\b${stem}${stem.endsWith("z") || stem.endsWith("s") ? "(e|es|ed|ing|ation|ations|er|ers)" : SUFFIX}\\b`, "gi"))) {
+    for (const [variant, stem] of [
+      ["US", us],
+      ["GB", gb],
+    ] as const) {
+      for (const m of text.matchAll(
+        new RegExp(`\\b${stem}${stem.endsWith("z") || stem.endsWith("s") ? "(e|es|ed|ing|ation|ations|er|ers)" : SUFFIX}\\b`, "gi"),
+      )) {
         out[variant]++;
         if (out.examples[variant].length < 3) out.examples[variant].push(m[0]);
       }
@@ -44,28 +75,52 @@ export function spellingVariant(text: string): { US: number; GB: number; example
   return out;
 }
 
-export function checkHouseRules(input: { html: string; subject?: string; from?: string }, rules: Rulebook): Finding[] {
+export function checkHouseRules(
+  input: { html: string; subject?: string; subjectSeen?: string; from?: string },
+  rules: Rulebook,
+): Finding[] {
   const findings: Finding[] = [];
   const text = textOf(input.html);
   const copy = `${input.subject ?? ""} ${text}`;
 
   // Brand names: right letters, wrong casing or spacing ("FernBrook market", "Fern brook").
   for (const name of rules.brand.names) {
-    const loose = new RegExp(name.split("").map((c) => (c === " " ? "\\s*" : escape(c))).join("\\s*"), "gi");
+    const loose = new RegExp(
+      name
+        .split("")
+        .map((c) => (c === " " ? "\\s*" : escape(c)))
+        .join("\\s*"),
+      "gi",
+    );
     for (const m of copy.matchAll(loose)) {
       if (m[0] !== name) {
-        findings.push({ checkId: "house.brand-name", severity: "warn", message: `Brand name written as "${m[0]}"; house style is "${name}".`, evidence: snippet(copy, m.index ?? 0) });
+        findings.push({
+          checkId: "house.brand-name",
+          severity: "warn",
+          message: `Brand name written as "${m[0]}"; house style is "${name}".`,
+          evidence: snippet(copy, m.index ?? 0),
+        });
       }
     }
   }
   for (const t of rules.brand.terms) {
     for (const m of copy.matchAll(new RegExp(`\\b${escape(t.wrong)}\\b`, "gi"))) {
-      findings.push({ checkId: "house.term", severity: "warn", message: `"${m[0]}" should be "${t.right}" in house style.`, evidence: snippet(copy, m.index ?? 0) });
+      findings.push({
+        checkId: "house.term",
+        severity: "warn",
+        message: `"${m[0]}" should be "${t.right}" in house style.`,
+        evidence: snippet(copy, m.index ?? 0),
+      });
     }
   }
   for (const phrase of rules.brand.bannedPhrases) {
     for (const m of copy.matchAll(new RegExp(`\\b${escape(phrase)}\\b`, "gi"))) {
-      findings.push({ checkId: "house.banned-phrase", severity: "warn", message: `"${m[0]}" is on the team's do-not-use list.`, evidence: snippet(copy, m.index ?? 0) });
+      findings.push({
+        checkId: "house.banned-phrase",
+        severity: "warn",
+        message: `"${m[0]}" is on the team's do-not-use list.`,
+        evidence: snippet(copy, m.index ?? 0),
+      });
     }
   }
 
@@ -87,7 +142,12 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
       if (m[0] === "24/7" || a === 0 || b === 0 || a > 31 || b > 31) continue; // not a date
       const wrongOrder = rules.locale.dateFormat === "MM/DD" ? a > 12 && b <= 12 : b > 12 && a <= 12;
       if (wrongOrder) {
-        findings.push({ checkId: "house.date-format", severity: "warn", message: `"${m[0]}" reads as ${rules.locale.dateFormat === "MM/DD" ? "DD/MM" : "MM/DD"}; house format is ${rules.locale.dateFormat}.`, evidence: snippet(copy, m.index ?? 0) });
+        findings.push({
+          checkId: "house.date-format",
+          severity: "warn",
+          message: `"${m[0]}" reads as ${rules.locale.dateFormat === "MM/DD" ? "DD/MM" : "MM/DD"}; house format is ${rules.locale.dateFormat}.`,
+          evidence: snippet(copy, m.index ?? 0),
+        });
       }
     }
   }
@@ -104,15 +164,31 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
     const isUnsub = /unsubscrib|preference/i.test(l.href + l.text);
     if (rules.links.domains.length > 0 && !isUnsub) {
       const ok = rules.links.domains.some((d) => url.hostname === d || url.hostname.endsWith(`.${d}`));
-      if (!ok) findings.push({ checkId: "house.off-domain-link", severity: "warn", message: `Link "${l.text || l.href}" goes to ${url.hostname}, which isn't one of the team's domains.`, evidence: l.href });
+      if (!ok)
+        findings.push({
+          checkId: "house.off-domain-link",
+          severity: "warn",
+          message: `Link "${l.text || l.href}" goes to ${url.hostname}, which isn't one of the team's domains.`,
+          evidence: l.href,
+        });
     }
     if (!isUnsub && Object.keys(rules.links.requiredUtm).length > 0) {
       for (const [param, pattern] of Object.entries(rules.links.requiredUtm)) {
         const value = url.searchParams.get(param);
         if (value === null) {
-          findings.push({ checkId: "house.utm-missing", severity: "warn", message: `Link "${l.text || l.href}" is missing ${param}.`, evidence: l.href });
+          findings.push({
+            checkId: "house.utm-missing",
+            severity: "warn",
+            message: `Link "${l.text || l.href}" is missing ${param}.`,
+            evidence: l.href,
+          });
         } else if (pattern && !TEMPLATE.test(value) && !new RegExp(pattern).test(value)) {
-          findings.push({ checkId: "house.utm-format", severity: "warn", message: `${param}="${value}" doesn't match the team convention (${pattern}).`, evidence: l.href });
+          findings.push({
+            checkId: "house.utm-format",
+            severity: "warn",
+            message: `${param}="${value}" doesn't match the team convention (${pattern}).`,
+            evidence: l.href,
+          });
         }
       }
     }
@@ -121,7 +197,12 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
   // Compliance text (postal address, legal lines).
   for (const required of rules.compliance.requiredText) {
     if (!text.toLowerCase().includes(required.toLowerCase())) {
-      findings.push({ checkId: "house.required-text-missing", severity: "fail", message: `Required text is missing: "${required}".`, fix: "Add it to the footer (or the shared footer content block)." });
+      findings.push({
+        checkId: "house.required-text-missing",
+        severity: "fail",
+        message: `Required text is missing: "${required}".`,
+        fix: "Add it to the footer (or the shared footer content block).",
+      });
     }
   }
 
@@ -129,22 +210,39 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
   if (rules.senders.allowed.length > 0 && input.from) {
     const from = input.from.toLowerCase();
     if (!rules.senders.allowed.some((a) => from === a.toLowerCase() || from.endsWith(`@${a.toLowerCase()}`))) {
-      findings.push({ checkId: "house.sender-not-allowed", severity: "fail", message: `Sender ${input.from} isn't on the team's approved list.` });
+      findings.push({
+        checkId: "house.sender-not-allowed",
+        severity: "fail",
+        message: `Sender ${input.from} isn't on the team's approved list.`,
+      });
     }
   }
 
   // Subject style.
   if (input.subject) {
-    const s = input.subject;
+    const s = input.subjectSeen ?? input.subject;
     if (s.length > rules.style.subjectMaxLength) {
-      findings.push({ checkId: "house.subject-length", severity: "warn", message: `Subject is ${s.length} characters; house limit is ${rules.style.subjectMaxLength}.` });
+      findings.push({
+        checkId: "house.subject-length",
+        severity: "warn",
+        message: `Subject ${input.subjectSeen ? "can reach" : "is"} ${s.length} characters${input.subjectSeen && input.subjectSeen !== input.subject ? " for the longest name" : ""}; house limit is ${rules.style.subjectMaxLength}.`,
+        evidence: s,
+      });
     }
     if (rules.style.emojiInSubject !== "allowed" && /\p{Extended_Pictographic}/u.test(s)) {
-      findings.push({ checkId: "house.subject-emoji", severity: rules.style.emojiInSubject === "block" ? "fail" : "warn", message: "Subject contains an emoji; house style doesn't use them." });
+      findings.push({
+        checkId: "house.subject-emoji",
+        severity: rules.style.emojiInSubject === "block" ? "fail" : "warn",
+        message: "Subject contains an emoji; house style doesn't use them.",
+      });
     }
     const bangs = (s.match(/!/g) ?? []).length;
     if (rules.style.maxExclamationsInSubject !== undefined && bangs > rules.style.maxExclamationsInSubject) {
-      findings.push({ checkId: "house.subject-exclamations", severity: "info", message: `Subject has ${bangs} exclamation mark(s); house limit is ${rules.style.maxExclamationsInSubject}.` });
+      findings.push({
+        checkId: "house.subject-exclamations",
+        severity: "info",
+        message: `Subject has ${bangs} exclamation mark(s); house limit is ${rules.style.maxExclamationsInSubject}.`,
+      });
     }
   }
 
@@ -155,7 +253,12 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
     for (const m of src.matchAll(/default:\s*['"]([^'"]*)['"]|defaultIfEmpty\s+\S+\s+"([^"]*)"/g)) {
       const value = m[1] ?? m[2] ?? "";
       if (/name/i.test(src.slice(Math.max(0, (m.index ?? 0) - 40), m.index)) && value !== want) {
-        findings.push({ checkId: "house.fallback-style", severity: "info", message: `Name fallback is "${value}"; the team standard is "${want}".`, evidence: m[0] });
+        findings.push({
+          checkId: "house.fallback-style",
+          severity: "info",
+          message: `Name fallback is "${value}"; the team standard is "${want}".`,
+          evidence: m[0],
+        });
       }
     }
   }
@@ -166,7 +269,13 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
 export function checkCampaignName(name: string, rules: Rulebook): Finding[] {
   const pattern = rules.naming.campaignPattern;
   if (!pattern || new RegExp(pattern).test(name)) return [];
-  return [{ checkId: "house.naming", severity: "info", message: `"${name}" doesn't follow the naming convention${rules.naming.example ? ` (e.g. ${rules.naming.example})` : ""}.` }];
+  return [
+    {
+      checkId: "house.naming",
+      severity: "info",
+      message: `"${name}" doesn't follow the naming convention${rules.naming.example ? ` (e.g. ${rules.naming.example})` : ""}.`,
+    },
+  ];
 }
 
 /** Read a known-good email and propose rules, for /setup's "learn from an example" step. */
@@ -185,7 +294,9 @@ export function learnFromEmail(input: { html: string; subject?: string; from?: s
       /* dynamic link */
     }
   }
-  const fallbacks = [...`${input.subject ?? ""} ${input.html}`.matchAll(/default:\s*['"]([^'"]*)['"]|defaultIfEmpty\s+\S+\s+"([^"]*)"/g)].map((m) => m[1] ?? m[2] ?? "");
+  const fallbacks = [
+    ...`${input.subject ?? ""} ${input.html}`.matchAll(/default:\s*['"]([^'"]*)['"]|defaultIfEmpty\s+\S+\s+"([^"]*)"/g),
+  ].map((m) => m[1] ?? m[2] ?? "");
   const variant = spellingVariant(text);
   const tail = text.slice(-400);
   return {
@@ -198,6 +309,8 @@ export function learnFromEmail(input: { html: string; subject?: string; from?: s
     subjectLength: input.subject?.length,
     subjectHasEmoji: input.subject ? /\p{Extended_Pictographic}/u.test(input.subject) : undefined,
     footerText: tail,
-    addressLike: tail.match(/\d{1,6}\s+[A-Za-z0-9 .'-]+(Street|St|Avenue|Ave|Road|Rd|Blvd|Boulevard|Lane|Ln|Drive|Dr|Way|Suite|Ste)\b[^.]{0,80}/i)?.[0],
+    addressLike: tail.match(
+      /\d{1,6}\s+[A-Za-z0-9 .'-]+(Street|St|Avenue|Ave|Road|Rd|Blvd|Boulevard|Lane|Ln|Drive|Dr|Way|Suite|Ste)\b[^.]{0,80}/i,
+    )?.[0],
   };
 }

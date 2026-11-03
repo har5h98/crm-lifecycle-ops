@@ -6,9 +6,15 @@ import { checkChannelMessage } from "./channels.js";
 import { checkEmail } from "./email.js";
 import { checkCampaignName } from "./house.js";
 
-export function findItem(snap: Snapshot, query: string): { kind: "campaign"; item: Campaign } | { kind: "journey"; item: Journey } | { candidates: string[] } {
+export function findItem(
+  snap: Snapshot,
+  query: string,
+): { kind: "campaign"; item: Campaign } | { kind: "journey"; item: Journey } | { candidates: string[] } {
   const q = query.trim().toLowerCase();
-  const all = [...snap.campaigns.map((item) => ({ kind: "campaign" as const, item })), ...snap.journeys.map((item) => ({ kind: "journey" as const, item }))];
+  const all = [
+    ...snap.campaigns.map((item) => ({ kind: "campaign" as const, item })),
+    ...snap.journeys.map((item) => ({ kind: "journey" as const, item })),
+  ];
   const exact = all.find((x) => x.item.id.toLowerCase() === q || x.item.name.toLowerCase() === q);
   if (exact) return exact;
   const partial = all.filter((x) => x.item.name.toLowerCase().includes(q));
@@ -19,14 +25,19 @@ export function findItem(snap: Snapshot, query: string): { kind: "campaign"; ite
 /** /check-campaign: every message in a campaign or journey, plus its settings and structure. */
 export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebook = DEFAULT_RULES) {
   const found = findItem(snap, query);
-  if ("candidates" in found) return { error: found.candidates.length ? "More than one match; pick one." : "Nothing matched that name or id.", candidates: found.candidates };
+  if ("candidates" in found)
+    return {
+      error: found.candidates.length ? "More than one match; pick one." : "Nothing matched that name or id.",
+      candidates: found.candidates,
+    };
 
   const { kind, item } = found;
   const settings: Finding[] = [];
   const notVerified: string[] = [];
   const messageIds = kind === "campaign" ? item.messageIds : item.steps.flatMap((s) => s.messageIds);
 
-  if (messageIds.length === 0) settings.push({ checkId: "campaign.no-messages", severity: "fail", message: `This ${kind} has no messages.` });
+  if (messageIds.length === 0)
+    settings.push({ checkId: "campaign.no-messages", severity: "fail", message: `This ${kind} has no messages.` });
   const includes = item.audience.filter((a) => a.mode !== "exclude");
   if (includes.length === 0 && !(kind === "journey" && snap.platform === "iterable")) {
     settings.push({ checkId: "campaign.no-audience", severity: "fail", message: `No audience or trigger is set.` });
@@ -35,7 +46,11 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
     notVerified.push("Who this targets isn't available from the API; check the audience step in the platform.");
   }
   if (snap.platform === "braze" && (item.conversionEvents ?? []).length === 0) {
-    settings.push({ checkId: "campaign.no-conversion-event", severity: "info", message: "No conversion event is set, so this can't report on the outcome it's meant to drive." });
+    settings.push({
+      checkId: "campaign.no-conversion-event",
+      severity: "info",
+      message: "No conversion event is set, so this can't report on the outcome it's meant to drive.",
+    });
   }
   settings.push(...checkCampaignName(item.name, rules));
   if (kind === "journey") {
@@ -50,7 +65,18 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
     if (!m) continue;
     if (m.channel === "push" || m.channel === "sms" || m.channel === "in-app") {
       const r = await checkChannelMessage(
-        { channel: m.channel, platform: snap.platform, platformChannel: m.platformChannel, optOutAppended: m.optOutAppended, name: `${m.name} (${m.channel})`, title: m.title, body: m.body, deepLink: m.deepLink, imageUrl: m.imageUrl, buttons: m.buttons },
+        {
+          channel: m.channel,
+          platform: snap.platform,
+          platformChannel: m.platformChannel,
+          optOutAppended: m.optOutAppended,
+          name: `${m.name} (${m.channel})`,
+          title: m.title,
+          body: m.body,
+          deepLink: m.deepLink,
+          imageUrl: m.imageUrl,
+          buttons: m.buttons,
+        },
         rules,
       );
       messages.push(r);
@@ -58,14 +84,22 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
       continue;
     }
     if (m.channel !== "email" || !m.body) {
-      notVerified.push(`"${m.name}" (${m.platformChannel ?? m.channel}) wasn't QA'd: ${m.channel === "webhook" ? "webhooks" : "this channel"} isn't checked yet.`);
+      notVerified.push(
+        `"${m.name}" (${m.platformChannel ?? m.channel}) wasn't QA'd: ${m.channel === "webhook" ? "webhooks" : "this channel"} isn't checked yet.`,
+      );
       continue;
     }
     // Expand Braze content blocks we have, so footers and shared modules are checked too.
-    const html = m.body.replace(/\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g, (whole, name: string) => snap.contentBlocks.find((b) => b.name === name)?.body ?? whole);
+    const html = m.body.replace(
+      /\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g,
+      (whole, name: string) => snap.contentBlocks.find((b) => b.name === name)?.body ?? whole,
+    );
     const pattern = rules.transactional.namePattern;
     const transactional = m.transactional === true || (!!pattern && new RegExp(pattern, "i").test(`${item.name} ${m.name}`));
-    const r = await checkEmail({ html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from, transactional }, rules);
+    const r = await checkEmail(
+      { html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from, transactional },
+      rules,
+    );
     messages.push(r);
     notVerified.push(...r.notVerified);
   }
@@ -78,7 +112,13 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
     name: item.name,
     status: item.status,
     settings: applied.findings,
-    messages: messages.map((m) => ({ name: m.target, summary: m.summary, findings: m.findings, waived: m.waived, stats: "stats" in m ? m.stats : undefined })),
+    messages: messages.map((m) => ({
+      name: m.target,
+      summary: m.summary,
+      findings: m.findings,
+      waived: m.waived,
+      stats: "stats" in m ? m.stats : undefined,
+    })),
     notVerified: [...new Set(notVerified)],
     summary: summarize(all),
     snapshotTakenAt: snap.takenAt,

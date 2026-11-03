@@ -70,7 +70,16 @@ describe("house rules", () => {
       compliance: { requiredText: ["100 Example Way"] },
     });
     const ids = (await checkEmail({ html, platform: "braze" }, rules)).findings.map((f) => f.checkId);
-    expect(ids).toEqual(expect.arrayContaining(["house.brand-name", "house.spelling-variant", "house.off-domain-link", "house.utm-format", "house.utm-missing", "house.required-text-missing"]));
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "house.brand-name",
+        "house.spelling-variant",
+        "house.off-domain-link",
+        "house.utm-format",
+        "house.utm-missing",
+        "house.required-text-missing",
+      ]),
+    );
   });
   it("lets teams waive or re-grade checks, but never locked ones", () => {
     const rules = RulebookSchema.parse({

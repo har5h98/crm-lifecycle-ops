@@ -8,7 +8,14 @@ const S = "https://support.iterable.com/hc/en-us/articles";
 export const iterable: PlatformGuide = {
   platform: "iterable",
   verifiedAt: "2026-11-02",
-  terms: { journey: "Journey", campaign: "Campaign", segment: "Dynamic list", list: "List", sharedContent: "Snippet", testUsers: "Internal list" },
+  terms: {
+    journey: "Journey",
+    campaign: "Campaign",
+    segment: "Dynamic list",
+    list: "List",
+    sharedContent: "Snippet",
+    testUsers: "Internal list",
+  },
   personalization: {
     attribute: (n) => `{{${n}}}`,
     customAttribute: (n) => `{{${n}}}`,
@@ -40,7 +47,10 @@ export const iterable: PlatformGuide = {
       docs: [`${S}/15521924837908-Customizing-SMS-Opt-Out-Instructions`, `${S}/360044426031-Creating-SMS-Templates`],
     },
     "in-app": {
-      notes: ["In-app messages expire after 90 days by default; changing the expiry after sending doesn't affect people who already got it.", "The mobile inbox cuts titles at 25 characters and body text at 75."],
+      notes: [
+        "In-app messages expire after 90 days by default; changing the expiry after sending doesn't affect people who already got it.",
+        "The mobile inbox cuts titles at 25 characters and body text at 75.",
+      ],
       docs: [`${S}/360044425951-Creating-In-App-Templates`],
     },
     email: {
@@ -143,7 +153,10 @@ export const iterable: PlatformGuide = {
         "SMS: turn on link shortening; UTMs only apply to shortened, tracked links.",
       ],
       gotchas: ["Push templates have no link parameters.", "There's no project-wide UTM default; set it per template."],
-      docs: [`${S}/212082423-Google-Analytics-Iterable-Integration`, `${S}/4403865896724-Link-Shortening-and-Click-Tracking-for-RCS-SMS-and-WhatsApp`],
+      docs: [
+        `${S}/212082423-Google-Analytics-Iterable-Integration`,
+        `${S}/4403865896724-Link-Shortening-and-Click-Tracking-for-RCS-SMS-and-WhatsApp`,
+      ],
     },
     "frequency-and-quiet-hours": {
       steps: [
@@ -183,7 +196,10 @@ export const iterable: PlatformGuide = {
         "Preview: load a user's profile to render the template.",
         "Send a test to yourself, to an internal list (Iterable's seed list), or as random users from a list.",
       ],
-      gotchas: ["Push and in-app tests need an active device on the test profile; they're capped at 50 users.", "Unsubscribe and view-in-browser links don't behave like the real ones in tests."],
+      gotchas: [
+        "Push and in-app tests need an active device on the test profile; they're capped at 50 users.",
+        "Unsubscribe and view-in-browser links don't behave like the real ones in tests.",
+      ],
       docs: [`${S}/360044426191-Sending-Test-Messages`],
     },
     "pause-stop-duplicate": {

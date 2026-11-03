@@ -11,12 +11,7 @@ export type Severity = "fail" | "warn" | "info";
  * false confidence is not.
  */
 export type Confidence =
-  | "api-verified"
-  | "parsed-from-template"
-  | "parsed-from-description"
-  | "seen-on-screen"
-  | "inferred-from-naming"
-  | "unknown";
+  "api-verified" | "parsed-from-template" | "parsed-from-description" | "seen-on-screen" | "inferred-from-naming" | "unknown";
 
 export interface Finding {
   /** Stable id, e.g. "links.staging-host". Users quote it in /report-problem. */

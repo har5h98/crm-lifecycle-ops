@@ -6,7 +6,14 @@ const H = "https://help.klaviyo.com/hc/en-us/articles";
 export const klaviyo: PlatformGuide = {
   platform: "klaviyo",
   verifiedAt: "2026-11-02",
-  terms: { journey: "Flow", campaign: "Campaign", segment: "Segment", list: "List", sharedContent: "Universal content", testUsers: "internal list" },
+  terms: {
+    journey: "Flow",
+    campaign: "Campaign",
+    segment: "Segment",
+    list: "List",
+    sharedContent: "Universal content",
+    testUsers: "internal list",
+  },
   personalization: {
     attribute: (n) => `{{ ${n} }}`,
     customAttribute: (n) => (/^[a-z_][a-z0-9_]*$/i.test(n) ? `{{ person.${n} }}` : `{{ person|lookup:'${n}' }}`),
@@ -21,7 +28,10 @@ export const klaviyo: PlatformGuide = {
   },
   channels: {
     push: {
-      notes: ["Title up to 255 and body up to 512 characters; lock screens show far less, so keep the point up front.", "Deep links must be set up in the app before you use them."],
+      notes: [
+        "Title up to 255 and body up to 512 characters; lock screens show far less, so keep the point up front.",
+        "Deep links must be set up in the app before you use them.",
+      ],
       docs: [`${H}/360006653972`],
     },
     sms: {
@@ -34,10 +44,15 @@ export const klaviyo: PlatformGuide = {
       docs: [`${H}/360035661191`, `${H}/360040039971`, `${H}/360035285472`],
     },
     "in-app": {
-      notes: ["Klaviyo has no in-app message channel; the equivalent is in-app forms (Sign-up forms with the In-app badge), which can't collect consent or profile data."],
+      notes: [
+        "Klaviyo has no in-app message channel; the equivalent is in-app forms (Sign-up forms with the In-app badge), which can't collect consent or profile data.",
+      ],
       docs: [`${H}/34603509978907`],
     },
-    email: { notes: ["Event personalization isn't available in campaigns, only in flows triggered by that event."], docs: [`${H}/18986347580827`] },
+    email: {
+      notes: ["Event personalization isn't available in campaigns, only in flows triggered by that event."],
+      docs: [`${H}/18986347580827`],
+    },
   },
   tasks: {
     "create-campaign": {
@@ -137,7 +152,10 @@ export const klaviyo: PlatformGuide = {
         "Flow message: Settings > Enable UTM Tracking, plus Use custom tracking parameters.",
         "SMS: keep link shortening on, or UTMs and clicks won't be tracked.",
       ],
-      gotchas: ["Changing the account default updates messages that still use it; custom ones are untouched.", "Links must start with http:// or https:// to be tracked."],
+      gotchas: [
+        "Changing the account default updates messages that still use it; custom ones are untouched.",
+        "Links must start with http:// or https:// to be tracked.",
+      ],
       docs: [`${H}/360053921252`],
     },
     "frequency-and-quiet-hours": {
@@ -180,7 +198,10 @@ export const klaviyo: PlatformGuide = {
         "Send test to comma-separated addresses; recipients see the chosen profile's data.",
         "Push: Preview & test.",
       ],
-      gotchas: ["Unsubscribe and web-view links are placeholders in tests.", "Tests count toward a monthly preview limit (100 on the free plan)."],
+      gotchas: [
+        "Unsubscribe and web-view links are placeholders in tests.",
+        "Tests count toward a monthly preview limit (100 on the free plan).",
+      ],
       docs: [`${H}/115005081907`],
     },
     "pause-stop-duplicate": {

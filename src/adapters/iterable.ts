@@ -50,7 +50,17 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         "Iterable's API doesn't return journey step graphs; journey steps are rebuilt from attached campaigns, in unknown order.",
         "Iterable dynamic segment logic isn't available from the API; lists are mapped, their criteria are not.",
       ];
-      const snap: Snapshot = { platform: "iterable", workspace, takenAt: new Date().toISOString(), campaigns: [], journeys: [], messages: [], segments: [], contentBlocks: [], gaps };
+      const snap: Snapshot = {
+        platform: "iterable",
+        workspace,
+        takenAt: new Date().toISOString(),
+        campaigns: [],
+        journeys: [],
+        messages: [],
+        segments: [],
+        contentBlocks: [],
+        gaps,
+      };
       const prevMessages = new Map(previous?.messages.map((m) => [m.id, m]));
       const prevCampaigns = new Map(previous?.campaigns.map((c) => [c.id, c]));
 
@@ -86,7 +96,14 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
             const kind = normalizeChannel(medium);
             const path = { email: "email", push: "push", sms: "sms", "in-app": "inapp" }[kind as string];
             if (!path) {
-              snap.messages.push({ id: messageId, name: str(c.name) ?? messageId, channel: kind, platformChannel: medium, ownerId: id, body: "" });
+              snap.messages.push({
+                id: messageId,
+                name: str(c.name) ?? messageId,
+                channel: kind,
+                platformChannel: medium,
+                ownerId: id,
+                body: "",
+              });
               gaps.push(`"${str(c.name)}" is a ${medium} campaign; its content can't be read through Iterable's API.`);
             } else {
               try {
@@ -124,10 +141,27 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
           audience: [
             // Triggered campaigns have no send list; their trigger isn't in the API, so say "unknown", not "none".
             ...(arr(c.listIds).length === 0 && str(c.type) === "Triggered"
-              ? [{ id: str(c.workflowId) ? `journey:${str(c.workflowId)}` : "?", kind: "unknown" as const, mode: "trigger" as const, confidence: "unknown" as const }]
+              ? [
+                  {
+                    id: str(c.workflowId) ? `journey:${str(c.workflowId)}` : "?",
+                    kind: "unknown" as const,
+                    mode: "trigger" as const,
+                    confidence: "unknown" as const,
+                  },
+                ]
               : []),
-            ...arr(c.listIds).map((x) => ({ id: String(x), kind: "list" as const, mode: "include" as const, confidence: "api-verified" as const })),
-            ...arr(c.suppressionListIds).map((x) => ({ id: String(x), kind: "list" as const, mode: "exclude" as const, confidence: "api-verified" as const })),
+            ...arr(c.listIds).map((x) => ({
+              id: String(x),
+              kind: "list" as const,
+              mode: "include" as const,
+              confidence: "api-verified" as const,
+            })),
+            ...arr(c.suppressionListIds).map((x) => ({
+              id: String(x),
+              kind: "list" as const,
+              mode: "exclude" as const,
+              confidence: "api-verified" as const,
+            })),
           ],
           tags: [str(c.type), str(c.workflowId) ? `journey:${str(c.workflowId)}` : undefined].filter((x): x is string => !!x),
           updatedAt,
@@ -153,11 +187,17 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         snap.journeys.push({
           id,
           name: str(j.name) ?? id,
-          status: j.isArchived === true ? "archived" : enabled === true ? "live" : enabled === false ? "draft" : campaignStatus(str(j.state)),
+          status:
+            j.isArchived === true ? "archived" : enabled === true ? "live" : enabled === false ? "draft" : campaignStatus(str(j.state)),
           entryStepIds: [],
           steps: attached.map((c) => ({ id: c.id, name: c.name, type: "message (order unknown)", messageIds: c.messageIds, next: [] })),
           stepsKnown: false,
-          audience: arr(j.triggerEventNames).map((e) => ({ id: String(e), kind: "event" as const, mode: "trigger" as const, confidence: "api-verified" as const })),
+          audience: arr(j.triggerEventNames).map((e) => ({
+            id: String(e),
+            kind: "event" as const,
+            mode: "trigger" as const,
+            confidence: "api-verified" as const,
+          })),
           tags: obj(j.draft).id ? ["has an unpublished draft"] : [],
           updatedAt: str(j.updatedAt),
         });
@@ -167,11 +207,22 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
 
     async launchStats(kind, id) {
       if (kind === "journey") {
-        return { period: "n/a", sent: 0, notes: ["Iterable journey-level metrics aren't available from the API; run this on the journey's campaigns instead."] };
+        return {
+          period: "n/a",
+          sent: 0,
+          notes: ["Iterable journey-level metrics aren't available from the API; run this on the journey's campaigns instead."],
+        };
       }
       const start = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 19).replace("T", " ");
-      const csv = await getText(`${base}/campaigns/metrics?campaignId=${encodeURIComponent(id)}&startDateTime=${encodeURIComponent(start)}`, headers, opts.fetcher);
-      const [header, ...rows] = csv.trim().split(/\r?\n/).map((l) => l.split(","));
+      const csv = await getText(
+        `${base}/campaigns/metrics?campaignId=${encodeURIComponent(id)}&startDateTime=${encodeURIComponent(start)}`,
+        headers,
+        opts.fetcher,
+      );
+      const [header, ...rows] = csv
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => l.split(","));
       const col = (name: RegExp) => {
         const i = (header ?? []).findIndex((h) => name.test(h));
         return i < 0 ? undefined : rows.reduce((sum, r) => sum + Number(r[i] ?? 0), 0);

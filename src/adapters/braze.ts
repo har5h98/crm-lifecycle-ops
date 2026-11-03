@@ -90,7 +90,17 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
       const prevMessages = new Map<string, Message[]>();
       for (const m of previous?.messages ?? []) if (m.ownerId) prevMessages.set(m.ownerId, [...(prevMessages.get(m.ownerId) ?? []), m]);
 
-      const snap: Snapshot = { platform: "braze", workspace, takenAt: new Date().toISOString(), campaigns: [], journeys: [], messages: [], segments: [], contentBlocks: [], gaps };
+      const snap: Snapshot = {
+        platform: "braze",
+        workspace,
+        takenAt: new Date().toISOString(),
+        campaigns: [],
+        journeys: [],
+        messages: [],
+        segments: [],
+        contentBlocks: [],
+        gaps,
+      };
 
       // Campaigns: details only for ones edited since the last snapshot.
       const campaigns = await listAll(base, "/campaigns/list?include_archived=false&sort_direction=desc", "campaigns", headers, opts);
@@ -143,7 +153,13 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
               const n = str(obj(p).next_step_id);
               if (n) next.add(n);
             }
-            return { id: str(s.id) ?? "", name: str(s.name) ?? "", type: str(s.type) ?? "step", messageIds: messages.map((m) => m.id), next: [...next] };
+            return {
+              id: str(s.id) ?? "",
+              name: str(s.name) ?? "",
+              type: str(s.type) ?? "step",
+              messageIds: messages.map((m) => m.id),
+              next: [...next],
+            };
           });
           snap.journeys.push({
             id,
@@ -168,7 +184,13 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
         const id = str(s.id)!;
         try {
           const d = await get(`/segments/details?segment_id=${encodeURIComponent(id)}`);
-          snap.segments.push({ id, name: str(d.name) ?? str(s.name) ?? id, kind: "segment", description: str(d.description), updatedAt: str(d.updated_at) });
+          snap.segments.push({
+            id,
+            name: str(d.name) ?? str(s.name) ?? id,
+            kind: "segment",
+            description: str(d.description),
+            updatedAt: str(d.updated_at),
+          });
         } catch {
           snap.segments.push({ id, name: str(s.name) ?? id, kind: "segment" });
         }
@@ -183,8 +205,16 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
         const id = str(b.content_block_id) ?? str(b.id)!;
         try {
           const d = await get(`/content_blocks/info?content_block_id=${encodeURIComponent(id)}&include_inclusion_data=true`);
-          const usedBy = arr(d.inclusion_data).map((x) => str(obj(x).message_variation_id) ?? str(obj(x).message_variation_api_id) ?? str(x) ?? "").filter(Boolean);
-          snap.contentBlocks.push({ id, name: str(d.name) ?? str(b.name) ?? id, body: str(d.content) ?? "", usedBy, updatedAt: str(d.last_edited) });
+          const usedBy = arr(d.inclusion_data)
+            .map((x) => str(obj(x).message_variation_id) ?? str(obj(x).message_variation_api_id) ?? str(x) ?? "")
+            .filter(Boolean);
+          snap.contentBlocks.push({
+            id,
+            name: str(d.name) ?? str(b.name) ?? id,
+            body: str(d.content) ?? "",
+            usedBy,
+            updatedAt: str(d.last_edited),
+          });
         } catch {
           snap.contentBlocks.push({ id, name: str(b.name) ?? id, body: "", usedBy: [] });
         }
@@ -196,7 +226,17 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
     async launchStats(kind, id) {
       if (kind === "campaign") {
         const d = await get(`/campaigns/data_series?campaign_id=${encodeURIComponent(id)}&length=7`);
-        const totals: LaunchStats = { period: "last 7 days", sent: 0, delivered: 0, bounces: 0, unsubscribes: 0, spamReports: 0, uniqueOpens: 0, uniqueClicks: 0, notes: [] };
+        const totals: LaunchStats = {
+          period: "last 7 days",
+          sent: 0,
+          delivered: 0,
+          bounces: 0,
+          unsubscribes: 0,
+          spamReports: 0,
+          uniqueOpens: 0,
+          uniqueClicks: 0,
+          notes: [],
+        };
         for (const day of arr(d.data)) {
           for (const variants of Object.values(obj(obj(day).messages))) {
             for (const v of arr(variants).map(obj)) {
@@ -212,12 +252,16 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
         }
         return totals;
       }
-      const d = await get(`/canvas/data_summary?canvas_id=${encodeURIComponent(id)}&ending_at=${encodeURIComponent(new Date().toISOString())}&length=7&include_variant_breakdown=false&include_step_breakdown=false`);
+      const d = await get(
+        `/canvas/data_summary?canvas_id=${encodeURIComponent(id)}&ending_at=${encodeURIComponent(new Date().toISOString())}&length=7&include_variant_breakdown=false&include_step_breakdown=false`,
+      );
       const stats = obj(obj(d.data).total_stats);
       return {
         period: "last 7 days",
         sent: Number(stats.entries ?? 0),
-        notes: ["Braze's Canvas summary reports entries and revenue, not per-message bounces or unsubscribes; check the Canvas analytics page for those."],
+        notes: [
+          "Braze's Canvas summary reports entries and revenue, not per-message bounces or unsubscribes; check the Canvas analytics page for those.",
+        ],
       };
     },
   };
