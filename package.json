@@ -1,6 +1,6 @@
 {
   "name": "crm-lifecycle-ops",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AI copilot for lifecycle & CRM marketing ops on Braze, Klaviyo and Iterable: QA email, push, SMS and in-app before they send, map dependencies, and get platform-specific build steps. MCP server + Claude Code plugin.",
   "keywords": [
     "braze",

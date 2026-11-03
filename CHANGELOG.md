@@ -3,6 +3,19 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.3.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.2.0...v0.3.0) (2026-11-03)
+
+
+### Features
+
+* push, SMS and in-app QA, platform-specific build and edit plans ([a669151](https://github.com/har5h98/crm-lifecycle-ops/commit/a669151dcbc31bebc0c379956fe012f71c3f6c73))
+
+
+### Bug Fixes
+
+* clearer operator output from a simulated session; enforce formatting ([46f712f](https://github.com/har5h98/crm-lifecycle-ops/commit/46f712f091171d60d2010299aeebaa31b451515e))
+* false alarms, safer link checks and secure key storage from an independent review ([e77c402](https://github.com/har5h98/crm-lifecycle-ops/commit/e77c402b8d970dadbf0bfd2cdf38a552ebbf3b05))
+
 ## [0.2.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.1.0...v0.2.0) (2026-11-03)
 
 
