@@ -10,30 +10,31 @@ Lifecycle and CRM teams lose hours to manual QA and to the fear of changing some
 breaks a live journey. This plugin catches the mistakes before they send, and (as it grows) tells you
 what depends on what before you change it.
 
-> **Status: early alpha.** `/check-email` works today. The rest of the commands are being built in the
-> open; the table below is the honest current state. Found a wrong result? Run `/report-problem`.
-> Every report becomes a permanent test case.
+> **Status: early alpha.** Every command below exists. ✅ means it works fully today. 🧪 means it works
+> on the built-in demo account and against mocked Braze/Klaviyo/Iterable API responses, but hasn't been
+> field-tested on real accounts yet. If you run it on yours and something's off, `/report-problem`
+> turns it into a test case and a fix.
 
 ## Commands
 
 | Stage | Command | What it does | Status |
 |---|---|---|---|
 | Start | `/start-here` | Overview and the best first step | ✅ |
-| QA | `/check-email` | Full QA on one email: HTML, links, unsubscribe, UTMs, personalization for several test profiles | ✅ |
+| Start | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, test personas, strictness | ✅ |
+| Start | `/house-rules` | View or change those rules; mark a finding "fine for us" | ✅ |
+| Setup | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
+| Setup | `/refresh` | Pull the latest campaigns, journeys, segments, templates and content blocks (or load the demo) | 🧪 |
+| QA | `/check-email` | Full QA on one email: HTML, links, unsubscribe, UTMs, personalization for several test profiles, house rules | ✅ |
+| QA | `/check-campaign` | QA a whole campaign or journey: every email (content blocks expanded), settings and structure | 🧪 |
+| Impact | `/what-breaks` | "If I change or delete this attribute, segment, block, event or link, what live things are affected?" | 🧪 |
+| Impact | `/what-changed` | What changed in the account since last time, live items first | 🧪 |
+| Plan | `/plan-journey` | Design a journey and check it for overlap with what's already live | 🧪 |
+| Plan | `/show-journey` | Draw a live journey as a diagram, with structural problems flagged | 🧪 |
+| Build | `/build-plan` | Turn a brief into a step-by-step build checklist that reuses existing assets | 🧪 |
+| Build | `/bulk-edit` | Find-and-replace preview across every subject, body and content block | 🧪 |
+| Launch | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against stated thresholds | 🧪 |
+| Report | `/ops-report` | Emails checked, problems caught, hours saved | ✅ |
 | Feedback | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
-| Setup | `/connect` | Connect Braze, Klaviyo or Iterable with read-only keys | 🗺 next |
-| Setup | `/refresh` | Pull the latest campaigns, journeys, segments and templates | 🗺 next |
-| QA | `/check-campaign` | QA a whole campaign or journey: every message plus settings | 🗺 |
-| Impact | `/what-breaks` | "If I change or delete this, what live things are affected?" | 🗺 |
-| Impact | `/what-changed` | What changed in the account since you last looked | 🗺 |
-| Plan | `/plan-journey` | Design a new journey and check it against what's already live | 🗺 |
-| Plan | `/show-journey` | Draw a live journey as a diagram | 🗺 |
-| Build | `/build-plan` | Turn a brief into a step-by-step build checklist | 🗺 |
-| Build | `/bulk-edit` | Find-and-replace across many templates, with a preview first | 🗺 |
-| Launch | `/watch-launch` | Health check after a send: bounces, unsubscribes, stalls | 🗺 |
-| Report | `/ops-report` | Errors caught, time saved, adoption | 🗺 |
-
-✅ works · 🧪 early · 🗺 planned
 
 ## Install
 
@@ -44,7 +45,27 @@ Needs [Claude Code](https://claude.com/claude-code) (or Claude Desktop with plug
 /plugin install crm-lifecycle-ops@crm-lifecycle-ops
 ```
 
-Then paste an email's HTML and run `/check-email`.
+Then:
+1. `/setup`: five minutes of questions (or paste an email you're happy with and it learns from that).
+2. `/check-email`: paste any email's HTML.
+3. `/refresh demo`: load a fictional brand's Braze workspace and try `/what-breaks loyalty_tier`,
+   `/show-journey Welcome Series` or `/check-campaign Price Drop Alert`, with no account needed.
+4. `/connect` when you're ready to use your own account (read-only keys; never pasted into chat).
+
+## Your rules, not just ours
+
+What's "wrong" depends on the team, so checks come in three layers:
+
+| Layer | Examples | Can a team change it? |
+|---|---|---|
+| **Locked**: wrong for everyone | No unsubscribe, template syntax that doesn't render, broken or malformed links | No |
+| **Defaults**: sensible everywhere | Missing alt text, `http://` links, Gmail clipping, mixed UTM tagging | Re-grade or turn off |
+| **House rules**: your conventions | US vs UK spelling, date format, brand terms, banned phrases, approved domains and senders, UTM naming, required footer/postal address, subject length and emoji, name fallback, naming convention, your own test personas | Set in `/setup` |
+
+`/setup` asks short rounds of questions and can **learn from an email you already consider right**
+(domains, UTM pattern, sender, footer, fallback, spelling). "That's fine for us" becomes a recorded
+exception with a reason (`/house-rules`), which is different from "the tool is wrong" (`/report-problem`).
+Teams share one rulebook by pointing `CLO_RULES` at a shared file.
 
 ## What `/check-email` checks
 
@@ -78,17 +99,23 @@ What I couldn't check: content block "footer_v2" was not expanded.
 
 ## What it can't see (yet)
 
-Honesty over false confidence: every result says what it couldn't verify.
+Honesty over false confidence: every result says what it couldn't verify, and every dependency says
+how it's known (*confirmed by the API*, *read from the template*, *read from the segment description*,
+*seen on screen*).
 
 - **Local rendering is an approximation.** Braze `connected_content` and catalog lookups aren't executed,
   and Klaviyo's template language is approximated with Liquid. These are reported as *not verified*, never as passing.
-- **Braze's API doesn't expose which segment a campaign targets**, so the planned `/what-breaks` will
-  label those links "unknown" until they can be read from the Braze dashboard.
+- **Braze's API doesn't say which segment a campaign or Canvas targets**, and gives segment filters only as
+  prose. `/what-breaks` lists those live items as "can't rule out" and can read them from your Braze
+  dashboard (via Claude in Chrome, one page at a time, with your OK).
+- **Iterable's API doesn't return journey step order**, so Iterable journeys show their emails but not the path between them.
+- **Only email bodies are QA'd** so far; SMS, push and in-app messages are listed as not checked.
+- **`/bulk-edit` previews only.** Writing changes through the APIs stays off until the adapters are field-tested.
 
 ## Safety
 
-Read-only by default. It never sends a message, never reads customer profiles (it tests with
-synthetic personas), and keeps your keys on your machine. See [SECURITY.md](SECURITY.md).
+Read-only. It never sends a message, never edits your account, never reads customer profiles (it tests
+with synthetic personas), and keeps your keys on your machine in environment variables. See [SECURITY.md](SECURITY.md).
 
 ## How it gets better
 

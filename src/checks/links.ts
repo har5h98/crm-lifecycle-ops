@@ -50,10 +50,14 @@ export function checkLinks(html: string): Finding[] {
   const links = extractLinks(html);
 
   if (!/unsubscrib/i.test(html)) {
+    // An unexpanded Braze content block (often the footer) may hold the link; say so rather than cry wolf.
+    const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
     findings.push({
       checkId: "links.no-unsubscribe",
-      severity: "fail",
-      message: "No unsubscribe link or unsubscribe tag found.",
+      severity: blocks.length ? "warn" : "fail",
+      message: blocks.length
+        ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.`
+        : "No unsubscribe link or unsubscribe tag found.",
       fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules).",
     });
   }

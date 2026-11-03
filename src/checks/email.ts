@@ -1,4 +1,6 @@
 import { summarize, type CheckReport, type Finding, type Persona, type Platform } from "../core/model.js";
+import { applyRules, DEFAULT_RULES, type Rulebook } from "../core/rules.js";
+import { checkHouseRules } from "./house.js";
 import { checkHtml } from "./html.js";
 import { checkLinks, checkLinksLive } from "./links.js";
 import { checkPersonalization } from "./personalization.js";
@@ -9,6 +11,7 @@ export interface EmailInput {
   name?: string;
   subject?: string;
   preheader?: string;
+  from?: string;
   personas?: Persona[];
   /** Also request every static link over the network. Slower; off by default. */
   checkLinksLive?: boolean;
@@ -19,8 +22,6 @@ function checkSubject(subject: string | undefined, preheader: string | undefined
   if (subject === undefined) return findings;
   if (subject.trim() === "") {
     findings.push({ checkId: "copy.empty-subject", severity: "fail", message: "Subject line is empty." });
-  } else if (subject.length > 60) {
-    findings.push({ checkId: "copy.long-subject", severity: "info", message: `Subject is ${subject.length} characters; most mobile inboxes cut off around 40–60.` });
   }
   if (preheader !== undefined && preheader.trim() === "") {
     findings.push({ checkId: "copy.empty-preheader", severity: "warn", message: "Preheader is set but empty." });
@@ -29,23 +30,34 @@ function checkSubject(subject: string | undefined, preheader: string | undefined
 }
 
 /** The whole /check-email pass: HTML, links, personalization and subject line, in one report. */
-export async function checkEmail(input: EmailInput): Promise<CheckReport & { variables: string[] }> {
+export async function checkEmail(
+  input: EmailInput,
+  rules: Rulebook = DEFAULT_RULES,
+): Promise<CheckReport & { variables: string[]; waived: { finding: Finding; reason: string }[] }> {
   const findings: Finding[] = [];
   const notVerified: string[] = [];
+
+  // Personas: explicit ones win; otherwise the team's own (plus an empty profile, always); otherwise auto-generated.
+  const personas = input.personas?.length
+    ? input.personas
+    : rules.personalization.personas.length
+      ? [...rules.personalization.personas, { name: "Empty profile", attributes: {} }]
+      : undefined;
 
   findings.push(...checkHtml(input.html));
   findings.push(...checkLinks(input.html));
 
-  const p = await checkPersonalization(input.html, input.platform, input.personas);
+  const p = await checkPersonalization(input.html, input.platform, personas);
   findings.push(...p.findings);
   notVerified.push(...p.notVerified);
 
   // Subject lines are templates too: run them through the same renderer.
   if (input.subject) {
-    const s = await checkPersonalization(input.subject, input.platform, input.personas);
+    const s = await checkPersonalization(input.subject, input.platform, personas);
     findings.push(...s.findings.map((f) => ({ ...f, message: `Subject line: ${f.message}` })));
   }
   findings.push(...checkSubject(input.subject, input.preheader));
+  findings.push(...checkHouseRules({ html: input.html, subject: input.subject, from: input.from }, rules));
 
   if (input.checkLinksLive) {
     const live = await checkLinksLive(input.html);
@@ -55,15 +67,17 @@ export async function checkEmail(input: EmailInput): Promise<CheckReport & { var
     notVerified.push("Links were checked for format and host only, not requested over the network (set checkLinksLive to test them).");
   }
 
+  const applied = applyRules(findings, rules);
   const order = { fail: 0, warn: 1, info: 2 } as const;
-  findings.sort((a, b) => order[a.severity] - order[b.severity]);
+  applied.findings.sort((a, b) => order[a.severity] - order[b.severity]);
 
   return {
     target: input.name ?? "Pasted email",
     platform: input.platform,
-    findings,
+    findings: applied.findings,
+    waived: applied.waived,
     notVerified: [...new Set(notVerified)],
-    summary: summarize(findings),
+    summary: summarize(applied.findings),
     variables: p.variables,
   };
 }

@@ -13,6 +13,7 @@ export type Severity = "fail" | "warn" | "info";
 export type Confidence =
   | "api-verified"
   | "parsed-from-template"
+  | "parsed-from-description"
   | "seen-on-screen"
   | "inferred-from-naming"
   | "unknown";
