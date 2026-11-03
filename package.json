@@ -46,7 +46,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "esbuild src/mcp/server.ts --bundle --platform=node --format=esm --target=node20 --minify --legal-comments=eof --outfile=dist/mcp-server.js --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "build": "esbuild src/mcp/server.ts --bundle --platform=node --format=esm --target=node20 --legal-comments=eof --outfile=dist/mcp-server.js --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run format:check && npm run typecheck && npm test && npm run build && npm run smoke",

@@ -153,6 +153,22 @@ how it's known (*confirmed by the API*, *read from the template*, *read from the
 Read-only. It never sends a message, never edits your account, never reads customer profiles (it tests
 with synthetic personas), and keeps your keys on your machine in environment variables. See [SECURITY.md](SECURITY.md).
 
+## What it runs, sends and fetches
+
+Everything the plugin does outside Claude, in one place:
+
+| What | When | Where it goes |
+|---|---|---|
+| Starts a local MCP server (`node dist/mcp-server.js`, readable source in `src/`) | When Claude Code loads the plugin | Runs on your machine only |
+| Read-only API calls (list and details endpoints, delivery reports) | `/refresh`, `/watch-launch` | Only the platform you connected: your Braze REST endpoint, `a.klaviyo.com`, or `api.iterable.com` / `api.eu.iterable.com` |
+| Link checks (HEAD requests; unsubscribe and click-tracking links are never requested) | Only when you ask for a live link check | The links inside the email being checked |
+| Writes local files: snapshots, house rules, a usage log of check ids and counts | During normal use | `~/.crm-lifecycle-ops/` on your machine |
+| Mirrors the usage log (counts and check ids, never message content) | Only if you set a team report folder | The folder you chose |
+| Creates a GitHub issue | Only through `/report-problem`, after you approve the exact text | `github.com/har5h98/crm-lifecycle-ops` |
+
+It never sends messages, never edits your account, never reads customer profiles, and sends nothing to the
+author or any other third party. API keys are read only from the plugin's settings (secure storage).
+
 ## How it gets better
 
 1. **You report:** `/report-problem` turns a wrong result into a redacted GitHub issue (it asks before posting).
