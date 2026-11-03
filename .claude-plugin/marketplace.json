@@ -12,7 +12,7 @@
       "name": "crm-lifecycle-ops",
       "source": "./",
       "description": "Email QA, dependency checks, journey maps and launch monitoring for Braze, Klaviyo and Iterable.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Harsh Singhal"
       },
