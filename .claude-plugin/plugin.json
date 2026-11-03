@@ -25,7 +25,75 @@
       "command": "node",
       "args": [
         "${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.js"
-      ]
+      ],
+      "env": {
+        "CLO_BRAZE_API_KEY": "${user_config.braze_api_key}",
+        "CLO_BRAZE_REST_ENDPOINT": "${user_config.braze_rest_endpoint}",
+        "CLO_BRAZE_WORKSPACE": "${user_config.braze_workspace}",
+        "CLO_KLAVIYO_API_KEY": "${user_config.klaviyo_api_key}",
+        "CLO_KLAVIYO_ACCOUNT": "${user_config.klaviyo_account}",
+        "CLO_ITERABLE_API_KEY": "${user_config.iterable_api_key}",
+        "CLO_ITERABLE_REGION": "${user_config.iterable_region}",
+        "CLO_ITERABLE_PROJECT": "${user_config.iterable_project}"
+      }
+    }
+  },
+  "userConfig": {
+    "braze_api_key": {
+      "type": "string",
+      "title": "Braze REST API key",
+      "description": "Read-only key (campaigns, canvas, segments, content blocks: list/details/data). Leave blank if you don't use Braze.",
+      "sensitive": true,
+      "required": false
+    },
+    "braze_rest_endpoint": {
+      "type": "string",
+      "title": "Braze REST endpoint",
+      "description": "e.g. https://rest.iad-01.braze.com (Settings > APIs and Identifiers).",
+      "sensitive": false,
+      "required": false
+    },
+    "braze_workspace": {
+      "type": "string",
+      "title": "Braze workspace label",
+      "description": "Any short name, e.g. prod. Keeps snapshots of different workspaces apart.",
+      "sensitive": false,
+      "required": false
+    },
+    "klaviyo_api_key": {
+      "type": "string",
+      "title": "Klaviyo private API key",
+      "description": "A read-only private key. Leave blank if you don't use Klaviyo.",
+      "sensitive": true,
+      "required": false
+    },
+    "klaviyo_account": {
+      "type": "string",
+      "title": "Klaviyo account label",
+      "description": "Any short name for this account.",
+      "sensitive": false,
+      "required": false
+    },
+    "iterable_api_key": {
+      "type": "string",
+      "title": "Iterable API key",
+      "description": "A server-side key with read access. Leave blank if you don't use Iterable.",
+      "sensitive": true,
+      "required": false
+    },
+    "iterable_region": {
+      "type": "string",
+      "title": "Iterable data center",
+      "description": "us (default) or eu.",
+      "sensitive": false,
+      "required": false
+    },
+    "iterable_project": {
+      "type": "string",
+      "title": "Iterable project label",
+      "description": "Any short name for this project.",
+      "sensitive": false,
+      "required": false
     }
   }
 }

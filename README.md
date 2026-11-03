@@ -54,7 +54,8 @@ Then:
 2. `/check-email`: paste any email's HTML.
 3. `/refresh demo`: load a fictional brand's Braze workspace and try `/what-breaks loyalty_tier`,
    `/show-journey Welcome Series` or `/check-campaign Price Drop Alert`, with no account needed.
-4. `/connect` when you're ready to use your own account (read-only keys; never pasted into chat).
+4. `/connect` when you're ready to use your own account: read-only keys, entered in the plugin's settings
+   (`/plugin configure crm-lifecycle-ops`) and kept in your system's secure storage, never pasted into chat.
 
 ## Your rules, not just ours
 

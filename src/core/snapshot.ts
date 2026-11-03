@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Confidence, Platform } from "./model.js";
@@ -13,6 +13,10 @@ export interface AudienceRef {
   kind: "segment" | "list" | "event" | "unknown";
   mode: "include" | "exclude" | "trigger";
   confidence: Confidence;
+  /** Human name when the id is opaque (e.g. a Klaviyo metric id for "Placed Order"). */
+  name?: string;
+  /** When a seen-on-screen fact was recorded. */
+  seenAt?: string;
 }
 
 export type Channel = "email" | "push" | "sms" | "in-app" | "content-card" | "webhook" | "other";
@@ -48,6 +52,8 @@ export interface Message {
   buttons?: Button[];
   /** SMS: true when the platform will append the account's opt-out text to this message. */
   optOutAppended?: boolean;
+  /** Receipts, password resets…: exempt from unsubscribe requirements. */
+  transactional?: boolean;
   /** The campaign or journey this message belongs to (absent for standalone templates). */
   ownerId?: string;
   subject?: string;
@@ -143,6 +149,10 @@ export async function saveSnapshot(s: Snapshot): Promise<string> {
   await mkdir(dir, { recursive: true });
   const file = join(dir, `${s.takenAt.replace(/[:.]/g, "-")}.json`);
   await writeFile(file, JSON.stringify(s));
+  // Keep the newest snapshots only; a daily refresh would otherwise grow without limit.
+  const keep = Number(process.env.CLO_KEEP_SNAPSHOTS ?? 30);
+  const all = (await readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+  await Promise.all(all.slice(0, Math.max(0, all.length - keep)).map((f) => rm(join(dir, f), { force: true })));
   return file;
 }
 
@@ -152,6 +162,28 @@ export async function listSnapshots(platform: Platform, workspace: string): Prom
     return (await readdir(dir)).filter((f) => f.endsWith(".json")).sort().map((f) => join(dir, f));
   } catch {
     return [];
+  }
+}
+
+/** Overwrite the newest snapshot in place (used to record facts read from the dashboard). */
+export async function updateLatest(s: Snapshot): Promise<string | undefined> {
+  const files = await listSnapshots(s.platform, s.workspace);
+  const file = files[files.length - 1];
+  if (file) await writeFile(file, JSON.stringify(s));
+  return file;
+}
+
+/** Carry dashboard-recorded audiences forward when the API still can't see them. */
+export function carryForwardSeenAudiences(prev: Snapshot | undefined, next: Snapshot): void {
+  if (!prev) return;
+  const seen = new Map<string, AudienceRef[]>();
+  for (const x of [...prev.campaigns, ...prev.journeys]) {
+    const refs = x.audience.filter((a) => a.confidence === "seen-on-screen");
+    if (refs.length) seen.set(x.id, refs);
+  }
+  for (const x of [...next.campaigns, ...next.journeys]) {
+    const refs = seen.get(x.id);
+    if (refs && x.audience.every((a) => a.confidence === "unknown")) x.audience = refs;
   }
 }
 

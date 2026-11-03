@@ -1,6 +1,6 @@
 ---
 name: watch-launch
-description: Health check on a campaign or journey after it goes out. Bounce, unsubscribe, spam-complaint and delivery rates against stated thresholds, plus stalls. Use when someone says "how's the launch", "is the send healthy", "check deliverability on…", or an hour after launching.
+description: Health check on a campaign or journey after it goes out. Bounce, unsubscribe, spam-complaint and delivery rates against stated thresholds, plus stalls. Use when someone asks how a campaign, Canvas, flow or journey send is performing after launch (bounces, unsubscribes, spam complaints, deliverability).
 argument-hint: "<campaign or journey name>"
 ---
 

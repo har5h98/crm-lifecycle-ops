@@ -1,6 +1,6 @@
 ---
 name: refresh
-description: Pull the latest campaigns, journeys, segments, templates and content blocks from Braze, Klaviyo or Iterable into a local snapshot, and say what changed since last time. Use when someone says "refresh", "sync", "pull the latest", or before impact or QA work on a connected account. Also loads the demo account.
+description: Pull the latest campaigns, journeys, segments, templates and content blocks from Braze, Klaviyo or Iterable into a local snapshot, and say what changed since last time. Use when someone asks to refresh, sync or pull the latest from their Braze, Klaviyo or Iterable account, or before impact or QA work on a connected account. Also loads the demo account. Not for git or code.
 argument-hint: "[braze | klaviyo | iterable | demo]"
 ---
 

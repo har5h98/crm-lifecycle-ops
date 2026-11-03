@@ -1,6 +1,6 @@
 import type { Finding } from "../core/model.js";
 import type { Rulebook } from "../core/rules.js";
-import { extractLinks } from "./links.js";
+import { extractLinks, registrableDomain } from "./links.js";
 
 // Checks that only exist because a team told us its conventions (see src/core/rules.ts).
 // With an empty rulebook, none of these fire.
@@ -84,6 +84,7 @@ export function checkHouseRules(input: { html: string; subject?: string; from?: 
   if (rules.locale.dateFormat !== "any") {
     for (const m of copy.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/g)) {
       const [a, b] = [Number(m[1]), Number(m[2])];
+      if (m[0] === "24/7" || a === 0 || b === 0 || a > 31 || b > 31) continue; // not a date
       const wrongOrder = rules.locale.dateFormat === "MM/DD" ? a > 12 && b <= 12 : b > 12 && a <= 12;
       if (wrongOrder) {
         findings.push({ checkId: "house.date-format", severity: "warn", message: `"${m[0]}" reads as ${rules.locale.dateFormat === "MM/DD" ? "DD/MM" : "MM/DD"}; house format is ${rules.locale.dateFormat}.`, evidence: snippet(copy, m.index ?? 0) });
@@ -177,7 +178,7 @@ export function learnFromEmail(input: { html: string; subject?: string; from?: s
   for (const l of links) {
     try {
       const u = new URL(l.href.replace(/\{\{[\s\S]*?\}\}/g, "x"));
-      const root = u.hostname.split(".").slice(-2).join(".");
+      const root = registrableDomain(u.hostname);
       domains.set(root, (domains.get(root) ?? 0) + 1);
       for (const [k, v] of u.searchParams) if (k.startsWith("utm_")) utm.set(k, (utm.get(k) ?? new Set()).add(v));
     } catch {

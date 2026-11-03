@@ -1,6 +1,6 @@
 ---
 name: show-journey
-description: Draw a live journey (Braze Canvas, Klaviyo flow, Iterable journey) as a diagram with each email's subject line, and point out structural problems. Use when someone says "show me the welcome series", "map this Canvas", "draw the flow".
+description: Draw a live journey (Braze Canvas, Klaviyo flow, Iterable journey) as a diagram with each email's subject line, and point out structural problems. Use when someone asks to see, map or diagram a Canvas, flow or journey from their Braze, Klaviyo or Iterable account.
 argument-hint: "<journey name>"
 ---
 

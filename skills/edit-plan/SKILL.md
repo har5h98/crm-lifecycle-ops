@@ -1,6 +1,6 @@
 ---
 name: edit-plan
-description: Step-by-step, platform-specific instructions for changing something that already exists. Edit live copy, change a journey that's running, swap a shared content block, change the audience or exclusions, add tracking, set frequency caps, add an A/B test, pause or duplicate. Written in the platform's own terms, filled in with the team's house rules, and showing what else the change affects. Use when someone asks "how do I change…", "how do I edit the live…", "what's the safest way to update…", "how do I add an exclusion to…".
+description: Step-by-step, platform-specific instructions for changing something that already exists. Edit live copy, change a journey that's running, swap a shared content block, change the audience or exclusions, add tracking, set frequency caps, add an A/B test, pause or duplicate. Written in the platform's own terms, filled in with the team's house rules, and showing what else the change affects. Use when someone asks how to change, edit or safely update a campaign, Canvas, flow or journey (or its audience, content block, tracking or caps) in Braze, Klaviyo or Iterable.
 argument-hint: "<what you want to change, and in which campaign or journey>"
 ---
 

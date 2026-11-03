@@ -1,6 +1,6 @@
 ---
 name: what-breaks
-description: Before changing or deleting something, see what depends on it. Attributes, segments, lists, content blocks, events, messages or any text/URL, with live items first and how each link is known. Use when someone asks "what breaks if I…", "is it safe to delete/rename…", "what uses this segment/attribute/block", "where is this link used".
+description: Before changing or deleting something, see what depends on it. Attributes, segments, lists, content blocks, events, messages or any text/URL, with live items first and how each link is known. Use when someone asks what breaks in their CRM/marketing account if they change or delete an attribute, segment, list, content block, event or link, or where a segment, block or link is used in campaigns. Not for code.
 argument-hint: "<the thing you want to change>"
 ---
 

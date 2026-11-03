@@ -26,8 +26,9 @@ job is to understand what you're asking, call the right tools, and explain the r
 ## 1. Getting the account's information
 
 **How it connects.** You create a *read-only* API key in your platform (`/connect` walks you through
-which permissions to tick) and put it in an environment variable on your computer. The key is never
-pasted into the chat and never leaves your machine except to call the platform's own API.
+which permissions to tick) and enter it in the plugin's settings (`/plugin configure crm-lifecycle-ops`).
+Claude Code keeps it in the system's secure storage and passes it only to the plugin's server. The key is
+never pasted into the chat and never leaves your machine except to call the platform's own API.
 
 **What `/refresh` does.** The engine calls the platform's REST API and pulls everything into one
 platform-neutral snapshot:

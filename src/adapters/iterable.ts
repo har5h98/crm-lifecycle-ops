@@ -1,3 +1,4 @@
+import { credentialEnv } from "./env.js";
 import { normalizeChannel, type Snapshot, type Status } from "../core/snapshot.js";
 import { arr, getJson, getText, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
@@ -27,7 +28,7 @@ function campaignStatus(state: string | undefined): Status {
 }
 
 export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
-  const env = opts.env ?? process.env;
+  const env = opts.env ?? credentialEnv();
   const key = env.ITERABLE_API_KEY;
   if (!key) throw missingEnv("iterable", ["ITERABLE_API_KEY"]);
   const base = env.ITERABLE_REGION?.toLowerCase() === "eu" ? "https://api.eu.iterable.com/api" : "https://api.iterable.com/api";
@@ -65,13 +66,19 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         campaigns.push(...batch);
         if (batch.length < 1000 || !str(res.nextPageUrl)) break;
       }
+      let skippedOld = 0;
       await mapLimit(campaigns, 5, async (c) => {
         const id = str(c.id)!;
         const templateId = str(c.templateId);
         const medium = (str(c.messageMedium) ?? "email").toLowerCase();
         const messageId = templateId ? `template:${templateId}` : undefined;
         const updatedAt = str(c.updatedAt);
-        if (messageId) {
+        // Finished campaigns older than 90 days are kept as metadata only; fetching every historical
+        // template would make the first refresh of a large project take hours.
+        const state = (str(c.campaignState) ?? "").toLowerCase();
+        const stale = ["finished", "archived", "aborted"].includes(state) && Date.now() - Number(c.updatedAt ?? 0) > 90 * 86_400_000;
+        if (stale) skippedOld++;
+        if (messageId && !stale) {
           const prev = prevMessages.get(messageId);
           if (prev && prevCampaigns.get(id)?.updatedAt === updatedAt) {
             snap.messages.push(prev);
@@ -115,6 +122,10 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
           channels: [normalizeChannel(medium)],
           messageIds: messageId ? [messageId] : [],
           audience: [
+            // Triggered campaigns have no send list; their trigger isn't in the API, so say "unknown", not "none".
+            ...(arr(c.listIds).length === 0 && str(c.type) === "Triggered"
+              ? [{ id: str(c.workflowId) ? `journey:${str(c.workflowId)}` : "?", kind: "unknown" as const, mode: "trigger" as const, confidence: "unknown" as const }]
+              : []),
             ...arr(c.listIds).map((x) => ({ id: String(x), kind: "list" as const, mode: "include" as const, confidence: "api-verified" as const })),
             ...arr(c.suppressionListIds).map((x) => ({ id: String(x), kind: "list" as const, mode: "exclude" as const, confidence: "api-verified" as const })),
           ],
@@ -123,6 +134,7 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         });
       });
 
+      if (skippedOld) gaps.push(`${skippedOld} finished campaigns older than 90 days were listed without their content.`);
       const journeys: Record<string, unknown>[] = [];
       try {
         for (let page = 1; page < 200; page++) {

@@ -12,6 +12,7 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   { id: "links.empty-href", severity: "warn", catches: 'Links with href="" or "#"' },
   { id: "links.malformed", severity: "fail", catches: "Links that are not valid URLs" },
   { id: "links.non-production-host", severity: "fail", catches: "Links to staging, dev, test, localhost or example.com hosts" },
+  { id: "links.relative", severity: "warn", catches: "Relative links (/path), which don't work in an inbox" },
   { id: "links.insecure-http", severity: "warn", catches: "Links using http:// instead of https://" },
   { id: "links.utm-inconsistent", severity: "warn", catches: "Some tracked links carry UTM tags and others don't" },
   { id: "links.broken", severity: "fail", catches: "Links that return HTTP 4xx/5xx (live check only)" },
@@ -67,6 +68,7 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   { id: "sms.empty", severity: "fail", catches: "Text with an empty body" },
   { id: "sms.too-many-segments", severity: "warn", catches: "More billed segments than the house limit (2 by default)" },
   { id: "sms.unicode", severity: "warn", catches: "Characters (smart quotes, emoji, dashes) that switch the text to Unicode and halve segment length" },
+  { id: "sms.unicode-names", severity: "info", catches: "Accented customer names switch a personalized text to Unicode (more segments)" },
   { id: "sms.no-opt-out", severity: "warn", catches: "No opt-out wording such as 'Reply STOP to opt out'" },
   { id: "sms.no-brand-name", severity: "warn", catches: "Text that never names the sender" },
   // In-app (/check-in-app)

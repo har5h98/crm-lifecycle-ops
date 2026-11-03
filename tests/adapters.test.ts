@@ -36,7 +36,7 @@ describe("braze adapter", () => {
   });
 
   it("explains how to connect when keys are missing", () => {
-    expect(() => brazeAdapter({ env: {} })).toThrow(/BRAZE_API_KEY/);
+    expect(() => brazeAdapter({ env: {} })).toThrow(/plugin configure crm-lifecycle-ops/);
   });
 });
 

@@ -1,6 +1,6 @@
 ---
 name: house-rules
-description: View or change the team's house rules. Allow or block emoji, add a brand term, change the subject limit or UTM convention, make a check stricter or quieter, or mark a finding as "fine for us". Use when someone says "that's fine for us", "we allow that", "stop flagging X", "make X a blocker", "show our rules" or "change our rules".
+description: View or change the team's house rules. Allow or block emoji, add a brand term, change the subject limit or UTM convention, make a check stricter or quieter, or mark a finding as "fine for us". Use when someone reacts to a crm-lifecycle-ops finding ("that's fine for us", "stop flagging X", "make X a blocker") or asks to see or change the team's QA house rules.
 argument-hint: "[what to change]"
 ---
 

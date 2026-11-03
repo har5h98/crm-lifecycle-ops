@@ -1,3 +1,4 @@
+import { credentialEnv } from "./env.js";
 import { normalizeChannel, type AudienceRef, type JourneyStep, type Snapshot, type Status } from "../core/snapshot.js";
 import { arr, getJson, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
@@ -46,7 +47,7 @@ function audienceRefs(ids: unknown[], mode: AudienceRef["mode"]): AudienceRef[] 
 }
 
 export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
-  const env = opts.env ?? process.env;
+  const env = opts.env ?? credentialEnv();
   const key = env.KLAVIYO_API_KEY;
   if (!key) throw missingEnv("klaviyo", ["KLAVIYO_API_KEY"]);
   const headers = { authorization: `Klaviyo-API-Key ${key}`, revision: REVISION, accept: "application/vnd.api+json" };
@@ -88,7 +89,21 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
       const snap: Snapshot = { platform: "klaviyo", workspace, takenAt: new Date().toISOString(), campaigns: [], journeys: [], messages: [], segments: [], contentBlocks: [], gaps };
       const prevMessages = new Map(previous?.messages.map((m) => [m.id, m]));
 
+      // Each section is independent: one failing endpoint shouldn't sink the whole refresh.
+      const section = async (label: string, fn: () => Promise<void>) => {
+        try {
+          await fn();
+        } catch (e) {
+          gaps.push(`${label} could not be read: ${(e as Error).message}`);
+        }
+      };
+      const metricNames = new Map<string, string>();
+      await section("Metrics", async () => {
+        for (const m of (await all("/metrics")).data) metricNames.set(m.id, str(m.attributes.name) ?? m.id);
+      });
+
       // Segments (with structured definitions) and lists.
+      await section("Segments", async () => {
       const segs = await all("/segments?page[size]=100");
       await mapLimit(segs.data, 4, async (s) => {
         let definition: unknown;
@@ -99,13 +114,17 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
         }
         snap.segments.push({ id: s.id, name: str(s.attributes.name) ?? s.id, kind: "segment", definition, updatedAt: str(s.attributes.updated) });
       });
-      for (const l of (await all("/lists?page[size]=100")).data) {
-        snap.segments.push({ id: l.id, name: str(l.attributes.name) ?? l.id, kind: "list", updatedAt: str(l.attributes.updated) });
-      }
+      });
+      await section("Lists", async () => {
+        for (const l of (await all("/lists?page[size]=100")).data) {
+          snap.segments.push({ id: l.id, name: str(l.attributes.name) ?? l.id, kind: "list", updatedAt: str(l.attributes.updated) });
+        }
+      });
       const kindOf = new Map(snap.segments.map((s) => [s.id, s.kind]));
       const resolve = (refs: AudienceRef[]) => refs.map((r) => (r.kind === "unknown" && kindOf.has(r.id) ? { ...r, kind: kindOf.get(r.id)! } : r));
 
       // Campaigns → audiences → messages → template + variation (subject line).
+      await section("Campaigns", async () => {
       const camps = await all("/campaigns?filter=equals(archived,false)&include=campaign-messages,campaign-audiences");
       const inc = new Map(camps.included.map((r) => [`${r.type}:${r.id}`, r]));
       await mapLimit(camps.data, 4, async (c) => {
@@ -166,12 +185,17 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
           channels: [...new Set(snap.messages.filter((m) => m.ownerId === c.id).map((m) => String(m.channel)))],
           messageIds,
           audience: resolve(audience),
-          conversionEvents: str(obj(def.send_settings).exit_condition_conversion_metric_id) ? [str(obj(def.send_settings).exit_condition_conversion_metric_id)!] : undefined,
+          conversionEvents: str(obj(def.send_settings).exit_condition_conversion_metric_id)
+            ? [metricNames.get(str(obj(def.send_settings).exit_condition_conversion_metric_id)!) ?? str(obj(def.send_settings).exit_condition_conversion_metric_id)!]
+            : undefined,
           updatedAt: str(c.attributes.updated_at),
         });
       });
 
+      });
+
       // Flows with their full action graph.
+      await section("Flows", async () => {
       const flows = await all("/flows?filter=equals(archived,false)&page[size]=50");
       await mapLimit(flows.data, 3, async (f) => {
         try {
@@ -204,6 +228,7 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
                 deepLink: str(message.on_open) === "home" ? undefined : (str(message.ios_link) ?? str(message.android_link) ?? str(message.web_url)),
                 buttons: arr(message.action_buttons).map((b) => ({ text: str(obj(b).label) ?? "", link: str(obj(b).url) })),
                 optOutAppended: channel === "sms" ? message.add_opt_out_language === true : undefined,
+                transactional: message.transactional === true,
                 body: channel === "email" ? (tid ? await templateHtml(`/templates/${tid}`) : "") : (str(message.body) ?? ""),
               });
             }
@@ -217,6 +242,7 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
               kind: type === "list" ? "list" : type === "segment" ? "segment" : type === "metric" ? "event" : "unknown",
               mode: "trigger",
               confidence: "api-verified",
+              name: type === "metric" ? metricNames.get(str(o.id) ?? "") : undefined,
             } satisfies AudienceRef;
           });
           snap.journeys.push({
@@ -233,6 +259,8 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
         } catch (e) {
           gaps.push(`Flow "${str(f.attributes.name)}" could not be read: ${(e as Error).message}`);
         }
+      });
+
       });
 
       return snap;

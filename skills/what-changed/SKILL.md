@@ -1,6 +1,6 @@
 ---
 name: what-changed
-description: What changed in the account since the last snapshot or a date. New, removed or paused campaigns and journeys, edited copy, audience and structure changes, live items first. Use when someone asks "what changed", "did anyone edit…", "what's different since Monday", or for a morning check.
+description: What changed in the account since the last snapshot or a date. New, removed or paused campaigns and journeys, edited copy, audience and structure changes, live items first. Use when someone asks what changed in their Braze, Klaviyo or Iterable account (campaigns, journeys, segments, templates), who edited a campaign, or wants a morning check. Not for code or git diffs.
 argument-hint: "[since date]"
 ---
 

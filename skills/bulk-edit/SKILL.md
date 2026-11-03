@@ -1,6 +1,6 @@
 ---
 name: bulk-edit
-description: Find and replace across many emails at once (promo code, URL, legal line, brand term) and preview every change before making it. Use when someone says "replace X everywhere", "update the footer in all emails", "swap this link across campaigns", "where else does this code appear".
+description: Find and replace across many emails at once (promo code, URL, legal line, brand term) and preview every change before making it. Use when someone wants to replace a promo code, link, footer or phrase across many emails, texts or campaigns in their marketing platform. Not for code refactors.
 argument-hint: "<find> → <replace>"
 ---
 

@@ -21,8 +21,18 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
     /* no runs yet */
   }
   const since = Date.now() - days * 86_400_000;
-  const entries = lines.map((l) => JSON.parse(l) as LogEntry).filter((e) => Date.parse(e.ts) >= since);
-  const checks = entries.filter((e) => e.summary);
+  const entries = lines
+    .map((l) => {
+      try {
+        return JSON.parse(l) as LogEntry;
+      } catch {
+        return undefined; // a half-written line shouldn't break the report
+      }
+    })
+    .filter((e): e is LogEntry => !!e && Date.parse(e.ts) >= since);
+  // "Messages checked" counts single-message QA runs (email, push, SMS, in-app); campaign checks are counted separately.
+  const checks = entries.filter((e) => e.summary && (e.tool === "check_email" || e.tool === "check_message"));
+  const campaignChecks = entries.filter((e) => e.summary && e.tool === "check_campaign").length;
   const byCheck = new Map<string, number>();
   const byTool = new Map<string, number>();
   const byWeek = new Map<string, { runs: number; fails: number }>();
@@ -45,14 +55,15 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
     period: `last ${days} days`,
     runs: entries.length,
     runsByCommand: Object.fromEntries(byTool),
-    emailsChecked: checks.length,
-    emailsWithBlockingProblems: blocked,
+    messagesChecked: checks.length,
+    campaignsChecked: campaignChecks,
+    messagesWithBlockingProblems: blocked,
     blockingProblemsCaught: fails,
     warningsRaised: warns,
     mostCommonFindings: [...byCheck.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, n]) => ({ id, n })),
     byWeek: [...byWeek.entries()].sort().map(([week, v]) => ({ weekStarting: week, ...v })),
     estimatedHoursSaved: Math.round(((checks.length * minutesPerManualCheck) / 60) * 10) / 10,
-    assumption: `${minutesPerManualCheck} minutes of manual QA per email checked (change with minutes_per_manual_check).`,
+    assumption: `${minutesPerManualCheck} minutes of manual QA per message checked (change with minutes_per_manual_check); re-checks of the same message count again, so treat this as an upper estimate.`,
   };
 }
 

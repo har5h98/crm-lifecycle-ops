@@ -8,16 +8,29 @@ const GMAIL_CLIP_BYTES = 102 * 1024;
 // are left out on purpose: flagging them would bury real problems in noise.
 const TRACKED_TAGS = new Set(["table", "tbody", "thead", "tr", "td", "th", "div", "a", "center", "span"]);
 
+// At send time the platform rewrites every tracked link (longer URLs) and adds an open pixel.
+const TRACKING_BYTES_PER_LINK = 120;
+const PLATFORM_OVERHEAD_BYTES = 3 * 1024;
+
+/** Keep only the first branch of template conditionals, so `{% if %}<a>{% else %}<a>{% endif %}` isn't read as two opens. */
+function firstBranches(html: string): string {
+  return html
+    .replace(/\{%-?\s*(?:else|elsif|elif)\b[\s\S]*?(?=\{%-?\s*end(?:if|unless|case)\b)/g, "")
+    .replace(/\{\{\s*else\s*\}\}[\s\S]*?(?=\{\{\/)/g, "");
+}
+
 export function checkHtml(html: string): Finding[] {
   const findings: Finding[] = [];
 
-  const bytes = Buffer.byteLength(html, "utf8");
-  if (bytes > GMAIL_CLIP_BYTES) {
+  const links = (html.match(/<a\s[^>]*href=/gi) ?? []).length;
+  const raw = Buffer.byteLength(html, "utf8");
+  const estimated = raw + links * TRACKING_BYTES_PER_LINK + PLATFORM_OVERHEAD_BYTES;
+  if (estimated > GMAIL_CLIP_BYTES) {
     findings.push({
       checkId: "html.gmail-clipping",
       severity: "warn",
-      message: `HTML is ${(bytes / 1024).toFixed(0)} KB; Gmail clips anything over ~102 KB, which can hide the footer and unsubscribe link.`,
-      fix: "Inline less CSS, remove unused blocks, or move long content behind a link.",
+      message: `About ${(estimated / 1024).toFixed(0)} KB once sent (${(raw / 1024).toFixed(0)} KB of HTML plus link tracking for ${links} links); Gmail clips anything over ~102 KB, which can hide the footer and unsubscribe link.`,
+      fix: "Inline less CSS, remove unused blocks, shorten links, or move long content behind a link.",
     });
   }
 
@@ -66,7 +79,7 @@ export function checkHtml(html: string): Finding[] {
     },
     { decodeEntities: true, lowerCaseTags: true },
   );
-  parser.write(html);
+  parser.write(firstBranches(html));
   parser.end();
 
   for (const unclosed of stack) {
@@ -75,6 +88,19 @@ export function checkHtml(html: string): Finding[] {
       severity: "warn",
       message: `<${unclosed}> is never closed.`,
     });
+  }
+
+  // One finding per tag and kind, with a count, rather than thousands of identical rows.
+  const grouped = new Map<string, Finding & { n: number }>();
+  for (const f of findings.splice(0)) {
+    const key = f.checkId === "html.unclosed-tag" || f.checkId === "html.unmatched-close" ? `${f.checkId}:${f.message.match(/<\/?(\w+)/)?.[1]}` : `${f.checkId}:${grouped.size}`;
+    const g = grouped.get(key);
+    if (g) g.n++;
+    else grouped.set(key, { ...f, n: 1 });
+  }
+  for (const g of grouped.values()) {
+    const { n, ...f } = g;
+    findings.push(n > 1 ? { ...f, message: `${f.message} (${n} times)` } : f);
   }
 
   if (imagesWithoutAlt > 0) {

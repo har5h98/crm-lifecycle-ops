@@ -1,6 +1,6 @@
 ---
 name: start-here
-description: Overview of crm-lifecycle-ops. What each command does, what works today, and the best first step. Use when someone asks "what can this do", "how do I use crm-lifecycle-ops", "help", or seems unsure which command to run.
+description: Overview of crm-lifecycle-ops. What each command does, what works today, and the best first step. Use when someone asks what crm-lifecycle-ops can do, how to use it, or which of its commands to run.
 ---
 
 # Start here

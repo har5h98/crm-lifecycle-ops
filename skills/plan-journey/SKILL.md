@@ -1,6 +1,6 @@
 ---
 name: plan-journey
-description: Design a new lifecycle journey (welcome, onboarding, win-back, post-purchase…) and check it against what's already live for audience overlap, trigger collisions and shared data. Use when someone says "plan a journey", "design a flow", "I want to build a win-back", or "will this collide with anything".
+description: Design a new lifecycle journey (welcome, onboarding, win-back, post-purchase…) and check it against what's already live for audience overlap, trigger collisions and shared data. Use when someone wants to plan or design a lifecycle journey, Canvas or flow (welcome, win-back, onboarding…) or check whether it collides with live campaigns.
 argument-hint: "<goal or brief>"
 ---
 

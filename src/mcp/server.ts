@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,7 +18,7 @@ import { checkJourneyStructure, journeyDiagram } from "../core/journey.js";
 import type { Platform } from "../core/model.js";
 import { bulkEditPreview, opsReport } from "../core/ops.js";
 import { loadRules, LOCKED_CHECKS, saveRules } from "../core/rules.js";
-import { diffSnapshots, homeDir, isActive, loadLatest, saveSnapshot, type Snapshot } from "../core/snapshot.js";
+import { carryForwardSeenAudiences, diffSnapshots, homeDir, isActive, loadLatest, saveSnapshot, updateLatest, type Snapshot } from "../core/snapshot.js";
 import { demoSnapshot } from "../demo/fernbrook.js";
 import { howTo } from "../guides/howto.js";
 import { TASKS, type TaskId } from "../guides/types.js";
@@ -42,6 +42,14 @@ async function logRun(entry: Record<string, unknown>): Promise<void> {
   } catch {
     // Logging must never break a check.
   }
+}
+
+/** Only local email files: keeps the tool from reading arbitrary files (keys, configs) on request. */
+async function readEmailFile(path: string): Promise<string> {
+  if (!/\.(html?|txt)$/i.test(path)) throw new Error("Only .html, .htm or .txt files can be checked.");
+  const { size } = await stat(path);
+  if (size > 5 * 1024 * 1024) throw new Error("That file is over 5 MB; it doesn't look like an email.");
+  return readFile(path, "utf8");
 }
 
 const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v, null, 2) }] });
@@ -88,16 +96,17 @@ tool(
       subject: z.string().optional(),
       preheader: z.string().optional(),
       from: z.string().optional().describe("Sender email address."),
+      transactional: z.boolean().optional().describe("Receipts, password resets and other transactional mail: skips the unsubscribe requirement."),
       personas: z.array(persona).optional().describe("Synthetic test profiles. Leave empty to use the team's personas or auto-generated ones."),
-      check_links_live: z.boolean().optional().describe("Also request each link over the network (slower)."),
+      check_links_live: z.boolean().optional().describe("Also check each link over the network (HEAD requests only; unsubscribe and click-tracking links are never requested)."),
     },
   },
   async (args) => {
-    const html = args.html ?? (args.file ? await readFile(args.file, "utf8") : undefined);
+    const html = args.html ?? (args.file ? await readEmailFile(args.file) : undefined);
     if (!html) return fail("Give either `html` or `file`.");
     const { rules, exists } = await loadRules();
     const report = await checkEmail(
-      { html, platform: args.platform, name: args.name ?? args.file, subject: args.subject, preheader: args.preheader, from: args.from, personas: args.personas, checkLinksLive: args.check_links_live },
+      { html, platform: args.platform, name: args.name ?? args.file, subject: args.subject, preheader: args.preheader, from: args.from, transactional: args.transactional, personas: args.personas, checkLinksLive: args.check_links_live },
       rules,
     );
     await logRun({ tool: "check_email", platform: report.platform, summary: report.summary, checkIds: report.findings.map((f) => f.checkId) });
@@ -215,7 +224,7 @@ tool(
     inputSchema: { html: z.string().optional(), file: z.string().optional(), subject: z.string().optional(), from: z.string().optional() },
   },
   async (args) => {
-    const html = args.html ?? (args.file ? await readFile(args.file, "utf8") : undefined);
+    const html = args.html ?? (args.file ? await readEmailFile(args.file) : undefined);
     if (!html) return fail("Give either `html` or `file`.");
     return json(learnFromEmail({ html, subject: args.subject, from: args.from }));
   },
@@ -271,6 +280,7 @@ tool(
         snap = await adapter.snapshot(prev);
       }
       const { latest: prev } = await loadLatest(platform, snap.workspace);
+      carryForwardSeenAudiences(prev, snap);
       const file = await saveSnapshot(snap);
       const changes = prev ? diffSnapshots(prev, snap) : [];
       await logRun({ tool: "refresh_account", platform });
@@ -306,18 +316,20 @@ tool(
       kind: z.enum(["campaign", "journey", "segment", "content-block", "message", "all"]).optional(),
       query: z.string().optional(),
       active_only: z.boolean().optional(),
+      limit: z.number().int().positive().max(500).optional().describe("Max results per kind (default 50)."),
     },
   },
-  async ({ platform, workspace, kind = "all", query, active_only }) => {
+  async ({ platform, workspace, kind = "all", query, active_only, limit = 50 }) => {
     const snap = await latest(platform, workspace);
     const q = (query ?? "").toLowerCase();
     const match = (name: string) => name.toLowerCase().includes(q);
-    const out: Record<string, unknown> = { snapshotTakenAt: snap.takenAt };
-    if (kind === "all" || kind === "campaign") out.campaigns = snap.campaigns.filter((c) => match(c.name) && (!active_only || isActive(c.status))).map(({ id, name, status, channels }) => ({ id, name, status, channels }));
-    if (kind === "all" || kind === "journey") out.journeys = snap.journeys.filter((j) => match(j.name) && (!active_only || isActive(j.status))).map(({ id, name, status, steps }) => ({ id, name, status, steps: steps.length }));
-    if (kind === "all" || kind === "segment") out.segments = snap.segments.filter((s) => match(s.name)).map(({ id, name, kind: k, description }) => ({ id, name, kind: k, description }));
-    if (kind === "all" || kind === "content-block") out.contentBlocks = snap.contentBlocks.filter((b) => match(b.name)).map(({ id, name, usedBy }) => ({ id, name, usedIn: usedBy.length }));
-    if (kind === "message") out.messages = snap.messages.filter((m) => match(m.name) || match(m.subject ?? "")).map(({ id, name, subject, ownerId }) => ({ id, name, subject, ownerId }));
+    const out: Record<string, unknown> = { snapshotTakenAt: snap.takenAt, limitPerKind: limit };
+    const cap = <T,>(xs: T[]) => xs.slice(0, limit);
+    if (kind === "all" || kind === "campaign") out.campaigns = cap(snap.campaigns.filter((c) => match(c.name) && (!active_only || isActive(c.status))).map(({ id, name, status, channels }) => ({ id, name, status, channels })));
+    if (kind === "all" || kind === "journey") out.journeys = cap(snap.journeys.filter((j) => match(j.name) && (!active_only || isActive(j.status))).map(({ id, name, status, steps }) => ({ id, name, status, steps: steps.length })));
+    if (kind === "all" || kind === "segment") out.segments = cap(snap.segments.filter((s) => match(s.name)).map(({ id, name, kind: k, description }) => ({ id, name, kind: k, description })));
+    if (kind === "all" || kind === "content-block") out.contentBlocks = cap(snap.contentBlocks.filter((b) => match(b.name)).map(({ id, name, usedBy }) => ({ id, name, usedIn: usedBy.length })));
+    if (kind === "message") out.messages = cap(snap.messages.filter((m) => match(m.name) || match(m.subject ?? "")).map(({ id, name, subject, ownerId }) => ({ id, name, subject, ownerId })));
     return json(out);
   },
 );
@@ -335,9 +347,12 @@ tool(
     if ("candidates" in found) return fail(`Couldn't pin down "${item}". Candidates: ${found.candidates.join("; ") || "none"}`);
     const seg = snap.segments.find((s) => s.id === segment || s.name.toLowerCase() === segment.toLowerCase());
     if (!seg) return fail(`No segment or list called "${segment}" in the snapshot. Run /refresh if it's new.`);
-    found.item.audience = [...found.item.audience.filter((a) => a.confidence !== "unknown"), { id: seg.id, kind: seg.kind, mode, confidence: "seen-on-screen" }];
-    snap.takenAt = new Date().toISOString();
-    await saveSnapshot(snap);
+    found.item.audience = [
+      ...found.item.audience.filter((a) => a.confidence !== "unknown"),
+      { id: seg.id, kind: seg.kind, mode, confidence: "seen-on-screen", seenAt: new Date().toISOString() },
+    ];
+    // Update the newest snapshot in place, so /what-changed still compares real refreshes.
+    await updateLatest(snap);
     return json({ recorded: true, item: found.item.name, audience: found.item.audience });
   },
 );
@@ -375,7 +390,10 @@ tool(
     const { latest: now, previous } = await loadLatest(platform, ws, since);
     if (!now) return fail("No snapshots yet. Run /refresh.");
     if (!previous) return fail("Only one snapshot so far, so there's nothing to compare. Run /refresh again later (or on a schedule).");
-    return json({ from: previous.takenAt, to: now.takenAt, changes: diffSnapshots(previous, now) });
+    const changes = diffSnapshots(previous, now);
+    const byKind: Record<string, number> = {};
+    for (const c of changes) byKind[c.kind] = (byKind[c.kind] ?? 0) + 1;
+    return json({ from: previous.takenAt, to: now.takenAt, total: changes.length, byKind, liveChanges: changes.filter((c) => c.active).length, changes: changes.slice(0, 100), truncated: changes.length > 100 });
   },
 );
 

@@ -18,13 +18,14 @@ machine; this tool reads them and never stores or prints them.
    - **Klaviyo**: Settings → API keys → Create Private API Key → *Read-only access*.
    - **Iterable**: Integrations → API keys → New key → type *Server-side*, read access. Note whether the
      project is in the US or EU data center.
-3. Tell them where to put it. The simplest is Claude Code's settings (`~/.claude/settings.json`), under `"env"`:
-   ```json
-   { "env": { "BRAZE_API_KEY": "…", "BRAZE_REST_ENDPOINT": "https://rest.iad-01.braze.com", "BRAZE_WORKSPACE": "prod" } }
-   ```
-   Klaviyo: `KLAVIYO_API_KEY` (+ optional `KLAVIYO_ACCOUNT` label). Iterable: `ITERABLE_API_KEY`,
-   `ITERABLE_REGION` (`us`/`eu`), optional `ITERABLE_PROJECT` label. They restart Claude afterwards.
-4. After the restart, run `connection_status` with `test: true` and report the result in one line.
+3. Tell them where to put it: run **`/plugin configure crm-lifecycle-ops`** and fill in that platform's
+   fields (key, plus the REST endpoint for Braze or the data center for Iterable, and an optional label).
+   Claude Code keeps the keys in the system's secure storage (the macOS Keychain on a Mac) and passes them
+   only to this plugin's server. Then restart Claude Code (or reload plugins).
+   Running the server outside the plugin? It also reads `BRAZE_API_KEY`, `BRAZE_REST_ENDPOINT`,
+   `KLAVIYO_API_KEY`, `ITERABLE_API_KEY` from the environment. Avoid putting keys in
+   `~/.claude/settings.json` "env", which hands them to every session and command.
+4. After restarting, run `connection_status` with `test: true` and report the result in one line.
 5. Next step: `/refresh` to take the first snapshot.
 
 No account handy? `/refresh` with the demo account (a fictional brand) shows everything working.

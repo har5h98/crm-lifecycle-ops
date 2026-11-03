@@ -3,6 +3,7 @@ import { brazeAdapter } from "./braze.js";
 import { iterableAdapter } from "./iterable.js";
 import { klaviyoAdapter } from "./klaviyo.js";
 import type { Adapter, AdapterOptions } from "./types.js";
+import { credentialEnv } from "./env.js";
 
 export function getAdapter(platform: Platform, opts: AdapterOptions = {}): Adapter {
   switch (platform) {
@@ -22,11 +23,11 @@ export const ENV_VARS: Record<Platform, { required: string[]; optional: string[]
 };
 
 /** Which platforms have keys set, without revealing the keys. */
-export function configuredPlatforms(env: Record<string, string | undefined> = process.env): Platform[] {
+export function configuredPlatforms(env: Record<string, string | undefined> = credentialEnv()): Platform[] {
   return (Object.keys(ENV_VARS) as Platform[]).filter((p) => ENV_VARS[p].required.every((v) => !!env[v]));
 }
 
-export function workspaceFor(platform: Platform, env: Record<string, string | undefined> = process.env): string {
+export function workspaceFor(platform: Platform, env: Record<string, string | undefined> = credentialEnv()): string {
   const v = { braze: env.BRAZE_WORKSPACE, klaviyo: env.KLAVIYO_ACCOUNT, iterable: env.ITERABLE_PROJECT }[platform];
   return v ?? "default";
 }

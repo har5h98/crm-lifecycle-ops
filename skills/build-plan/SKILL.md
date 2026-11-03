@@ -1,6 +1,6 @@
 ---
 name: build-plan
-description: Turn a campaign or journey brief into a step-by-step build checklist for the platform, reusing existing segments and content blocks, with QA and launch steps built in. Use when someone says "build plan", "turn this brief into a build", "what do I need to set up for…", "write the build spec".
+description: Turn a campaign or journey brief into a step-by-step build checklist for the platform, reusing existing segments and content blocks, with QA and launch steps built in. Use when someone wants a build plan or build spec for a campaign, Canvas, flow or journey in Braze, Klaviyo or Iterable, or to turn a campaign brief into build steps.
 argument-hint: "<brief, or the journey from /plan-journey>"
 ---
 

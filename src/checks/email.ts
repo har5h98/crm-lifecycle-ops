@@ -12,6 +12,8 @@ export interface EmailInput {
   subject?: string;
   preheader?: string;
   from?: string;
+  /** Receipts, password resets and other transactional mail: no unsubscribe required. */
+  transactional?: boolean;
   personas?: Persona[];
   /** Also request every static link over the network. Slower; off by default. */
   checkLinksLive?: boolean;
@@ -45,7 +47,8 @@ export async function checkEmail(
       : undefined;
 
   findings.push(...checkHtml(input.html));
-  findings.push(...checkLinks(input.html));
+  findings.push(...checkLinks(input.html, { transactional: input.transactional }));
+  if (input.transactional) notVerified.push("Treated as transactional: the unsubscribe check was skipped. Transactional mail must not contain marketing content.");
 
   const p = await checkPersonalization(input.html, input.platform, personas);
   findings.push(...p.findings);

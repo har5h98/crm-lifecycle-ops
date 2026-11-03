@@ -101,6 +101,8 @@ export const RulebookSchema = z.object({
       requireButton: z.boolean().default(false),
     })
     .default({ bodyMax: 150, requireButton: false }),
+  /** Campaigns/journeys whose name matches this regex are transactional (no unsubscribe needed). */
+  transactional: z.object({ namePattern: z.string().optional() }).default({}),
   naming: z.object({ campaignPattern: z.string().optional(), example: z.string().optional() }).default({}),
   /** Per-check severity overrides. Locked checks ignore these. */
   severity: z.record(z.string(), z.enum(["fail", "warn", "info", "off"])).default({}),

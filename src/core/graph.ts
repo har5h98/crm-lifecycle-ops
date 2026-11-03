@@ -116,7 +116,7 @@ export function whatBreaks(snap: Snapshot, kind: TargetKind, value: string): Imp
   if (kind === "event") {
     const v = norm(value);
     for (const x of [...snap.campaigns.map((c) => ({ ...c, k: "campaign" as const })), ...snap.journeys.map((j) => ({ ...j, k: "journey" as const }))]) {
-      if (x.audience.some((a) => a.kind === "event" && norm(a.id) === v)) add({ kind: x.k, id: x.id, name: x.name, status: x.status, active: isActive(x.status), via: "is triggered by it", confidence: "api-verified" });
+      if (x.audience.some((a) => a.kind === "event" && (norm(a.id) === v || norm(a.name ?? "") === v))) add({ kind: x.k, id: x.id, name: x.name, status: x.status, active: isActive(x.status), via: "is triggered by it", confidence: "api-verified" });
       if (x.conversionEvents?.some((e) => norm(e) === v)) add({ kind: x.k, id: x.id, name: x.name, status: x.status, active: isActive(x.status), via: "counts it as a conversion", confidence: "api-verified" });
     }
     for (const m of snap.messages) if (m.body.toLowerCase().includes(v)) addMessageOwners(m.id, "mentions it in the template", "parsed-from-template");
@@ -142,10 +142,15 @@ export function whatBreaks(snap: Snapshot, kind: TargetKind, value: string): Imp
 
   // Audience-based questions can't be answered for live items whose targeting we can't see.
   const unknown: ImpactReport["unknown"] = [];
-  if (kind === "segment" || kind === "list" || kind === "attribute") {
+  if (kind === "segment" || kind === "list" || kind === "attribute" || kind === "event") {
     for (const x of [...snap.campaigns.map((c) => ({ ...c, k: "campaign" as const })), ...snap.journeys.map((j) => ({ ...j, k: "journey" as const }))]) {
       if (isActive(x.status) && x.audience.some((a) => a.confidence === "unknown") && !out.has(`${x.k}:${x.id}`)) {
-        unknown.push({ kind: x.k, id: x.id, name: x.name, why: `${snap.platform === "braze" ? "Braze's API" : "The API"} doesn't say which segment this targets. Open its audience step to check.` });
+        unknown.push({
+          kind: x.k,
+          id: x.id,
+          name: x.name,
+          why: `${snap.platform === "braze" ? "Braze's API" : "The API"} doesn't say ${kind === "event" ? "what triggers" : "which segment"} this ${kind === "event" ? "" : "targets"}`.trimEnd() + `. Open its ${kind === "event" ? "entry/trigger" : "audience"} step to check.`,
+        });
       }
     }
   }

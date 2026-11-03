@@ -8,7 +8,7 @@ argument-hint: "[days]"
 
 1. `ops_report` (default 30 days; pass `minutes_per_manual_check` if they know their manual QA time per email).
 2. Present it as a short manager-ready summary:
-   - headline: "**N** emails checked, **M** blocking problems caught before send, about **H** hours saved";
+   - headline: "**N** messages checked, **M** blocking problems caught before send, about **H** hours saved";
    - the weekly trend (a small table);
    - the most common findings, translated into plain words, and what they suggest (e.g. lots of UTM
      misses → add UTMs to the template or tighten the house rule);

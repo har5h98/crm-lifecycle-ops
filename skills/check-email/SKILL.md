@@ -1,6 +1,6 @@
 ---
 name: check-email
-description: QA an email before it sends. Checks HTML, links, unsubscribe, UTMs and personalization (renders it for several test profiles) for Braze, Klaviyo or Iterable templates. Use when someone says "check this email", "QA this template", "is this ready to send", or pastes email HTML.
+description: QA an email before it sends. Checks HTML, links, unsubscribe, UTMs and personalization (renders it for several test profiles) for Braze, Klaviyo or Iterable templates. Use when someone asks to check or QA a marketing email or email template, or pastes email HTML and asks if it's ready to send.
 argument-hint: "<paste HTML, or a path to an .html file>"
 ---
 

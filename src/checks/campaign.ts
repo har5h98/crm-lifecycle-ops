@@ -63,7 +63,9 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
     }
     // Expand Braze content blocks we have, so footers and shared modules are checked too.
     const html = m.body.replace(/\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g, (whole, name: string) => snap.contentBlocks.find((b) => b.name === name)?.body ?? whole);
-    const r = await checkEmail({ html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from }, rules);
+    const pattern = rules.transactional.namePattern;
+    const transactional = m.transactional === true || (!!pattern && new RegExp(pattern, "i").test(`${item.name} ${m.name}`));
+    const r = await checkEmail({ html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from, transactional }, rules);
     messages.push(r);
     notVerified.push(...r.notVerified);
   }

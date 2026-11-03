@@ -1,6 +1,6 @@
 ---
 name: setup
-description: First-time setup. Learns what "right" means for this team (language and spelling, brand terms, link domains and UTM convention, legal footer, senders, test personas, style, how strict to be) and saves it as house rules every check uses. Use on first install, or when someone says "set up", "onboard", "personalize the checks" or "teach it our conventions".
+description: First-time setup. Learns what "right" means for this team (language and spelling, brand terms, link domains and UTM convention, legal footer, senders, test personas, style, how strict to be) and saves it as house rules every check uses. Use on first install of crm-lifecycle-ops, or when someone wants to set up, personalize or teach it their team's email/SMS/push conventions.
 ---
 
 # Set up house rules

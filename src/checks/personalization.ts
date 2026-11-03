@@ -1,5 +1,5 @@
 import Handlebars from "handlebars";
-import { Liquid, Tag, type TagToken, type TopLevelToken, type Template } from "liquidjs";
+import { Liquid, Tag, TagToken, type TopLevelToken, type Template } from "liquidjs";
 import type { Finding, Persona, Platform } from "../core/model.js";
 
 // Each platform has its own template language, so a local render is an approximation of the
@@ -25,10 +25,19 @@ function normalizeBraze(src: string): string {
 export function referencedVariables(src: string, platform: Platform): string[] {
   const body = platform === "braze" ? normalizeBraze(src) : src;
   const found = new Set<string>();
-  const blocks = [...body.matchAll(/\{\{[#/^]?([\s\S]*?)\}\}/g), ...body.matchAll(/\{%-?\s*(?:if|elsif|unless)\s+([\s\S]*?)-?%\}/g)];
+  // Closing tags ({{/ifEq}}) and else markers carry no data.
+  const blocks = [...body.matchAll(/\{\{\{?([#^]?)(?!\/)([\s\S]*?)\}?\}\}/g), ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless)\s+([\s\S]*?)-?%\}/g)];
   for (const m of blocks) {
+    const isLiquidTag = m[0].startsWith("{%");
     // Drop quoted strings and Liquid filters ("| default: 'x'") before picking identifiers.
-    const expr = (m[1] ?? "").replace(/(['"]).*?\1/g, "").split(/\|(?!\|)/)[0] ?? "";
+    let expr = ((isLiquidTag ? m[1] : m[2]) ?? "").replace(/(['"]).*?\1/g, "").split(/\|(?!\|)/)[0] ?? "";
+    // Handlebars helpers: in {{helper arg …}}, {{#helper arg}} and (helper arg) the first word is the
+    // helper's name, not customer data. A lone word ({{firstName}}) is data.
+    expr = expr.replace(/\(\s*[A-Za-z_][\w.]*/g, "(").replace(/[A-Za-z_]\w*=/g, " ");
+    if (!isLiquidTag && platform === "iterable") {
+      const words = expr.trim().split(/\s+/);
+      if (words.length > 1 || m[1] === "#") expr = words.slice(1).join(" ");
+    }
     for (const token of expr.match(/[A-Za-z_][\w.]*/g) ?? []) {
       const root = token.split(".")[0] ?? token;
       if (!KEYWORDS.has(root) && !KEYWORDS.has(token)) found.add(token);
@@ -47,21 +56,43 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
   node[parts[parts.length - 1]!] = value;
 }
 
-/** Three synthetic personas derived from the variables the template actually uses. */
+export const ACCENTED_PERSONA = "Accented name";
+const NAME_LIKE = /(^|[._])(first_?name|last_?name|full_?name|name)$/i;
+
+/**
+ * Synthetic personas derived from the variables the template actually uses: complete, empty,
+ * long values (plain ASCII, so length is judged without changing SMS encoding) and, when the
+ * template uses a name, an accented name (which can switch an SMS to Unicode).
+ */
 export function defaultPersonas(variables: string[]): Persona[] {
   const complete: Record<string, unknown> = {};
-  const edge: Record<string, unknown> = {};
+  const long: Record<string, unknown> = {};
+  const accented: Record<string, unknown> = {};
   for (const v of variables) {
     const leaf = v.split(".").pop() ?? v;
     complete[v] = `Sample ${leaf}`;
-    edge[v] = "Zoë-Anne Ñúñez-Oyelaran Whitfield-Montgomery";
+    long[v] = NAME_LIKE.test(v) ? "Alexandra-Catherine Montgomery-Whitfield" : `Sample ${leaf} with a much longer value than usual`;
+    accented[v] = NAME_LIKE.test(v) ? "Zoë Ñúñez" : `Sample ${leaf}`;
   }
-  return [
+  const personas: Persona[] = [
     { name: "Complete profile", attributes: complete },
     { name: "Empty profile", attributes: {} },
-    { name: "Edge case (long, accented values)", attributes: edge },
+    { name: "Long values", attributes: long },
   ];
+  if (variables.some((v) => NAME_LIKE.test(v))) personas.push({ name: ACCENTED_PERSONA, attributes: accented });
+  return personas;
 }
+
+// Klaviyo / Braze tags that produce data we can't reproduce locally. They render as nothing and
+// are reported as not verified, never as a syntax error.
+const BLOCK_STUBS: Record<string, string> = {
+  catalog: "Klaviyo catalog lookups were not executed (live catalog data).",
+};
+const INLINE_STUBS: Record<string, string> = {
+  coupon_code: "Klaviyo coupon codes were not generated.",
+  today: "Klaviyo {% today %} dates were not rendered.",
+  currency_format: "Klaviyo currency formatting was not applied.",
+};
 
 function contextFor(persona: Persona, platform: Platform): Record<string, unknown> {
   const ctx: Record<string, unknown> = {};
@@ -108,8 +139,89 @@ function liquidEngine(notVerified: Set<string>): Liquid {
       },
     );
   }
+  for (const [t, msg] of Object.entries(INLINE_STUBS)) engine.registerTag(t, note(msg));
+  for (const [t, msg] of Object.entries(BLOCK_STUBS)) engine.registerTag(t, blockStub(t, msg, notVerified));
   engine.registerFilter("lookup", (obj: unknown, key: string) => (obj as Record<string, unknown> | undefined)?.[key]);
   return engine;
+}
+
+/** A block tag ({% x %}…{% endx %}) whose body is skipped and reported as not verified. */
+function blockStub(name: string, msg: string, notVerified: Set<string>) {
+  return class extends Tag {
+    constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
+      super(token, remain, liquid);
+      notVerified.add(msg);
+      while (remain.length) {
+        const t = remain.shift();
+        if (t instanceof TagToken && t.name === `end${name}`) return;
+      }
+    }
+    *render(): Generator<unknown, void, unknown> {}
+  };
+}
+
+/**
+ * Parse with liquidjs; an unknown tag the platform supports but we don't emulate is stubbed and
+ * reported as not verified, so only genuine syntax errors fail.
+ */
+function parseTolerant(engine: Liquid, src: string, notVerified: Set<string>): Template[] {
+  for (let i = 0; i < 20; i++) {
+    try {
+      return engine.parse(src);
+    } catch (err) {
+      const unknown = /tag "?([\w-]+)"? not found/i.exec((err as Error).message)?.[1];
+      if (!unknown) throw err;
+      const ends = new RegExp(`\\{%-?\\s*end${unknown}\\b`).test(src);
+      const msg = `{% ${unknown} %} isn't emulated locally; its output wasn't checked.`;
+      engine.registerTag(unknown, ends ? blockStub(unknown, msg, notVerified) : class extends Tag {
+        constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
+          super(token, remain, liquid);
+          notVerified.add(msg);
+        }
+        *render(): Generator<unknown, void, unknown> {}
+      });
+    }
+  }
+  return engine.parse(src);
+}
+
+// Iterable's Handlebars helpers (support.iterable.com Handlebars reference). Comparison helpers
+// are implemented; formatting helpers return their input; anything else is reported, not failed.
+function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>) {
+  type Opts = Handlebars.HelperOptions;
+  const cmp = (test: (a: unknown, b: unknown) => boolean) =>
+    function (this: unknown, a: unknown, b: unknown, opts: Opts) {
+      return test(a, b) ? opts.fn(this) : opts.inverse(this);
+    };
+  hb.registerHelper("defaultIfEmpty", (value: unknown, fallback: unknown) => (value === undefined || value === null || value === "" ? fallback : value));
+  hb.registerHelper("ifEq", cmp((a, b) => String(a) === String(b)));
+  hb.registerHelper("ifNotEq", cmp((a, b) => String(a) !== String(b)));
+  hb.registerHelper("ifGt", cmp((a, b) => Number(a) > Number(b)));
+  hb.registerHelper("ifGte", cmp((a, b) => Number(a) >= Number(b)));
+  hb.registerHelper("ifLt", cmp((a, b) => Number(a) < Number(b)));
+  hb.registerHelper("ifLte", cmp((a, b) => Number(a) <= Number(b)));
+  hb.registerHelper("ifContainsStr", cmp((a, b) => String(a ?? "").includes(String(b))));
+  hb.registerHelper("eq", function (this: unknown, a: unknown, b: unknown, opts: Opts) {
+    const r = String(a) === String(b);
+    return opts && typeof opts.fn === "function" ? (r ? opts.fn(this) : opts.inverse(this)) : r;
+  });
+  for (const name of ["capitalize", "upper", "lower", "titleCase", "trim", "urlEncode", "dateFormat", "replace", "truncate", "formatNumber"]) {
+    hb.registerHelper(name, (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : ""));
+  }
+  hb.registerHelper("snippet", (name: unknown) => {
+    notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
+    return "";
+  });
+  hb.registerHelper("helperMissing", function (...args: unknown[]) {
+    const opts = args[args.length - 1] as { name: string };
+    notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);
+    return "";
+  });
+  hb.registerHelper("blockHelperMissing", function (this: unknown, ...args: unknown[]) {
+    const opts = args[args.length - 1] as Opts & { name: string };
+    if (["catalog", "catalogCollection", "catalogKeys"].includes(opts.name)) notVerified.add("Iterable catalog lookups were not executed (live catalog data).");
+    return "";
+  });
 }
 
 function textOf(html: string): string {
@@ -153,7 +265,10 @@ export async function checkPersonalization(
       return "";
     });
   }
-  if (platform === "klaviyo") notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
+  if (platform === "klaviyo") {
+    notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
+    src = src.replace(/\{%(-?)\s*elif\b/g, "{%$1 elsif");
+  }
 
   if (platform === "iterable") {
     // In Iterable, eq/ifEq/lt/gt on an empty or missing field fails the template, and the message
@@ -173,17 +288,13 @@ export async function checkPersonalization(
   try {
     if (platform === "iterable") {
       const hb = Handlebars.create();
-      hb.registerHelper("defaultIfEmpty", (value: unknown, fallback: unknown) => (value === undefined || value === null || value === "" ? fallback : value));
-      hb.registerHelper("helperMissing", function (...args: unknown[]) {
-        const opts = args[args.length - 1] as { name: string };
-        notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);
-        return "";
-      });
+      registerIterableHelpers(hb, notVerified);
       const tpl = hb.compile(src);
+      tpl({}); // compile is lazy: surface syntax errors now
       render = async (ctx) => tpl(ctx);
     } else {
       const engine = liquidEngine(notVerified);
-      const tpl: Template[] = engine.parse(src);
+      const tpl: Template[] = parseTolerant(engine, src, notVerified);
       render = (ctx) => engine.render(tpl, ctx);
     }
   } catch (err) {

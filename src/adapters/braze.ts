@@ -1,3 +1,4 @@
+import { credentialEnv } from "./env.js";
 import { normalizeChannel, type Snapshot, type Status, type Message, type JourneyStep } from "../core/snapshot.js";
 import { arr, getJson, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
@@ -63,7 +64,7 @@ async function listAll(
 }
 
 export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
-  const env = opts.env ?? process.env;
+  const env = opts.env ?? credentialEnv();
   const key = env.BRAZE_API_KEY;
   const base = env.BRAZE_REST_ENDPOINT?.replace(/\/$/, "");
   if (!key || !base) throw missingEnv("braze", ["BRAZE_API_KEY", "BRAZE_REST_ENDPOINT"]);

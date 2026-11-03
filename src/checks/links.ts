@@ -11,6 +11,8 @@ const TEMPLATE_SYNTAX = /\{\{|\{%|\$\{/;
 // "staging.brand.com" and "brand-dev.com" are caught but "devon.co.uk" is not.
 const NON_PROD_LABEL = /^(localhost|staging|stage|stg|dev|test|qa|uat|sandbox|preview)$|-(staging|stage|dev|test|qa|uat|sandbox|preview)$/;
 const PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
+// Click-tracking redirect hosts used by common ESPs (Braze/SendGrid/SparkPost/Klaviyo/Iterable/Mailchimp).
+const CLICK_TRACKING = /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
 
 export function extractLinks(html: string): Link[] {
   const links: Link[] = [];
@@ -39,17 +41,40 @@ export function extractLinks(html: string): Link[] {
   return links;
 }
 
-export function isNonProdHost(host: string): boolean {
-  if (host === "127.0.0.1" || host === "[::1]" || host.endsWith(".local") || host.endsWith(".test")) return true;
-  if (PLACEHOLDER_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return true;
-  return host.split(".").some((label) => NON_PROD_LABEL.test(label));
+// Two-part public suffixes common in marketing domains (brand.co.uk). Not a full public-suffix
+// list; it only decides which labels are "the domain" versus subdomains.
+const TWO_PART_SUFFIXES = new Set(["co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au", "co.nz", "co.jp", "co.in", "com.br", "com.mx", "co.za", "com.sg", "com.hk", "co.kr", "com.tr", "com.cn"]);
+
+/** The registrable domain: "staging.brand.co.uk" → "brand.co.uk". */
+export function registrableDomain(host: string): string {
+  const labels = host.toLowerCase().split(".");
+  const n = TWO_PART_SUFFIXES.has(labels.slice(-2).join(".")) ? 3 : 2;
+  return labels.slice(-n).join(".");
 }
 
-export function checkLinks(html: string): Finding[] {
+export function isNonProdHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || /\.(local|test|invalid|localhost)$/.test(h)) return true;
+  if (PLACEHOLDER_HOSTS.some((p) => h === p || h.endsWith(`.${p}`))) return true;
+  // Judge only the subdomain labels: "staging.brand.com" and "brand-dev.brand.com" are caught,
+  // but real domains like go.dev, brand.qa or test.io are not.
+  const registrable = registrableDomain(h);
+  const sub = h.slice(0, Math.max(0, h.length - registrable.length - 1));
+  return sub !== "" && sub.split(".").some((label) => NON_PROD_LABEL.test(label));
+}
+
+export interface LinkCheckOptions {
+  /** Transactional email (receipts, password resets) doesn't need an unsubscribe link. */
+  transactional?: boolean;
+}
+
+export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[] {
   const findings: Finding[] = [];
   const links = extractLinks(html);
 
-  if (!/unsubscrib/i.test(html)) {
+  if (opts.transactional) {
+    // Nothing to check: transactional mail is exempt from unsubscribe rules.
+  } else if (!/unsubscrib/i.test(html)) {
     // An unexpanded Braze content block (often the footer) may hold the link; say so rather than cry wolf.
     const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
     findings.push({
@@ -70,7 +95,16 @@ export function checkLinks(html: string): Finding[] {
       findings.push({ checkId: "links.empty-href", severity: "warn", message: `Link "${label}" has no destination.`, evidence: `href="${href}"` });
       continue;
     }
-    if (/^(mailto|tel|sms):/i.test(href)) continue;
+    if (/^(mailto|tel|sms):/i.test(href) || href.startsWith("#")) continue; // in-page anchors are fine
+    if (/^(\/|\.\.?\/)/.test(href) && !href.startsWith("//")) {
+      findings.push({
+        checkId: "links.relative",
+        severity: "warn",
+        message: `Link "${label}" is relative (${href}); it has no website to be relative to once it's in an inbox.`,
+        fix: "Use the full https:// address.",
+      });
+      continue;
+    }
 
     // A fully dynamic href ({{ url }}) can only be judged after rendering; a static prefix can be judged now.
     const staticPart = href.split(TEMPLATE_SYNTAX)[0] ?? "";
@@ -120,15 +154,24 @@ export function checkLinks(html: string): Finding[] {
 export async function checkLinksLive(html: string, timeoutMs = 8000): Promise<{ findings: Finding[]; notVerified: string[] }> {
   const findings: Finding[] = [];
   const notVerified: string[] = [];
-  const urls = [...new Set(extractLinks(html).map((l) => l.href))].filter((h) => /^https?:\/\//i.test(h) && !TEMPLATE_SYNTAX.test(h));
+  // Never request anything that could act on a real recipient: unsubscribe and preference links,
+  // or ESP click-tracking redirects copied from a received email (they'd register a click).
+  const unsafe = (l: Link) =>
+    /unsubscrib|preference|optout|opt-out/i.test(l.href + l.text) || CLICK_TRACKING.test(new URL(l.href).hostname);
+  const candidates = extractLinks(html).filter((l) => /^https?:\/\//i.test(l.href) && !TEMPLATE_SYNTAX.test(l.href));
+  const skipped = candidates.filter((l) => { try { return unsafe(l); } catch { return true; } });
+  if (skipped.length) notVerified.push(`${skipped.length} unsubscribe or click-tracking link(s) were deliberately not requested, so they can't unsubscribe or click as anyone.`);
+  const urls = [...new Set(candidates.filter((l) => !skipped.includes(l)).map((l) => l.href))];
 
   for (let i = 0; i < urls.length; i += 5) {
     await Promise.all(
       urls.slice(i, i + 5).map(async (href) => {
         try {
-          let res = await fetch(href, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
-          if (res.status === 405 || res.status === 403) {
-            res = await fetch(href, { method: "GET", redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+          // HEAD only: it fetches no page body and triggers nothing on well-behaved servers.
+          const res = await fetch(href, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+          if (res.status === 405 || res.status === 403 || res.status === 429) {
+            notVerified.push(`${href} doesn't answer link checks (HTTP ${res.status}); open it by hand.`);
+            return;
           }
           if (res.status >= 400) {
             findings.push({ checkId: "links.broken", severity: "fail", message: `Link returns HTTP ${res.status}.`, evidence: href });

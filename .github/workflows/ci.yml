@@ -16,6 +16,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run smoke
       - name: dist/ is up to date
         run: git diff --exit-code dist/ || (echo "::error::dist/ is stale. Run npm run build and commit it." && exit 1)
   secrets:

@@ -3,7 +3,7 @@ import { applyRules, DEFAULT_RULES, type Rulebook } from "../core/rules.js";
 import type { Button } from "../core/snapshot.js";
 import { checkHtml } from "./html.js";
 import { checkLinks, isNonProdHost } from "./links.js";
-import { checkPersonalization } from "./personalization.js";
+import { ACCENTED_PERSONA, checkPersonalization } from "./personalization.js";
 import { checkHouseRules } from "./house.js";
 import { SMS_BEHAVIOUR } from "../guides/facts.js";
 
@@ -71,15 +71,19 @@ function linkFindings(urls: string[], where: string): Finding[] {
 
 /** Render title/body for every persona and return the longest outputs (for length checks). */
 async function renderAll(text: string | undefined, platform: Platform, personas: Persona[] | undefined, label: string) {
-  if (!text) return { findings: [] as Finding[], notVerified: [] as string[], longest: "", shortest: "" };
+  if (!text) return { findings: [] as Finding[], notVerified: [] as string[], longest: "", shortest: "", accented: undefined as string | undefined };
   const r = await checkPersonalization(text, platform, personas);
-  const outputs = r.renders.map((x) => x.output).filter((x): x is string => x !== null);
+  // The accented-name render is judged separately: it shows a real risk (some customers get a
+  // Unicode text) without making every personalized text look Unicode.
+  const accented = r.renders.find((x) => x.persona === ACCENTED_PERSONA)?.output ?? undefined;
+  const outputs = r.renders.filter((x) => x.persona !== ACCENTED_PERSONA).map((x) => x.output).filter((x): x is string => x !== null);
   const byLen = [...outputs].sort((a, b) => b.length - a.length);
   return {
     findings: r.findings.map((f) => ({ ...f, message: `${label}: ${f.message}` })),
     notVerified: r.notVerified,
     longest: byLen[0] ?? text,
     shortest: byLen[byLen.length - 1] ?? text,
+    accented,
   };
 }
 
@@ -171,7 +175,19 @@ export async function checkChannelMessage(input: ChannelMessageInput, rules: Rul
         fix: swappable.length ? `Swap ${swappable.map((c) => `${c} → ${LOOKALIKES[c]}`).join(", ")} (often pasted in from docs).` : undefined,
       });
     }
-    const hasOptOut = /\b(stop|unsubscribe|opt[- ]?out|end)\b/i.test(input.body);
+    if (body.accented && longest.encoding === "GSM-7") {
+      const acc = smsSegments(withAppended(body.accented));
+      if (acc.encoding === "UCS-2" && acc.segments > longest.segments) {
+        findings.push({
+          checkId: "sms.unicode-names",
+          severity: "info",
+          message: `Customers with accented names (e.g. "Zoë") get a Unicode text: ${acc.segments} segments instead of ${longest.segments}.`,
+          fix: "Shorten the copy if that cost matters, or leave it: it only affects those customers.",
+        });
+      }
+    }
+    // Opt-out wording means an instruction, not just the word "stop" ("Stop by this weekend!").
+    const hasOptOut = /\b(reply|text|txt|send)\s+["'“]?(stop|end|quit|cancel|unsubscribe)\b|\bopt[- ]?out\b|\bunsubscribe\b|\bstop\s*(to|2)\s+(opt|end|quit|cancel|unsub|stop)/i.test(input.body);
     if (appended && hasOptOut) {
       findings.push({
         checkId: "sms.duplicate-opt-out",

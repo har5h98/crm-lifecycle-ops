@@ -33,6 +33,6 @@ export interface AdapterOptions {
 
 export function missingEnv(platform: Platform, names: string[]): Error {
   return new Error(
-    `${platform} isn't connected: set ${names.join(" and ")} (see /connect). Keys are read from the environment and never stored by this tool.`,
+    `${platform} isn't connected. Run /plugin configure crm-lifecycle-ops and fill in the ${platform} fields (see /connect); keys go to your system's secure storage.`,
   );
 }
