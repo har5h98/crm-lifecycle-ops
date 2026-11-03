@@ -1,0 +1,81 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.har5h98/crm-lifecycle-ops",
+  "title": "CRM Lifecycle Ops",
+  "description": "AI copilot for lifecycle and CRM ops on Braze, Klaviyo and Iterable. Read-only.",
+  "repository": {
+    "url": "https://github.com/har5h98/crm-lifecycle-ops",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/har5h98/crm-lifecycle-ops",
+  "version": "0.5.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "crm-lifecycle-ops",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "CLO_BRAZE_API_KEY",
+          "description": "Braze REST API key (read-only permissions). Leave unset to skip Braze.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "CLO_BRAZE_REST_ENDPOINT",
+          "description": "Braze REST endpoint for your instance, e.g. https://rest.iad-01.braze.com",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CLO_BRAZE_WORKSPACE",
+          "description": "A label for the Braze workspace this key belongs to.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CLO_KLAVIYO_API_KEY",
+          "description": "Klaviyo private API key (read-only scopes). Leave unset to skip Klaviyo.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "CLO_KLAVIYO_ACCOUNT",
+          "description": "A label for the Klaviyo account this key belongs to.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CLO_ITERABLE_API_KEY",
+          "description": "Iterable server-side API key (read-only). Leave unset to skip Iterable.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "CLO_ITERABLE_REGION",
+          "description": "Iterable data center: us or eu.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CLO_ITERABLE_PROJECT",
+          "description": "A label for the Iterable project this key belongs to.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "CLO_TEAM_DIR",
+          "description": "Optional shared folder for the team usage report (check counts only, no message content).",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
