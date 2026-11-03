@@ -1,19 +1,33 @@
 {
   "name": "crm-lifecycle-ops",
-  "owner": { "name": "Harsh Singhal", "url": "https://github.com/har5h98" },
-  "metadata": { "description": "Lifecycle & CRM marketing ops tools for Braze, Klaviyo and Iterable." },
+  "owner": {
+    "name": "Harsh Singhal",
+    "url": "https://github.com/har5h98"
+  },
+  "metadata": {
+    "description": "Lifecycle & CRM marketing ops tools for Braze, Klaviyo and Iterable."
+  },
   "plugins": [
     {
       "name": "crm-lifecycle-ops",
       "source": "./",
       "description": "Email QA, dependency checks, journey maps and launch monitoring for Braze, Klaviyo and Iterable.",
-      "version": "0.1.0",
-      "author": { "name": "Harsh Singhal" },
+      "version": "0.2.0",
+      "author": {
+        "name": "Harsh Singhal"
+      },
       "homepage": "https://github.com/har5h98/crm-lifecycle-ops",
       "repository": "https://github.com/har5h98/crm-lifecycle-ops",
       "license": "MIT",
       "category": "marketing",
-      "tags": ["braze", "klaviyo", "iterable", "email-qa", "crm", "lifecycle-marketing"]
+      "tags": [
+        "braze",
+        "klaviyo",
+        "iterable",
+        "email-qa",
+        "crm",
+        "lifecycle-marketing"
+      ]
     }
   ]
 }
