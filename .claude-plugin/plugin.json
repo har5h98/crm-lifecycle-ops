@@ -39,7 +39,8 @@
         "CLO_ITERABLE_API_KEY": "${user_config.iterable_api_key}",
         "CLO_ITERABLE_REGION": "${user_config.iterable_region}",
         "CLO_ITERABLE_PROJECT": "${user_config.iterable_project}",
-        "CLO_TEAM_DIR": "${user_config.team_report_folder}"
+        "CLO_TEAM_DIR": "${user_config.team_report_folder}",
+        "CLO_RULES": "${user_config.shared_rules_file}"
       }
     }
   },
@@ -97,6 +98,13 @@
       "type": "string",
       "title": "Iterable project label",
       "description": "Any short name for this project.",
+      "sensitive": false,
+      "required": false
+    },
+    "shared_rules_file": {
+      "type": "string",
+      "title": "Shared rules file",
+      "description": "Optional: path to a house-rules file the whole team uses (e.g. rules.json in a synced team drive), so everyone's messages are checked the same way. Leave empty to keep rules on this computer only.",
       "sensitive": false,
       "required": false
     },

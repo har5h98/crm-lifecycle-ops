@@ -19,4 +19,4 @@ argument-hint: "[what to change]"
    - Locked checks can't be waived; explain why in one line (they're wrong for every team).
 4. Strictness: change `severity` for a check id (`fail` / `warn` / `info` / `off`); `list_checks` has the ids.
 
-If the rules live in a shared file (`CLO_RULES`), remind them the change applies to the whole team.
+If the rules live in a shared file (the **Shared rules file** setting), remind them the change applies to the whole team.

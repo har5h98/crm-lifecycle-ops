@@ -64,8 +64,8 @@ warn / info), the evidence, and a fix. The full list lives in `src/checks/catalo
 
 **Personalization is tested by rendering, not by reading.** The engine renders the template the way the
 platform would (Liquid for Braze, a Liquid approximation for Klaviyo, Handlebars for Iterable) for
-several *made-up* profiles: a complete one, an empty one, an edge case with long accented names, plus any
-the team defines. It then compares the outputs. If the empty profile produces "Hi ," and the complete one
+several *made-up* profiles: a complete one, an empty one, one with long values, one with an accented name
+(which can switch a text message to Unicode), plus any the team defines. It then compares the outputs. If the empty profile produces "Hi ," and the complete one
 doesn't, that's a missing fallback. Comparing against the complete profile is what keeps false alarms down.
 Real customer data is never used.
 
@@ -79,6 +79,9 @@ Real customer data is never used.
   opt-out text by default (so it counts them), Klaviyo toggles it per message, Braze leaves it to you and
   rejects texts over 10 segments.
 - **In-app**: body length, buttons and their links, HTML structure where relevant.
+- **Content cards**: title and message length, card link and image destinations.
+- **Webhooks**: missing or staging URLs, keys written into the URL, JSON bodies that break when a customer's
+  name contains a quote.
 - **Campaign & journey settings**: audience set, conversion event, naming, and the journey graph
   (dead-end branches, steps nothing can reach, empty message steps).
 
@@ -98,7 +101,8 @@ Checks come in three layers:
 `/setup` builds the rulebook in a few short rounds of questions, and can **learn from an email the team
 already considers right** (reading off its domains, UTM pattern, sender, footer, fallback and spelling)
 and propose rules to confirm. "This finding is fine for us" becomes a recorded *exception with a reason*;
-"the tool is wrong" becomes a bug report. Teams share one rulebook file so everyone is judged the same way.
+"the tool is wrong" becomes a bug report. Teams share one rulebook file (the **Shared rules file** setting) so
+everyone is judged the same way.
 
 ## 4. Impact: "what breaks if I change this?"
 
@@ -113,6 +117,9 @@ map from the thing you want to change and lists every dependent, **live ones fir
 - **read from the segment description**: Braze's prose description of the filters mentions it;
 - **seen on screen** (with a date): read from the dashboard;
 - **can't rule out**: live, but the API hides the link.
+
+If the name you asked about isn't in the snapshot (often a typo), it says so and suggests the closest
+names, rather than returning an empty list that would read as "safe to change".
 
 `/plan-journey` uses the same map in reverse: before you build, it finds live programs that already
 target the same people or trigger on the same event (double-send and conflicting-offer risk).
@@ -169,4 +176,4 @@ Each plan is filled in with the team's specifics:
 - Local rendering approximates each platform (Braze Connected Content and catalog lookups aren't executed).
 - Braze doesn't expose campaign targeting by API; Iterable doesn't expose journey step order.
 - Adapters are tested against vendor-documented response shapes; field-testing on live accounts is ongoing.
-- Webhooks and content cards aren't QA'd yet.
+- Braze content cards come back from the API with few fields, so card checks are fullest when the copy is pasted.

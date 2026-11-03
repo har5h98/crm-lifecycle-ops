@@ -70,6 +70,12 @@
           "format": "string"
         },
         {
+          "name": "CLO_RULES",
+          "description": "Optional path to a shared house-rules file so a whole team is checked the same way.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
           "name": "CLO_TEAM_DIR",
           "description": "Optional shared folder for the team usage report (check counts only, no message content).",
           "isRequired": false,

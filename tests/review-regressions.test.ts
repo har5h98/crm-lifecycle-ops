@@ -212,3 +212,18 @@ describe("typos never read as 'safe to change' (improvement pass, 2026-11-03)", 
     expect("candidates" in r && r.near && r.candidates[0]).toMatch(/^Welcome Series/);
   });
 });
+
+describe("shared rules file setting (improvement pass, 2026-11-03)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("an empty or unfilled setting falls back to the local rules file", async () => {
+    const { rulesPath } = await import("../src/core/rules.js");
+    for (const v of ["", "  ", "${user_config.shared_rules_file}"]) {
+      vi.stubEnv("CLO_RULES", v);
+      expect(rulesPath()).toMatch(/rules\.json$/);
+      expect(rulesPath()).not.toContain("user_config");
+      expect(rulesPath().trim()).not.toBe("");
+    }
+    vi.stubEnv("CLO_RULES", "/team/drive/rules.json");
+    expect(rulesPath()).toBe("/team/drive/rules.json");
+  });
+});

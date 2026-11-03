@@ -59,7 +59,8 @@ Summarize the whole rulebook in plain English (one line per rule), show it, and 
 `save_house_rules` with the full object (start from `get_house_rules().rules` and fill in fields).
 Tell them:
 - where it's saved, and that `/house-rules` changes it any time;
-- **to share it with the team**, put the file somewhere shared (a repo or drive) and set
-  `CLO_RULES=/path/to/rules.json` for everyone, so everyone's emails are judged by the same rules.
+- **to share it with the team**, put the file somewhere shared (a synced drive or repo) and have everyone
+  enter its path as **Shared rules file** in `/plugin configure crm-lifecycle-ops`, so everyone's messages
+  are judged by the same rules.
 
 Finish with: *"Try it: paste an email and run `/check-email`."*

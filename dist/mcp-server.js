@@ -48752,7 +48752,8 @@ var RulebookSchema = external_exports.object({
 });
 var DEFAULT_RULES = RulebookSchema.parse({});
 function rulesPath() {
-  return process.env.CLO_RULES ?? join2(homeDir(), "rules.json");
+  const shared = process.env.CLO_RULES?.trim();
+  return shared && !shared.startsWith("${") ? shared : join2(homeDir(), "rules.json");
 }
 async function loadRules() {
   const path = rulesPath();

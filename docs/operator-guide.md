@@ -11,8 +11,9 @@ A one-page routine for campaign operators and the lead who sets the tool up. No 
 3. **Teach it your rules** (`/setup`): paste one or two emails you'd happily send today; it reads off your
    domains, UTM convention, sender, footer and name fallback, then asks a few questions (spelling, brand terms,
    SMS and push limits, how strict to be).
-4. **Share the rules with the team**: save the rules file somewhere everyone can reach and point each person's
-   setup at it, so everyone is checked against the same standard.
+4. **Share the rules with the team**: save the rules file somewhere everyone can reach (a synced drive) and have
+   each person enter its path as **Shared rules file** in `/plugin configure crm-lifecycle-ops`, so everyone
+   is checked against the same standard.
 5. **Optional, team reporting**: set the same *team report folder* (a synced drive) for everyone in
    `/plugin configure`. Only counts are shared, never message content.
 

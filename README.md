@@ -129,7 +129,7 @@ What's "wrong" depends on the team, so checks come in three layers:
 | **House rules**: your conventions | Spelling, date format, brand terms, banned phrases, approved domains and senders, UTM naming, footer, subject length, name fallback, naming convention, test customers | Set in `/setup` |
 
 "That's fine for us" becomes a recorded exception with a reason (`/house-rules`), which is different from
-"the tool is wrong" (`/report-problem`). Teams share one rulebook by pointing `CLO_RULES` at a shared file.
+"the tool is wrong" (`/report-problem`). Teams share one rulebook by setting the same **Shared rules file** in the plugin's settings.
 
 </details>
 

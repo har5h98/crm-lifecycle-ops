@@ -16,7 +16,7 @@ receives no data from it.
 ## What it stores, and where
 All on your computer, under `~/.crm-lifecycle-ops/`:
 - account snapshots (the campaign and template data above), keeping the 30 newest;
-- your team's house rules;
+- your team's house rules (or in the *shared rules file* you choose in the plugin's settings);
 - a usage log of which checks ran and how many problems they found, never message content.
 
 If you set a *team report folder*, the usage log (counts and check ids only) is also written there.

@@ -5,7 +5,7 @@ import type { Finding, Severity } from "./model.js";
 import { homeDir } from "./snapshot.js";
 
 // The house rulebook: what "right" means for THIS team. Built by /setup, edited by /house-rules,
-// and shareable (point CLO_RULES at a file in a team repo or drive so everyone checks the same way).
+// and shareable (the "Shared rules file" setting, CLO_RULES, points everyone at one file in a team drive or repo).
 //
 // Three layers:
 //   1. Locked checks: wrong for everyone (no unsubscribe, broken syntax). Can't be turned off.
@@ -123,7 +123,9 @@ export const DEFAULT_RULES: Rulebook = RulebookSchema.parse({});
 
 /** Where rules are read from, most specific first. */
 export function rulesPath(): string {
-  return process.env.CLO_RULES ?? join(homeDir(), "rules.json");
+  // The plugin setting arrives empty (or as an unfilled placeholder) when it isn't set.
+  const shared = process.env.CLO_RULES?.trim();
+  return shared && !shared.startsWith("${") ? shared : join(homeDir(), "rules.json");
 }
 
 export async function loadRules(): Promise<{ rules: Rulebook; path: string; exists: boolean }> {
