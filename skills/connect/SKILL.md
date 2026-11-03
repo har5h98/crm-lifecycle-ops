@@ -22,8 +22,8 @@ machine; this tool reads them and never stores or prints them.
    fields (key, plus the REST endpoint for Braze or the data center for Iterable, and an optional label).
    Claude Code keeps the keys in the system's secure storage (the macOS Keychain on a Mac) and passes them
    only to this plugin's server. Then restart Claude Code (or reload plugins).
-   Running the server outside the plugin? It also reads `BRAZE_API_KEY`, `BRAZE_REST_ENDPOINT`,
-   `KLAVIYO_API_KEY`, `ITERABLE_API_KEY` from the environment. Avoid putting keys in
+   Using the server in another MCP client? Set `CLO_BRAZE_API_KEY`, `CLO_BRAZE_REST_ENDPOINT`,
+   `CLO_KLAVIYO_API_KEY` or `CLO_ITERABLE_API_KEY` in that client's server config. Don't put keys in
    `~/.claude/settings.json` "env", which hands them to every session and command.
 4. After restarting, run `connection_status` with `test: true` and report the result in one line.
 5. Next step: `/refresh` to take the first snapshot.

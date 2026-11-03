@@ -343,7 +343,7 @@ tool(
       if (!connected.includes(p)) {
         results[p] = {
           connected: false,
-          howToConnect: `Run /plugin configure crm-lifecycle-ops and fill in the ${p} fields (outside the plugin: set ${ENV_VARS[p].required.join(" and ")}).`,
+          howToConnect: `Run /plugin configure crm-lifecycle-ops and fill in the ${p} fields (in other MCP clients: set ${ENV_VARS[p].required.map((v) => `CLO_${v}`).join(" and ")}).`,
         };
         continue;
       }
