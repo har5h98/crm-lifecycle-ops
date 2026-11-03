@@ -1,6 +1,6 @@
 {
   "name": "crm-lifecycle-ops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lifecycle & CRM marketing ops for Braze, Klaviyo and Iterable: email QA, dependency checks, journey maps and launch monitoring, as a Claude plugin.",
   "type": "module",
   "license": "MIT",
