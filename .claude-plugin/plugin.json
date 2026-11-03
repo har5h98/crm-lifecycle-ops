@@ -108,7 +108,5 @@
       "required": false
     }
   },
-  "privacyPolicyUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/PRIVACY.md",
-  "documentationUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/docs/how-it-works.md",
-  "supportUrl": "https://github.com/har5h98/crm-lifecycle-ops/issues"
+  "privacyPolicyUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/PRIVACY.md"
 }
