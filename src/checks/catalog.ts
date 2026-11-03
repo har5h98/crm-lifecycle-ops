@@ -1,0 +1,27 @@
+// The public list of checks. Every checkId the engine can emit must appear here (a test enforces it),
+// so users can look up any finding and quote its id in a problem report.
+
+export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: string }[] = [
+  { id: "html.gmail-clipping", severity: "warn", catches: "HTML over ~102 KB, which Gmail clips" },
+  { id: "html.outlook-conditionals", severity: "fail", catches: "Unbalanced <!--[if mso]> / <![endif]--> comments" },
+  { id: "html.unclosed-tag", severity: "warn", catches: "Structural tags (table, tr, td, div, a…) that are never closed" },
+  { id: "html.unmatched-close", severity: "warn", catches: "Closing tags with no opening tag" },
+  { id: "html.img-missing-alt", severity: "warn", catches: "Images without alt text" },
+  { id: "html.no-preheader", severity: "info", catches: "No hidden preheader text" },
+  { id: "links.no-unsubscribe", severity: "fail", catches: "No unsubscribe link or tag anywhere in the email" },
+  { id: "links.empty-href", severity: "warn", catches: 'Links with href="" or "#"' },
+  { id: "links.malformed", severity: "fail", catches: "Links that are not valid URLs" },
+  { id: "links.non-production-host", severity: "fail", catches: "Links to staging, dev, test, localhost or example.com hosts" },
+  { id: "links.insecure-http", severity: "warn", catches: "Links using http:// instead of https://" },
+  { id: "links.utm-inconsistent", severity: "warn", catches: "Some tracked links carry UTM tags and others don't" },
+  { id: "links.broken", severity: "fail", catches: "Links that return HTTP 4xx/5xx (live check only)" },
+  { id: "personalization.syntax-error", severity: "fail", catches: "Template syntax that doesn't parse" },
+  { id: "personalization.render-error", severity: "fail", catches: "Templates that throw while rendering for a persona" },
+  { id: "personalization.unrendered-syntax", severity: "fail", catches: "{{ }}, {% %}, ${ } or [[ ]] left in the rendered copy" },
+  { id: "personalization.dangling-punctuation", severity: "warn", catches: 'Blanks where data is missing, e.g. "Hi ,"' },
+  { id: "personalization.literal-null", severity: "warn", catches: "undefined / null / nil showing in the copy" },
+  { id: "personalization.aborts", severity: "info", catches: "abort_message fires for a persona, so they won't receive it" },
+  { id: "copy.empty-subject", severity: "fail", catches: "Empty subject line" },
+  { id: "copy.long-subject", severity: "info", catches: "Subject lines over 60 characters" },
+  { id: "copy.empty-preheader", severity: "warn", catches: "Preheader field set but empty" },
+];

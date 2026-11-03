@@ -1,0 +1,1 @@
+{"platform":"braze","mustFind":["links.no-unsubscribe","personalization.dangling-punctuation","html.outlook-conditionals","links.utm-inconsistent","links.empty-href","html.img-missing-alt","html.no-preheader"],"mustNotFind":[]}

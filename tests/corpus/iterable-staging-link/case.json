@@ -1,0 +1,1 @@
+{"platform":"iterable","mustFind":["links.non-production-host","links.insecure-http"],"mustNotFind":["personalization.dangling-punctuation","links.no-unsubscribe"]}

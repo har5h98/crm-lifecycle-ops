@@ -1,0 +1,27 @@
+name: Vendor API drift
+# Weekly: did Braze, Klaviyo or Iterable change an API we depend on? Opens one issue if so.
+on:
+  schedule: [{ cron: "17 6 * * 1" }]
+  workflow_dispatch:
+permissions: { contents: read, issues: write }
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - id: check
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if node scripts/check-api-drift.mjs > report.md; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          cat report.md
+      - if: steps.check.outputs.changed == 'true'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          open=$(gh issue list --label api-drift --state open --json number --jq 'length')
+          if [ "$open" = "0" ]; then
+            gh issue create --title "Vendor API changed: check the adapters" --label api-drift --body-file report.md
+          else
+            echo "An api-drift issue is already open; not opening another."
+          fi

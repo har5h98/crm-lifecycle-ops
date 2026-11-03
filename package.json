@@ -1,0 +1,31 @@
+{
+  "name": "crm-lifecycle-ops",
+  "version": "0.1.0",
+  "description": "Lifecycle & CRM marketing ops for Braze, Klaviyo and Iterable: email QA, dependency checks, journey maps and launch monitoring, as a Claude plugin.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild src/mcp/server.ts --bundle --platform=node --format=esm --target=node20 --minify --legal-comments=eof --outfile=dist/mcp-server.js --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "handlebars": "^4.7.10",
+    "htmlparser2": "^12.0.0",
+    "liquidjs": "^10.30.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,6 @@
+<html><body><div style="display:none">Back in stock</div>
+<p>Hey {{ first_name }}, it's back!</p>
+<p>Tier: {{ person|lookup:'Loyalty Tier'|default:'Member' }}</p>
+<a href="https://www.fernbrook.example/item">Shop now</a>
+<a href="{% unsubscribe_url %}">Unsubscribe</a>
+</body></html>

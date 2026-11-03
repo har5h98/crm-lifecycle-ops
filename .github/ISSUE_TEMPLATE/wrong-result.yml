@@ -1,0 +1,35 @@
+name: Wrong result
+description: A check flagged something that's fine, missed something that's wrong, or explained it badly.
+title: "[wrong-result] "
+labels: ["wrong-result"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks, these reports are how the checks get better. Every confirmed one becomes a permanent test case.
+        **Remove anything private first:** real names, emails, customer IDs, API keys, internal URLs.
+        Tip: `/report-problem` in Claude drafts this for you and strips private details.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of wrong?
+      options: [False alarm (flagged something fine), Missed problem (didn't flag something wrong), Confusing or unhelpful message, Crash or error]
+    validations: { required: true }
+  - type: input
+    id: check
+    attributes: { label: Check id, description: "e.g. links.utm-inconsistent (leave blank for a missed problem)" }
+  - type: dropdown
+    id: platform
+    attributes: { label: Platform, options: [Braze, Klaviyo, Iterable] }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected vs. actual, placeholder: "Expected: … / Actual: …" }
+    validations: { required: true }
+  - type: textarea
+    id: snippet
+    attributes: { label: Smallest snippet that shows it (private details removed), render: html }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Plugin version, placeholder: "0.1.0" }

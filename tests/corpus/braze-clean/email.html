@@ -1,0 +1,11 @@
+<html><body>
+<div style="display:none;mso-hide:all">Your weekly picks are in</div>
+<table><tr><td>
+<p>Hi {{${first_name} | default: 'there'}},</p>
+<p>Your {{custom_attribute.${loyalty_tier} | default: 'member'}} picks are ready.</p>
+<a href="https://www.fernbrook.example/picks?utm_source=braze&utm_medium=email&utm_campaign=weekly">See picks</a>
+<img src="https://cdn.fernbrook.example/hero.png" alt="Fresh produce">
+<!--[if mso]><p>Outlook fallback</p><![endif]-->
+<a href="{{${set_user_to_unsubscribed_url}}}">Unsubscribe</a>
+</td></tr></table>
+</body></html>

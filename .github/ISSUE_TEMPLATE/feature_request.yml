@@ -1,0 +1,11 @@
+name: Idea or new check
+description: Suggest a check, a command, or another platform.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: What slows you down or goes wrong today?, description: Describe the real situation; the solution can come later. }
+    validations: { required: true }
+  - type: textarea
+    id: idea
+    attributes: { label: What would help? }

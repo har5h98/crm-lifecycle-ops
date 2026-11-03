@@ -1,0 +1,1 @@
+{"platform":"klaviyo","mustFind":["personalization.dangling-punctuation"],"mustNotFind":["links.no-unsubscribe","personalization.syntax-error"]}

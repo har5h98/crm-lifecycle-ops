@@ -1,0 +1,11 @@
+name: Bug
+description: Something crashed, didn't install, or behaved unexpectedly (not a wrong check result).
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened?, description: Steps to reproduce, what you expected, what you saw. }
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes: { label: Environment, placeholder: "Claude Code 2.x / Claude Desktop · macOS · Node 22 · plugin 0.1.0" }

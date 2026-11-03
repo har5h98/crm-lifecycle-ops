@@ -1,0 +1,1 @@
+{"platform":"braze","subject":"Hi {{${first_name} | default: 'there'}}, your picks","mustFind":[],"mustNotFind":["links.no-unsubscribe","personalization.dangling-punctuation","html.unclosed-tag","html.outlook-conditionals","links.non-production-host","links.utm-inconsistent","html.img-missing-alt"]}
