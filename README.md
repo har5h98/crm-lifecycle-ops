@@ -70,12 +70,9 @@ on top.
 
 ## All commands
 
-✅ works fully today · 🧪 works on the demo account and mocked APIs, not yet field-tested
+✅ works fully today · 🧪 works on the demo account and mocked APIs, not yet field-tested on real accounts
 
-<details>
-<summary><b>Show all 20 commands</b></summary>
-
-| | Command | What it does | |
+| | Command | What it does | Status |
 |---|---|---|---|
 | **Get started** | `/start-here` | Overview and the best first step | ✅ |
 | | `/setup` | Teach it your team's rules: language, brand, links, footer, senders, test customers, strictness | ✅ |
@@ -97,8 +94,6 @@ on top.
 | **Prove the impact** | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against thresholds | 🧪 |
 | | `/ops-report` | Messages checked, problems caught, hours saved, for you or the whole team | ✅ |
 | | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
-
-</details>
 
 ## Details
 
