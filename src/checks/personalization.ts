@@ -187,6 +187,8 @@ function liquidEngine(notVerified: Set<string>): Liquid {
   }
   for (const [t, msg] of Object.entries(INLINE_STUBS)) engine.registerTag(t, note(msg));
   for (const [t, msg] of Object.entries(BLOCK_STUBS)) engine.registerTag(t, blockStub(t, msg, notVerified));
+  // Braze's json_escape: escapes a value for use inside a JSON string (quotes not included).
+  engine.registerFilter("json_escape", (v: unknown) => JSON.stringify(String(v ?? "")).slice(1, -1));
   engine.registerFilter("lookup", (obj: unknown, key: string) => (obj as Record<string, unknown> | undefined)?.[key]);
   return engine;
 }

@@ -37,7 +37,9 @@ function mapMessages(raw: unknown, ownerId: string, prefix: string): Message[] {
         title: str(msg.title) ?? str(msg.header),
         deepLink: str(msg.action) ?? str(msg.uri),
         imageUrl: str(msg.image_url),
-        body: str(msg.body) ?? str(msg.alert) ?? str(msg.message) ?? "",
+        body: str(msg.body) ?? str(msg.alert) ?? str(msg.message) ?? str(msg.description) ?? "",
+        webhookUrl: str(msg.url),
+        webhookMethod: str(msg.method),
       };
     });
 }

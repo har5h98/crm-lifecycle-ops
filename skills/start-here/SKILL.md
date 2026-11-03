@@ -33,7 +33,7 @@ accounts; keep this list in sync with the README):
 | Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
 | Build | `/bulk-edit` | Find-and-replace preview across every email | 🧪 |
 | Launch | `/watch-launch` | Health check after a send | 🧪 |
-| Report | `/ops-report` | What the checks caught and time saved | ✅ |
+| Report | `/ops-report` | What the checks caught and time saved, for you or the whole team | ✅ |
 | Feedback | `/report-problem` | Report a wrong result; it becomes a test and gets fixed | ✅ |
 
 **Best first steps:**

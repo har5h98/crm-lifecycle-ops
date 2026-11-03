@@ -101,6 +101,13 @@ export const RulebookSchema = z.object({
       requireButton: z.boolean().default(false),
     })
     .default({ bodyMax: 150, requireButton: false }),
+  contentCard: z
+    .object({
+      /** Braze: "one line of text is ideal" for the header, two to four lines for the message. */
+      titleMax: z.number().int().positive().default(45),
+      bodyMax: z.number().int().positive().default(150),
+    })
+    .default({ titleMax: 45, bodyMax: 150 }),
   /** Campaigns/journeys whose name matches this regex are transactional (no unsubscribe needed). */
   transactional: z.object({ namePattern: z.string().optional() }).default({}),
   naming: z.object({ campaignPattern: z.string().optional(), example: z.string().optional() }).default({}),

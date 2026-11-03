@@ -91,4 +91,12 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   { id: "sms.over-platform-limit", severity: "fail", catches: "More segments than the platform accepts (Braze: 10)" },
   { id: "push.android-no-title", severity: "fail", catches: "Android push in Braze without a title, which can't be sent" },
   { id: "push.title-newline", severity: "warn", catches: "Line break in a push title, which hides the rest on iOS" },
+  // Content cards and webhooks
+  { id: "card.empty", severity: "fail", catches: "Content card with an empty message" },
+  { id: "card.title-long", severity: "warn", catches: "Card title longer than one line (45 characters by default)" },
+  { id: "card.body-long", severity: "warn", catches: "Card message longer than about four lines (150 characters by default)" },
+  { id: "webhook.no-url", severity: "fail", catches: "Webhook with no destination URL" },
+  { id: "webhook.secret-in-url", severity: "warn", catches: "API keys or tokens written into a webhook URL" },
+  { id: "webhook.invalid-json", severity: "fail", catches: "JSON webhook bodies that break when a value contains a quote" },
+  { id: "webhook.get-with-body", severity: "warn", catches: "GET webhooks with a body, which most servers ignore" },
 ];

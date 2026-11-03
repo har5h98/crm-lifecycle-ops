@@ -42,7 +42,7 @@ QA campaigns by hand. **Try it in 2 minutes** with the built-in demo account; no
 | Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
 | Build | `/bulk-edit` | Find-and-replace preview across every subject, body and content block | 🧪 |
 | Launch | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against stated thresholds | 🧪 |
-| Report | `/ops-report` | Emails checked, problems caught, hours saved | ✅ |
+| Report | `/ops-report` | Messages checked, problems caught, hours saved, for you or the whole team | ✅ |
 | Feedback | `/report-problem` | Report a wrong result; it becomes a test case and gets fixed | ✅ |
 
 ## Install
@@ -85,6 +85,8 @@ Teams share one rulebook by pointing `CLO_RULES` at a shared file.
 | **Push** | Title and body length for your *longest* customer names, line breaks that hide titles on iOS, deep-link format and destination, Android's required title (Braze) |
 | **SMS** | Billed segments the way carriers count them, the exact character that switches a text to Unicode, opt-out wording and sender name, each platform's limits and auto-appended text |
 | **In-app** | Body length, buttons and their links, click-through destination, HTML structure |
+| **Content cards** | Title and message length, card link and image destinations |
+| **Webhooks** | Missing or staging URLs, keys written into the URL, JSON bodies that break when a customer's name contains a quote |
 | **Personalization** (all) | Renders every message for a *complete*, an *empty*, a *long-values* and an *accented-name* profile (or your own): `Hi ,` blanks, literal `null`, leftover `{{ }}`, template errors, Iterable comparisons that silently skip the send |
 | **Campaigns & journeys** | Audience and conversion event set, naming convention, dead-end branches, unreachable steps, empty message steps |
 
@@ -113,6 +115,11 @@ warn  sms.too-many-segments  Up to 3 billed segments; house limit is 2
 warn  sms.no-opt-out         No "Reply STOP to opt out"
 ```
 
+## Using it day to day
+
+The [operator guide](docs/operator-guide.md) is a one-page routine: setup, what to run at each step of a build,
+how to read results, and the weekly review.
+
 ## How it works
 
 A plain-language tour of the architecture, data flow and design decisions: [docs/how-it-works.md](docs/how-it-works.md).
@@ -129,7 +136,7 @@ how it's known (*confirmed by the API*, *read from the template*, *read from the
   prose. `/what-breaks` lists those live items as "can't rule out" and can read them from your Braze
   dashboard (via Claude in Chrome, one page at a time, with your OK).
 - **Iterable's API doesn't return journey step order**, so Iterable journeys show their emails but not the path between them.
-- **Webhooks and content cards aren't QA'd yet**; they're listed as not checked.
+- **Braze content cards** come back from the API with few fields, so card checks are fullest when the copy is pasted into `/check-in-app`.
 - **It never builds or edits in your account.** `/build-plan` and `/edit-plan` tell you exactly how; `/bulk-edit` previews only.
 
 ## Safety

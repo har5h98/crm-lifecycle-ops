@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
+import { userInfo } from "node:os";
 import { join } from "node:path";
 import { isActive, type Snapshot } from "./snapshot.js";
 import { homeDir } from "./snapshot.js";
@@ -12,14 +13,48 @@ interface LogEntry {
   summary?: { fail: number; warn: number; info: number };
   checkIds?: string[];
   messages?: number;
+  operator?: string;
 }
 
-export async function opsReport(days = 30, minutesPerManualCheck = 20) {
-  let lines: string[] = [];
+/** Who ran a check, for team reports. The OS user name; override with CLO_OPERATOR. */
+export function operatorName(): string {
+  const set = process.env.CLO_OPERATOR;
+  if (set && !set.startsWith("${")) return set;
   try {
-    lines = (await readFile(join(homeDir(), "qa-log.jsonl"), "utf8")).split("\n").filter(Boolean);
+    return userInfo().username;
   } catch {
-    /* no runs yet */
+    return "operator";
+  }
+}
+
+/** Shared folder (e.g. a team drive) where every operator's log is mirrored. */
+export function teamDir(): string | undefined {
+  const d = process.env.CLO_TEAM_DIR;
+  return d && !d.startsWith("${") && d.trim() ? d.trim() : undefined;
+}
+
+async function readLog(file: string): Promise<string[]> {
+  try {
+    return (await readFile(file, "utf8")).split("\n").filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export async function opsReport(days = 30, minutesPerManualCheck = 20, opts: { team?: boolean } = {}) {
+  let lines: string[] = [];
+  let scope = "this machine";
+  if (opts.team) {
+    const dir = teamDir();
+    if (!dir)
+      throw new Error(
+        "No team report folder is set. Add one in /plugin configure crm-lifecycle-ops (a shared drive folder everyone can write to).",
+      );
+    const files = (await readdir(dir).catch(() => [] as string[])).filter((f) => f.endsWith(".jsonl"));
+    for (const f of files) lines.push(...(await readLog(join(dir, f))));
+    scope = `team folder (${files.length} operator${files.length === 1 ? "" : "s"})`;
+  } else {
+    lines = await readLog(join(homeDir(), "qa-log.jsonl"));
   }
   const since = Date.now() - days * 86_400_000;
   const entries = lines
@@ -53,7 +88,17 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
     const w = byWeek.get(week) ?? { runs: 0, fails: 0 };
     byWeek.set(week, { runs: w.runs + 1, fails: w.fails + e.summary!.fail });
   }
+  const byOperator: Record<string, { messagesChecked: number; blockingProblemsCaught: number }> = {};
+  if (opts.team) {
+    for (const e of checks) {
+      const who = e.operator ?? "unknown";
+      const o = (byOperator[who] ??= { messagesChecked: 0, blockingProblemsCaught: 0 });
+      o.messagesChecked += e.tool === "check_campaign" ? (e.messages ?? 1) : 1;
+      o.blockingProblemsCaught += e.summary!.fail;
+    }
+  }
   return {
+    scope,
     period: `last ${days} days`,
     runs: entries.length,
     runsByCommand: Object.fromEntries(byTool),
@@ -67,6 +112,7 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20) {
       .slice(0, 8)
       .map(([id, n]) => ({ id, n })),
     byWeek: [...byWeek.entries()].sort().map(([week, v]) => ({ weekStarting: week, ...v })),
+    ...(opts.team ? { byOperator } : {}),
     estimatedHoursSaved: Math.round(((messagesChecked * minutesPerManualCheck) / 60) * 10) / 10,
     assumption: `${minutesPerManualCheck} minutes of manual QA per message checked (change with minutes_per_manual_check); re-checks of the same message count again, so treat this as an upper estimate.`,
   };

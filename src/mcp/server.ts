@@ -16,7 +16,7 @@ import { findOverlaps, whatBreaks } from "../core/graph.js";
 import { evaluateHealth, THRESHOLDS } from "../core/health.js";
 import { checkJourneyStructure, journeyDiagram } from "../core/journey.js";
 import type { Platform } from "../core/model.js";
-import { bulkEditPreview, opsReport } from "../core/ops.js";
+import { bulkEditPreview, operatorName, opsReport, teamDir } from "../core/ops.js";
 import { loadRules, LOCKED_CHECKS, saveRules } from "../core/rules.js";
 import {
   carryForwardSeenAudiences,
@@ -45,11 +45,22 @@ const VERSION = pluginVersion();
 
 // Local-only usage log: tool names, check ids and counts, never email content. Feeds /ops-report.
 async function logRun(entry: Record<string, unknown>): Promise<void> {
+  const line = JSON.stringify({ ts: new Date().toISOString(), operator: operatorName(), ...entry }) + "\n";
   try {
     await mkdir(homeDir(), { recursive: true });
-    await appendFile(join(homeDir(), "qa-log.jsonl"), JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n");
+    await appendFile(join(homeDir(), "qa-log.jsonl"), line);
   } catch {
     // Logging must never break a check.
+  }
+  // Optional shared folder (a team drive) so /ops-report can total across operators.
+  const team = teamDir();
+  if (team) {
+    try {
+      await mkdir(team, { recursive: true });
+      await appendFile(join(team, `${operatorName().replace(/[^\w.-]/g, "_")}.jsonl`), line);
+    } catch {
+      // A missing or offline shared drive shouldn't break a check either.
+    }
   }
 }
 
@@ -155,13 +166,14 @@ tool(
 tool(
   "check_message",
   {
-    title: "Check a push, SMS or in-app message",
+    title: "Check a push, SMS, in-app, content card or webhook",
     description:
-      "QA one push notification, SMS/MMS or in-app message using the team's house rules: renders personalization for several synthetic personas, " +
-      "then checks length against lock-screen / segment / in-app limits, SMS encoding and billed segments, opt-out wording and sender name, " +
-      "deep links and other links (non-production hosts, malformed URIs), buttons, brand terms and spelling. Read-only; sends nothing.",
+      "QA one push notification, SMS/MMS, in-app message, content card or webhook using the team's house rules: renders personalization for " +
+      "several synthetic personas, then checks length against lock-screen / segment / in-app / card limits, SMS encoding and billed segments, " +
+      "opt-out wording and sender name, deep links and other links (non-production hosts, malformed URIs), buttons, webhook URL, secrets in " +
+      "URLs and JSON bodies that break on quotes, brand terms and spelling. Read-only; sends nothing.",
     inputSchema: {
-      channel: z.enum(["push", "sms", "in-app"]),
+      channel: z.enum(["push", "sms", "in-app", "content-card", "webhook"]),
       platform: platformArg.describe("Which platform's template language the message uses."),
       body: z.string().describe("Push body/alert, SMS text, or in-app message body (text or HTML)."),
       title: z.string().optional().describe("Push title or in-app header."),
@@ -171,6 +183,8 @@ tool(
         .array(z.object({ text: z.string(), link: z.string().optional() }))
         .optional()
         .describe("In-app buttons."),
+      webhook_url: z.string().optional().describe("Webhook destination URL."),
+      webhook_method: z.string().optional().describe("Webhook HTTP method (POST, GET…)."),
       name: z.string().optional(),
       personas: z.array(persona).optional(),
     },
@@ -187,6 +201,8 @@ tool(
         deepLink: args.deep_link,
         imageUrl: args.image_url,
         buttons: args.buttons,
+        webhookUrl: args.webhook_url,
+        webhookMethod: args.webhook_method,
         personas: args.personas,
       },
       rules,
@@ -654,10 +670,21 @@ tool(
   {
     title: "Ops report",
     description:
-      "From the local usage log: emails checked, blocking problems caught, most common findings, weekly trend and estimated hours saved (assumption stated).",
-    inputSchema: { days: z.number().int().positive().optional(), minutes_per_manual_check: z.number().positive().optional() },
+      "From the usage log: messages and campaigns checked, blocking problems caught, most common findings, weekly trend and estimated hours " +
+      "saved (assumption stated). With team: true, totals every operator's log in the shared team folder and breaks it down per operator.",
+    inputSchema: {
+      days: z.number().int().positive().optional(),
+      minutes_per_manual_check: z.number().positive().optional(),
+      team: z.boolean().optional().describe("Report across the whole team (needs the team report folder set in plugin settings)."),
+    },
   },
-  async ({ days, minutes_per_manual_check }) => json(await opsReport(days, minutes_per_manual_check)),
+  async ({ days, minutes_per_manual_check, team }) => {
+    try {
+      return json(await opsReport(days, minutes_per_manual_check, { team }));
+    } catch (e) {
+      return fail((e as Error).message);
+    }
+  },
 );
 
 await server.connect(new StdioServerTransport());

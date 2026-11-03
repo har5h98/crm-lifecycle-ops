@@ -89,3 +89,40 @@ describe("in-app checks", () => {
     expect(ids(r)).not.toContain("html.no-preheader");
   });
 });
+
+describe("content cards and webhooks", () => {
+  it("flags long card titles and staging card links", async () => {
+    const r = await checkChannelMessage({
+      channel: "content-card",
+      platform: "braze",
+      title: "Your weekend deals are ready and waiting for you",
+      body: "Fresh picks",
+      deepLink: "https://staging.brand.example/x",
+    });
+    expect(ids(r)).toEqual(expect.arrayContaining(["card.title-long", "links.non-production-host"]));
+  });
+  it("catches JSON bodies that break on a quote in a value", async () => {
+    const r = await checkChannelMessage({
+      channel: "webhook",
+      platform: "braze",
+      body: '{"name": "{{${first_name}}}", "tier": "gold"}',
+      webhookUrl: "https://api.brand.example/hook",
+      webhookMethod: "POST",
+    });
+    expect(ids(r)).toContain("webhook.invalid-json");
+  });
+  it("accepts a JSON-escaped body and flags secrets in the URL", async () => {
+    const r = await checkChannelMessage({
+      channel: "webhook",
+      platform: "braze",
+      body: '{"name": "{{${first_name} | json_escape}}"}',
+      webhookUrl: "https://api.brand.example/hook?api_key=abc123",
+      webhookMethod: "POST",
+    });
+    expect(ids(r)).not.toContain("webhook.invalid-json");
+    expect(ids(r)).toContain("webhook.secret-in-url");
+  });
+  it("needs a URL", async () => {
+    expect(ids(await checkChannelMessage({ channel: "webhook", platform: "braze", body: "" }))).toContain("webhook.no-url");
+  });
+});

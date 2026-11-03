@@ -11,7 +11,7 @@ import { SMS_BEHAVIOUR } from "../guides/facts.js";
 // personalization rendered for several personas, and anything we can't judge listed plainly.
 
 export interface ChannelMessageInput {
-  channel: "push" | "sms" | "in-app";
+  channel: "push" | "sms" | "in-app" | "content-card" | "webhook";
   platform: Platform;
   /** The platform's own channel name, e.g. "android_push". */
   platformChannel?: string;
@@ -23,6 +23,9 @@ export interface ChannelMessageInput {
   deepLink?: string;
   imageUrl?: string;
   buttons?: Button[];
+  /** Webhooks: destination and HTTP method. */
+  webhookUrl?: string;
+  webhookMethod?: string;
   personas?: Persona[];
 }
 
@@ -110,9 +113,9 @@ export async function checkChannelMessage(
       ? [...rules.personalization.personas, { name: "Empty profile", attributes: {} }]
       : undefined;
 
-  if (!input.body || input.body.trim() === "") {
+  if ((!input.body || input.body.trim() === "") && input.channel !== "webhook") {
     findings.push({
-      checkId: `${input.channel === "in-app" ? "inapp" : input.channel}.empty`,
+      checkId: `${{ "in-app": "inapp", "content-card": "card", webhook: "webhook", push: "push", sms: "sms" }[input.channel]}.empty`,
       severity: "fail",
       message: "The message body is empty.",
     });
@@ -336,14 +339,91 @@ export async function checkChannelMessage(
     if (input.imageUrl) findings.push(...linkFindings([input.imageUrl], "Image"));
   }
 
+  if (input.channel === "content-card") {
+    const t = title.longest;
+    const b = body.longest;
+    stats.titleLength = t.length;
+    stats.bodyLength = b.length;
+    if (t.length > rules.contentCard.titleMax) {
+      findings.push({
+        checkId: "card.title-long",
+        severity: "warn",
+        message: `Title can reach ${t.length} characters; over ${rules.contentCard.titleMax} it usually wraps past one line.`,
+        evidence: t,
+      });
+    }
+    if (b.length > rules.contentCard.bodyMax) {
+      findings.push({
+        checkId: "card.body-long",
+        severity: "warn",
+        message: `Message can reach ${b.length} characters; over ${rules.contentCard.bodyMax} it runs past four lines on most cards.`,
+      });
+    }
+    if (input.deepLink) findings.push(...linkFindings([input.deepLink], "Card"));
+    if (input.imageUrl) findings.push(...linkFindings([input.imageUrl], "Image"));
+  }
+
+  if (input.channel === "webhook") {
+    const url = input.webhookUrl;
+    if (!url) {
+      findings.push({ checkId: "webhook.no-url", severity: "fail", message: "The webhook has no destination URL." });
+    } else {
+      findings.push(...linkFindings([url], "Webhook"));
+      if (/[?&](api[_-]?key|key|token|secret|password|auth)=/i.test(url) && !TEMPLATE.test(url.split("?")[1] ?? "")) {
+        findings.push({
+          checkId: "webhook.secret-in-url",
+          severity: "warn",
+          message: "The webhook URL carries a key or token in plain text; anyone who can view the campaign can read it.",
+          fix: "Use the platform's stored credentials (e.g. Braze Connected Content credentials) or a header instead.",
+        });
+      }
+    }
+    // JSON bodies break when a value contains a quote (O"Brien) or a newline, because template values aren't JSON-escaped.
+    const looksJson = /^\s*[{[]/.test(input.body);
+    if (looksJson && input.body.trim()) {
+      const tricky = await checkPersonalization(input.body, input.platform, [
+        ...(personas ?? []),
+        {
+          name: "Quote in a value",
+          attributes: Object.fromEntries(
+            (await checkPersonalization(input.body, input.platform)).variables.map((v) => [v, 'Ann "Annie" O\'Brien']),
+          ),
+        },
+      ]);
+      for (const r of tricky.renders) {
+        if (r.output === null) continue;
+        try {
+          JSON.parse(r.output);
+        } catch {
+          findings.push({
+            checkId: "webhook.invalid-json",
+            severity: "fail",
+            message: `The JSON body is invalid for "${r.persona}"; the receiving system will reject it.`,
+            fix: "Escape values for JSON (Liquid: | json_escape or | escape; Handlebars: use a JSON-safe helper) and check commas and quotes.",
+            persona: r.persona,
+          });
+          break;
+        }
+      }
+    }
+    if (input.webhookMethod && input.webhookMethod.toUpperCase() === "GET" && input.body.trim()) {
+      findings.push({
+        checkId: "webhook.get-with-body",
+        severity: "warn",
+        message: "A GET request with a body; most servers ignore it. Use POST, or move the data into the URL.",
+      });
+    }
+  }
+
   // House rules that apply to any copy: brand terms, banned phrases, spelling, dates.
   const copyHtml = `<p>${[input.title, input.body].filter(Boolean).join(" ")}</p>`;
-  findings.push(
-    ...checkHouseRules(
-      { html: copyHtml },
-      { ...rules, links: { domains: [], requiredUtm: {} }, compliance: { ...rules.compliance, requiredText: [] } },
-    ).filter((f) => !["house.fallback-style"].includes(f.checkId)),
-  );
+  if (input.channel !== "webhook")
+    findings.push(
+      ...checkHouseRules(
+        { html: copyHtml },
+        { ...rules, links: { domains: [], requiredUtm: {} }, compliance: { ...rules.compliance, requiredText: [] } },
+      ).filter((f) => !["house.fallback-style"].includes(f.checkId)),
+    );
 
   const applied = applyRules(findings, rules);
   const order = { fail: 0, warn: 1, info: 2 } as const;

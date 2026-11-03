@@ -63,7 +63,7 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
   for (const id of messageIds) {
     const m = snap.messages.find((x) => x.id === id);
     if (!m) continue;
-    if (m.channel === "push" || m.channel === "sms" || m.channel === "in-app") {
+    if (m.channel === "push" || m.channel === "sms" || m.channel === "in-app" || m.channel === "content-card" || m.channel === "webhook") {
       const r = await checkChannelMessage(
         {
           channel: m.channel,
@@ -76,6 +76,8 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
           deepLink: m.deepLink,
           imageUrl: m.imageUrl,
           buttons: m.buttons,
+          webhookUrl: m.webhookUrl,
+          webhookMethod: m.webhookMethod,
         },
         rules,
       );

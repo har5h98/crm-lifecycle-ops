@@ -54,6 +54,9 @@ export interface Message {
   optOutAppended?: boolean;
   /** Receipts, password resets…: exempt from unsubscribe requirements. */
   transactional?: boolean;
+  /** Webhooks: where the request goes and how. */
+  webhookUrl?: string;
+  webhookMethod?: string;
   /** The campaign or journey this message belongs to (absent for standalone templates). */
   ownerId?: string;
   subject?: string;
