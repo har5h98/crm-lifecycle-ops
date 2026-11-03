@@ -42,6 +42,28 @@ When you're ready for your own account:
 - `/setup` teaches it your team's rules (about five minutes, or paste an email you like and it learns from that).
 - `/connect` adds a read-only key. Keys go in the plugin's settings and your system's secure storage, never in chat.
 
+<details>
+<summary><b>Using Cursor, Claude Desktop or another MCP client?</b></summary>
+
+The engine is also on npm, so any MCP client can run it. The slash commands are Claude Code skills, so
+elsewhere you ask in plain words ("check this email", "what breaks if I rename loyalty_tier?").
+
+```json
+{
+  "mcpServers": {
+    "crm-lifecycle-ops": {
+      "command": "npx",
+      "args": ["-y", "crm-lifecycle-ops"],
+      "env": { "CLO_BRAZE_API_KEY": "…", "CLO_BRAZE_REST_ENDPOINT": "https://rest.iad-01.braze.com" }
+    }
+  }
+}
+```
+
+Leave `env` out to use the demo account. Every setting is listed in [`server.json`](server.json).
+
+</details>
+
 > **Early alpha.** Everything works on the demo account and against mocked API responses. It hasn't been
 > field-tested on real accounts yet. If a result looks wrong, `/report-problem` turns it into a test and a fix.
 

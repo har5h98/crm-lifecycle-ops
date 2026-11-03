@@ -30,3 +30,11 @@ npm run check   # typecheck + tests + build
   `docs:`…); releases and the changelog are generated from them.
 
 By contributing you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Releases
+
+Merging the release PR (opened by release-please) tags the version and then publishes it to npm and the
+official MCP Registry from GitHub Actions (`.github/workflows/release.yml`). No tokens are stored: both
+accept the workflow's GitHub identity. The version in `package.json`, `server.json` and the plugin manifest
+is bumped together.
+
