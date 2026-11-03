@@ -1,14 +1,19 @@
 # crm-lifecycle-ops
 
-**QA, dependency checks and journey tools for lifecycle & CRM marketing on Braze, Klaviyo and Iterable, as a Claude plugin.**
+**An AI copilot for lifecycle & CRM marketing operations on Braze, Klaviyo and Iterable.**
+QA every email, push, SMS and in-app message before it sends, see what breaks before you change
+something, and get step-by-step build and edit instructions written for your platform. A Claude Code
+plugin with an MCP server; read-only by design.
 
 [![CI](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/har5h98/crm-lifecycle-ops)](https://github.com/har5h98/crm-lifecycle-ops/releases)
 ![Status: early alpha](https://img.shields.io/badge/status-early%20alpha-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-Lifecycle and CRM teams lose hours to manual QA and to the fear of changing something that quietly
-breaks a live journey. This plugin catches the mistakes before they send, and (as it grows) tells you
-what depends on what before you change it.
+<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /check-sms flagging curly quotes that double SMS cost, and /what-breaks listing live programs that use loyalty_tier" width="820"></p>
+
+**Built for** campaign operators, lifecycle and CRM marketers, and marketing-ops teams who build and
+QA campaigns by hand. **Try it in 2 minutes** with the built-in demo account; no platform access needed.
 
 > **Status: early alpha.** Every command below exists. ✅ means it works fully today. 🧪 means it works
 > on the built-in demo account and against mocked Braze/Klaviyo/Iterable API responses, but hasn't been

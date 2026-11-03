@@ -1,10 +1,47 @@
 {
   "name": "crm-lifecycle-ops",
   "version": "0.2.0",
-  "description": "Lifecycle & CRM marketing ops for Braze, Klaviyo and Iterable: email QA, dependency checks, journey maps and launch monitoring, as a Claude plugin.",
-  "type": "module",
+  "description": "AI copilot for lifecycle & CRM marketing ops on Braze, Klaviyo and Iterable: QA email, push, SMS and in-app before they send, map dependencies, and get platform-specific build steps. MCP server + Claude Code plugin.",
+  "keywords": [
+    "braze",
+    "klaviyo",
+    "iterable",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "email-qa",
+    "email-testing",
+    "sms",
+    "push-notifications",
+    "crm",
+    "lifecycle-marketing",
+    "marketing-operations",
+    "marketing-automation"
+  ],
+  "author": "Harsh Singhal (https://github.com/har5h98)",
   "license": "MIT",
-  "private": true,
+  "homepage": "https://github.com/har5h98/crm-lifecycle-ops#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/har5h98/crm-lifecycle-ops.git"
+  },
+  "bugs": {
+    "url": "https://github.com/har5h98/crm-lifecycle-ops/issues"
+  },
+  "type": "module",
+  "bin": {
+    "crm-lifecycle-ops-mcp": "dist/mcp-server.js"
+  },
+  "files": [
+    "dist/",
+    ".claude-plugin/plugin.json",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "mcpName": "io.github.har5h98/crm-lifecycle-ops",
   "engines": {
     "node": ">=20"
   },
@@ -17,19 +54,17 @@
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.mjs\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.mjs\""
   },
-  "dependencies": {
+  "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
     "handlebars": "^4.7.10",
     "htmlparser2": "^12.0.0",
     "liquidjs": "^10.30.1",
-    "zod": "^4.6.7"
-  },
-  "devDependencies": {
-    "@types/node": "^26.6.6",
-    "esbuild": "^0.28.2",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "zod": "^4.6.7"
   }
 }
