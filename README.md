@@ -151,7 +151,7 @@ how it's known (*confirmed by the API*, *read from the template*, *read from the
 ## Safety
 
 Read-only. It never sends a message, never edits your account, never reads customer profiles (it tests
-with synthetic personas), and keeps your keys on your machine in environment variables. See [SECURITY.md](SECURITY.md).
+with synthetic personas), and keeps your keys in your system's secure storage. See [SECURITY.md](SECURITY.md) and the [Privacy policy](PRIVACY.md).
 
 ## What it runs, sends and fetches
 

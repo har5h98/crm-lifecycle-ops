@@ -104,5 +104,6 @@
       "sensitive": false,
       "required": false
     }
-  }
+  },
+  "privacyPolicyUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/PRIVACY.md"
 }
