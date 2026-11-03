@@ -192,3 +192,23 @@ describe("unsubscribe routes (improvement pass, 2026-11-03)", () => {
     expect(ids(long)).toContain("push.title-long");
   });
 });
+
+describe("typos never read as 'safe to change' (improvement pass, 2026-11-03)", () => {
+  it("a misspelled segment is reported as not found, with the likely name", () => {
+    const r = whatBreaks(demoSnapshot(), "segment", "VIP custmers");
+    expect(r.notFound?.didYouMean).toContain("VIP members");
+  });
+  it("a misspelled attribute suggests the one templates use", () => {
+    const r = whatBreaks(demoSnapshot(), "attribute", "loyalty_teir");
+    expect(r.notFound?.didYouMean).toContain("loyalty_tier");
+  });
+  it("a real target has no notFound", () => {
+    expect(whatBreaks(demoSnapshot(), "attribute", "loyalty_tier").notFound).toBeUndefined();
+    expect(whatBreaks(demoSnapshot(), "segment", "VIP members").notFound).toBeUndefined();
+  });
+  it("a misspelled campaign name offers the nearest names", async () => {
+    const { findItem } = await import("../src/checks/campaign.js");
+    const r = findItem(demoSnapshot(), "Welcom Series");
+    expect("candidates" in r && r.near && r.candidates[0]).toMatch(/^Welcome Series/);
+  });
+});

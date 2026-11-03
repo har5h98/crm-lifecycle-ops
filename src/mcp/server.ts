@@ -4,6 +4,7 @@ import { appendFile, mkdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { configuredPlatforms, ENV_VARS, getAdapter, workspaceFor } from "../adapters/index.js";
@@ -101,7 +102,40 @@ async function latest(platform: Platform, workspace?: string): Promise<Snapshot>
 }
 
 const server = new McpServer({ name: "crm-lifecycle-ops", version: VERSION });
-const tool = server.registerTool.bind(server);
+
+// What each tool touches, so clients can show it and decide what needs approval. Nothing here ever
+// writes to a marketing platform. "Writes locally" means files under ~/.crm-lifecycle-ops/ only (the
+// checks' usage-log line is too small to count). openWorld = it calls something outside this machine.
+const READS = { readOnlyHint: true, openWorldHint: false };
+const ANNOTATIONS: Record<string, ToolAnnotations> = {
+  check_email: { ...READS, openWorldHint: true }, // optional live link check
+  check_message: { ...READS },
+  check_campaign: { ...READS },
+  list_checks: { ...READS },
+  get_house_rules: { ...READS },
+  save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  add_exception: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  learn_from_email: { ...READS },
+  connection_status: { readOnlyHint: true, openWorldHint: true },
+  refresh_account: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  list_items: { ...READS },
+  record_audience: {
+    title: "Record a campaign's audience from the dashboard",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: false,
+  },
+  what_breaks: { ...READS },
+  what_changed: { ...READS },
+  show_journey: { ...READS },
+  find_overlaps: { ...READS },
+  bulk_edit_preview: { ...READS },
+  how_to: { ...READS },
+  launch_health: { readOnlyHint: true, openWorldHint: true },
+  ops_report: { ...READS },
+};
+const register = server.registerTool.bind(server);
+const tool: typeof register = (name, config, cb) => register(name, { annotations: ANNOTATIONS[name], ...config }, cb);
 
 // ---------------------------------------------------------------- QA
 
@@ -481,7 +515,8 @@ tool(
   async ({ platform, workspace, item, segment, mode = "include" }) => {
     const snap = await latest(platform, workspace);
     const found = findItem(snap, item);
-    if ("candidates" in found) return fail(`Couldn't pin down "${item}". Candidates: ${found.candidates.join("; ") || "none"}`);
+    if ("candidates" in found)
+      return fail(`Couldn't pin down "${item}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`);
     const seg = snap.segments.find((s) => s.id === segment || s.name.toLowerCase() === segment.toLowerCase());
     if (!seg) return fail(`No segment or list called "${segment}" in the snapshot. Run /refresh if it's new.`);
     found.item.audience = [
@@ -564,7 +599,10 @@ tool(
   async ({ platform, workspace, name_or_id }) => {
     const snap = await latest(platform, workspace);
     const found = findItem(snap, name_or_id);
-    if ("candidates" in found) return fail(`Couldn't pin down "${name_or_id}". Candidates: ${found.candidates.join("; ") || "none"}`);
+    if ("candidates" in found)
+      return fail(
+        `Couldn't pin down "${name_or_id}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`,
+      );
     if (found.kind !== "journey") return fail(`"${found.item.name}" is a single campaign, not a journey.`);
     const structure = checkJourneyStructure(found.item);
     return json({ name: found.item.name, status: found.item.status, mermaid: journeyDiagram(found.item, snap), ...structure });
@@ -661,7 +699,10 @@ tool(
       const snap = await latest(platform);
       if (snap.demo) return fail("Launch health needs a connected account; the demo has no delivery data.");
       const found = findItem(snap, name_or_id);
-      if ("candidates" in found) return fail(`Couldn't pin down "${name_or_id}". Candidates: ${found.candidates.join("; ") || "none"}`);
+      if ("candidates" in found)
+        return fail(
+          `Couldn't pin down "${name_or_id}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`,
+        );
       const stats = await getAdapter(platform).launchStats(found.kind, found.item.id);
       const health = evaluateHealth(stats);
       await logRun({ tool: "launch_health", platform });

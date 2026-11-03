@@ -29,7 +29,9 @@ const call = async (name, args) => {
 
 const { tools } = await client.listTools();
 if (tools.length < 20) fail(`expected at least 20 tools, got ${tools.length}`);
-console.log(`✓ ${tools.length} tools`);
+const unannotated = tools.filter((t) => t.annotations?.readOnlyHint === undefined || !t.title).map((t) => t.name);
+if (unannotated.length) fail(`tools without annotations: ${unannotated.join(", ")}`);
+console.log(`✓ ${tools.length} tools, all annotated`);
 
 const checks = await call("list_checks", {});
 if (!checks.checks?.length || checks.version === "unknown") fail("list_checks: no checks or no version");

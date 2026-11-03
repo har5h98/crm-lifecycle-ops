@@ -1,4 +1,5 @@
 import { referencedVariables } from "../checks/personalization.js";
+import { closest } from "./fuzzy.js";
 import type { Confidence } from "./model.js";
 import { isActive, type AudienceRef, type Snapshot, type Status } from "./snapshot.js";
 
@@ -24,6 +25,8 @@ export interface ImpactReport {
   unknown: { kind: "campaign" | "journey"; id: string; name: string }[];
   /** Why those can't be ruled out, and what to do about it (said once, not per item). */
   unknownWhy?: string;
+  /** The target isn't in the snapshot (often a typo). An empty result then means "not found", not "safe". */
+  notFound?: { message: string; didYouMean: string[] };
   summary: { activeAffected: number; inactiveAffected: number; unknownActive: number };
 }
 
@@ -248,12 +251,14 @@ export function whatBreaks(snap: Snapshot, kind: TargetKind, value: string): Imp
   const unknownWhy = unknown.length
     ? `${snap.platform === "braze" ? "Braze's API" : "The platform's API"} doesn't say ${kind === "event" ? "what triggers these" : "which segments these target"}. Open each one's ${kind === "event" ? "entry/trigger" : "audience"} step to check, or record what you see with record_audience.`
     : undefined;
+  const notFound = describeNotFound(snap, kind, value, target, out.size);
   const dependents = [...out.values()].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
   return {
     target,
     dependents,
     unknown,
     unknownWhy,
+    notFound,
     summary: {
       activeAffected: dependents.filter((d) => d.active && (d.kind === "campaign" || d.kind === "journey")).length,
       inactiveAffected: dependents.filter((d) => !d.active && (d.kind === "campaign" || d.kind === "journey")).length,
@@ -285,4 +290,45 @@ export function findOverlaps(snap: Snapshot, plan: { segments?: string[]; lists?
   }
   const rest = [...unknown.values()].filter((u) => !live.has(`${u.kind}:${u.id}`));
   return { liveOverlaps: [...live.values()], unknown: rest, unknownWhy: rest.length ? unknownWhy : undefined };
+}
+
+function describeNotFound(
+  snap: Snapshot,
+  kind: TargetKind,
+  value: string,
+  target: ImpactReport["target"],
+  found: number,
+): ImpactReport["notFound"] {
+  const label = kind === "content-block" ? "content block" : kind;
+  if (kind === "segment" || kind === "list" || kind === "content-block" || kind === "message") {
+    if (target.resolvedName) return undefined;
+    const pool =
+      kind === "content-block"
+        ? snap.contentBlocks.map((b) => b.name)
+        : kind === "message"
+          ? snap.messages.map((m) => m.name)
+          : snap.segments.map((s) => s.name);
+    return {
+      message: `No ${label} called "${value}" in the snapshot, so this is not a safe-to-change answer. Check the name, or run /refresh if it's new.`,
+      didYouMean: closest(value, pool),
+    };
+  }
+  if (found > 0 || kind === "text") return undefined;
+  const pool: string[] = [];
+  if (kind === "attribute") {
+    for (const m of snap.messages) pool.push(...referencedVariables(`${m.subject ?? ""} ${m.body}`, snap.platform));
+    for (const b of snap.contentBlocks) pool.push(...referencedVariables(b.body, snap.platform));
+  } else {
+    for (const x of [...snap.campaigns, ...snap.journeys]) {
+      for (const a of x.audience) if (a.kind === "event") pool.push(a.name ?? a.id);
+      pool.push(...(x.conversionEvents ?? []));
+    }
+  }
+  const didYouMean = closest(
+    value,
+    pool.map((p) => p.split(".").pop() ?? p),
+  );
+  return didYouMean.length
+    ? { message: `Nothing in the snapshot uses the ${label} "${value}". Did you mean one of these?`, didYouMean }
+    : undefined;
 }

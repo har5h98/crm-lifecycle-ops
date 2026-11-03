@@ -37258,13 +37258,13 @@ function _promise(Class2, innerType) {
 }
 // @__NO_SIDE_EFFECTS__
 function _custom(Class2, fn, _params) {
-  const norm2 = normalizeParams(_params);
-  norm2.abort ?? (norm2.abort = true);
+  const norm3 = normalizeParams(_params);
+  norm3.abort ?? (norm3.abort = true);
   const schema = new Class2({
     type: "custom",
     check: "custom",
     fn,
-    ...norm2
+    ...norm3
   });
   return schema;
 }
@@ -48546,6 +48546,35 @@ function workspaceFor(platform, env = credentialEnv()) {
   return v ?? "default";
 }
 
+// src/core/fuzzy.ts
+var norm = (s) => s.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+function distance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cur = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+  }
+  return row[b.length];
+}
+function closest(query, names, max = 3) {
+  const q = norm(query);
+  if (!q) return [];
+  const scored = [];
+  for (const name of new Set(names)) {
+    const n = norm(name);
+    const d = distance(q, n);
+    const words2 = q.split(" ").filter((w) => w.length > 2);
+    const sharesWord = words2.some((w) => n.split(" ").includes(w));
+    if (d <= Math.max(2, Math.floor(q.length / 4)) || sharesWord) scored.push({ name, score: sharesWord ? Math.min(d, q.length) : d });
+  }
+  return scored.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name)).slice(0, max).map((x) => x.name);
+}
+
 // src/core/journey.ts
 var BRANCH = /split|path|branch|conditional|decision|experiment|audience/i;
 function checkJourneyStructure(j) {
@@ -52367,13 +52396,19 @@ function findItem(snap, query) {
   if (exact) return exact;
   const partial2 = all.filter((x) => x.item.name.toLowerCase().includes(q));
   if (partial2.length === 1) return partial2[0];
-  return { candidates: partial2.slice(0, 10).map((x) => `${x.item.name} (${x.kind}, ${x.item.status}, id ${x.item.id})`) };
+  const describe3 = (x) => `${x.item.name} (${x.kind}, ${x.item.status}, id ${x.item.id})`;
+  if (partial2.length) return { candidates: partial2.slice(0, 10).map(describe3) };
+  const near = closest(
+    query,
+    all.map((x) => x.item.name)
+  );
+  return { candidates: all.filter((x) => near.includes(x.item.name)).map(describe3), near: true };
 }
 async function checkCampaign(snap, query, rules = DEFAULT_RULES) {
   const found = findItem(snap, query);
   if ("candidates" in found)
     return {
-      error: found.candidates.length ? "More than one match; pick one." : "Nothing matched that name or id.",
+      error: !found.candidates.length ? "Nothing matched that name or id." : found.near ? "Nothing matched that name exactly. Did you mean one of these?" : "More than one match; pick one.",
       candidates: found.candidates
     };
   const { kind, item } = found;
@@ -52570,7 +52605,7 @@ var CHECKS = [
 ];
 
 // src/core/graph.ts
-var norm = (s) => s.trim().toLowerCase();
+var norm2 = (s) => s.trim().toLowerCase();
 function owners(snap) {
   const map2 = /* @__PURE__ */ new Map();
   for (const c of snap.campaigns) for (const m of c.messageIds) map2.set(m, { kind: "campaign", id: c.id, name: c.name, status: c.status });
@@ -52579,8 +52614,8 @@ function owners(snap) {
   return map2;
 }
 function resolveSegment(snap, value) {
-  const v = norm(value);
-  return snap.segments.find((s) => norm(s.id) === v) ?? snap.segments.find((s) => norm(s.name) === v) ?? snap.segments.find((s) => norm(s.name).includes(v));
+  const v = norm2(value);
+  return snap.segments.find((s) => norm2(s.id) === v) ?? snap.segments.find((s) => norm2(s.name) === v) ?? snap.segments.find((s) => norm2(s.name).includes(v));
 }
 function whatBreaks(snap, kind, value) {
   const out = /* @__PURE__ */ new Map();
@@ -52632,9 +52667,9 @@ function whatBreaks(snap, kind, value) {
     }
   };
   if (kind === "attribute") {
-    const attr = norm(value);
+    const attr = norm2(value);
     const matches = (v) => {
-      const n = norm(v);
+      const n = norm2(v);
       return n === attr || n.endsWith(`.${attr}`);
     };
     for (const m of snap.messages) {
@@ -52696,8 +52731,8 @@ function whatBreaks(snap, kind, value) {
     }
   }
   if (kind === "content-block") {
-    const v = norm(value);
-    const block = snap.contentBlocks.find((b) => norm(b.id) === v || norm(b.name) === v);
+    const v = norm2(value);
+    const block = snap.contentBlocks.find((b) => norm2(b.id) === v || norm2(b.name) === v);
     target.resolvedName = block?.name;
     const name = block?.name ?? value;
     for (const mid of block?.usedBy ?? []) addMessageOwners(mid, `includes block "${name}"`, "api-verified");
@@ -52705,12 +52740,12 @@ function whatBreaks(snap, kind, value) {
     for (const m of snap.messages) if (ref.test(m.body)) addMessageOwners(m.id, `includes block "${name}"`, "parsed-from-template");
   }
   if (kind === "event") {
-    const v = norm(value);
+    const v = norm2(value);
     for (const x of [
       ...snap.campaigns.map((c) => ({ ...c, k: "campaign" })),
       ...snap.journeys.map((j) => ({ ...j, k: "journey" }))
     ]) {
-      if (x.audience.some((a) => a.kind === "event" && (norm(a.id) === v || norm(a.name ?? "") === v)))
+      if (x.audience.some((a) => a.kind === "event" && (norm2(a.id) === v || norm2(a.name ?? "") === v)))
         add({
           kind: x.k,
           id: x.id,
@@ -52720,7 +52755,7 @@ function whatBreaks(snap, kind, value) {
           via: "is triggered by it",
           confidence: "api-verified"
         });
-      if (x.conversionEvents?.some((e) => norm(e) === v))
+      if (x.conversionEvents?.some((e) => norm2(e) === v))
         add({
           kind: x.k,
           id: x.id,
@@ -52735,8 +52770,8 @@ function whatBreaks(snap, kind, value) {
       if (m.body.toLowerCase().includes(v)) addMessageOwners(m.id, "mentions it in the template", "parsed-from-template");
   }
   if (kind === "message") {
-    const v = norm(value);
-    const m = snap.messages.find((x) => norm(x.id) === v || norm(x.name) === v);
+    const v = norm2(value);
+    const m = snap.messages.find((x) => norm2(x.id) === v || norm2(x.name) === v);
     target.resolvedName = m?.name;
     if (m) addMessageOwners(m.id, "sends it", "api-verified");
   }
@@ -52772,12 +52807,14 @@ function whatBreaks(snap, kind, value) {
     }
   }
   const unknownWhy = unknown2.length ? `${snap.platform === "braze" ? "Braze's API" : "The platform's API"} doesn't say ${kind === "event" ? "what triggers these" : "which segments these target"}. Open each one's ${kind === "event" ? "entry/trigger" : "audience"} step to check, or record what you see with record_audience.` : void 0;
+  const notFound = describeNotFound(snap, kind, value, target, out.size);
   const dependents = [...out.values()].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
   return {
     target,
     dependents,
     unknown: unknown2,
     unknownWhy,
+    notFound,
     summary: {
       activeAffected: dependents.filter((d) => d.active && (d.kind === "campaign" || d.kind === "journey")).length,
       inactiveAffected: dependents.filter((d) => !d.active && (d.kind === "campaign" || d.kind === "journey")).length,
@@ -52807,6 +52844,33 @@ function findOverlaps(snap, plan) {
   }
   const rest = [...unknown2.values()].filter((u) => !live.has(`${u.kind}:${u.id}`));
   return { liveOverlaps: [...live.values()], unknown: rest, unknownWhy: rest.length ? unknownWhy : void 0 };
+}
+function describeNotFound(snap, kind, value, target, found) {
+  const label = kind === "content-block" ? "content block" : kind;
+  if (kind === "segment" || kind === "list" || kind === "content-block" || kind === "message") {
+    if (target.resolvedName) return void 0;
+    const pool2 = kind === "content-block" ? snap.contentBlocks.map((b) => b.name) : kind === "message" ? snap.messages.map((m) => m.name) : snap.segments.map((s) => s.name);
+    return {
+      message: `No ${label} called "${value}" in the snapshot, so this is not a safe-to-change answer. Check the name, or run /refresh if it's new.`,
+      didYouMean: closest(value, pool2)
+    };
+  }
+  if (found > 0 || kind === "text") return void 0;
+  const pool = [];
+  if (kind === "attribute") {
+    for (const m of snap.messages) pool.push(...referencedVariables(`${m.subject ?? ""} ${m.body}`, snap.platform));
+    for (const b of snap.contentBlocks) pool.push(...referencedVariables(b.body, snap.platform));
+  } else {
+    for (const x of [...snap.campaigns, ...snap.journeys]) {
+      for (const a of x.audience) if (a.kind === "event") pool.push(a.name ?? a.id);
+      pool.push(...x.conversionEvents ?? []);
+    }
+  }
+  const didYouMean = closest(
+    value,
+    pool.map((p) => p.split(".").pop() ?? p)
+  );
+  return didYouMean.length ? { message: `Nothing in the snapshot uses the ${label} "${value}". Did you mean one of these?`, didYouMean } : void 0;
 }
 
 // src/core/health.ts
@@ -54111,7 +54175,37 @@ async function latest(platform, workspace) {
   return latest2;
 }
 var server = new McpServer({ name: "crm-lifecycle-ops", version: VERSION });
-var tool = server.registerTool.bind(server);
+var READS = { readOnlyHint: true, openWorldHint: false };
+var ANNOTATIONS = {
+  check_email: { ...READS, openWorldHint: true },
+  // optional live link check
+  check_message: { ...READS },
+  check_campaign: { ...READS },
+  list_checks: { ...READS },
+  get_house_rules: { ...READS },
+  save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  add_exception: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  learn_from_email: { ...READS },
+  connection_status: { readOnlyHint: true, openWorldHint: true },
+  refresh_account: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  list_items: { ...READS },
+  record_audience: {
+    title: "Record a campaign's audience from the dashboard",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: false
+  },
+  what_breaks: { ...READS },
+  what_changed: { ...READS },
+  show_journey: { ...READS },
+  find_overlaps: { ...READS },
+  bulk_edit_preview: { ...READS },
+  how_to: { ...READS },
+  launch_health: { readOnlyHint: true, openWorldHint: true },
+  ops_report: { ...READS }
+};
+var register = server.registerTool.bind(server);
+var tool = (name, config2, cb) => register(name, { annotations: ANNOTATIONS[name], ...config2 }, cb);
 var persona2 = external_exports.object({
   name: external_exports.string(),
   attributes: external_exports.record(external_exports.string(), external_exports.unknown()).describe('Attribute values keyed by path, e.g. {"first_name": "Ana", "custom_attribute.loyalty_tier": "Gold"}')
@@ -54436,7 +54530,8 @@ tool(
   async ({ platform, workspace, item, segment, mode = "include" }) => {
     const snap = await latest(platform, workspace);
     const found = findItem(snap, item);
-    if ("candidates" in found) return fail(`Couldn't pin down "${item}". Candidates: ${found.candidates.join("; ") || "none"}`);
+    if ("candidates" in found)
+      return fail(`Couldn't pin down "${item}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`);
     const seg = snap.segments.find((s) => s.id === segment || s.name.toLowerCase() === segment.toLowerCase());
     if (!seg) return fail(`No segment or list called "${segment}" in the snapshot. Run /refresh if it's new.`);
     found.item.audience = [
@@ -54508,7 +54603,10 @@ tool(
   async ({ platform, workspace, name_or_id }) => {
     const snap = await latest(platform, workspace);
     const found = findItem(snap, name_or_id);
-    if ("candidates" in found) return fail(`Couldn't pin down "${name_or_id}". Candidates: ${found.candidates.join("; ") || "none"}`);
+    if ("candidates" in found)
+      return fail(
+        `Couldn't pin down "${name_or_id}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`
+      );
     if (found.kind !== "journey") return fail(`"${found.item.name}" is a single campaign, not a journey.`);
     const structure = checkJourneyStructure(found.item);
     return json2({ name: found.item.name, status: found.item.status, mermaid: journeyDiagram(found.item, snap), ...structure });
@@ -54587,7 +54685,10 @@ tool(
       const snap = await latest(platform);
       if (snap.demo) return fail("Launch health needs a connected account; the demo has no delivery data.");
       const found = findItem(snap, name_or_id);
-      if ("candidates" in found) return fail(`Couldn't pin down "${name_or_id}". Candidates: ${found.candidates.join("; ") || "none"}`);
+      if ("candidates" in found)
+        return fail(
+          `Couldn't pin down "${name_or_id}". ${found.near ? "Did you mean" : "Candidates"}: ${found.candidates.join("; ") || "none"}`
+        );
       const stats = await getAdapter(platform).launchStats(found.kind, found.item.id);
       const health = evaluateHealth(stats);
       await logRun({ tool: "launch_health", platform });

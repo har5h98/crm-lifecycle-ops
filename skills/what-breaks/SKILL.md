@@ -10,7 +10,9 @@ argument-hint: "<the thing you want to change>"
    content-block (`footer_v2`) · event (`Order Placed`) · message · text (a phrase, promo code or URL).
    If unclear, `list_items` helps resolve names. Ask only if still ambiguous.
 2. Needs a snapshot; if it's more than a day old, say so and offer `/refresh`.
-3. `what_breaks`. Report:
+3. `what_breaks`. If the result has **`notFound`**, stop there: say the name wasn't found, offer the
+   `didYouMean` names, and re-run with the one they pick. Never report "nothing depends on it" or "safe to
+   change" for a name that wasn't found. Otherwise report:
    - **Headline**: "Changing `loyalty_tier` affects **N live** programs (and M drafts)."
    - **Live**: name · what it is · *how* it depends ("subject line uses it", "targets a segment that filters on it") ·
      how we know, in words: *confirmed by the API* / *read from the template* / *read from the segment's description* /

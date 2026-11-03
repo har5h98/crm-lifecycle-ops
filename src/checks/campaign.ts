@@ -1,3 +1,4 @@
+import { closest } from "../core/fuzzy.js";
 import { checkJourneyStructure } from "../core/journey.js";
 import { summarize, type Finding } from "../core/model.js";
 import { DEFAULT_RULES, applyRules, type Rulebook } from "../core/rules.js";
@@ -9,7 +10,7 @@ import { checkCampaignName } from "./house.js";
 export function findItem(
   snap: Snapshot,
   query: string,
-): { kind: "campaign"; item: Campaign } | { kind: "journey"; item: Journey } | { candidates: string[] } {
+): { kind: "campaign"; item: Campaign } | { kind: "journey"; item: Journey } | { candidates: string[]; near?: boolean } {
   const q = query.trim().toLowerCase();
   const all = [
     ...snap.campaigns.map((item) => ({ kind: "campaign" as const, item })),
@@ -19,7 +20,14 @@ export function findItem(
   if (exact) return exact;
   const partial = all.filter((x) => x.item.name.toLowerCase().includes(q));
   if (partial.length === 1) return partial[0]!;
-  return { candidates: partial.slice(0, 10).map((x) => `${x.item.name} (${x.kind}, ${x.item.status}, id ${x.item.id})`) };
+  const describe = (x: (typeof all)[number]) => `${x.item.name} (${x.kind}, ${x.item.status}, id ${x.item.id})`;
+  if (partial.length) return { candidates: partial.slice(0, 10).map(describe) };
+  // Nothing contains the query: probably a typo, so offer the nearest names instead of nothing.
+  const near = closest(
+    query,
+    all.map((x) => x.item.name),
+  );
+  return { candidates: all.filter((x) => near.includes(x.item.name)).map(describe), near: true };
 }
 
 /** /check-campaign: every message in a campaign or journey, plus its settings and structure. */
@@ -27,7 +35,11 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
   const found = findItem(snap, query);
   if ("candidates" in found)
     return {
-      error: found.candidates.length ? "More than one match; pick one." : "Nothing matched that name or id.",
+      error: !found.candidates.length
+        ? "Nothing matched that name or id."
+        : found.near
+          ? "Nothing matched that name exactly. Did you mean one of these?"
+          : "More than one match; pick one.",
       candidates: found.candidates,
     };
 
