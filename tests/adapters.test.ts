@@ -47,9 +47,9 @@ describe("klaviyo adapter", () => {
       [/\/segments\?/, { data: [{ id: "S1", type: "segment", attributes: { name: "Engaged" } }], links: {} }],
       [/\/lists\?/, { data: [{ id: "L1", type: "list", attributes: { name: "Newsletter" } }], links: {} }],
       [/\/campaigns\?/, { data: [{ id: "C1", type: "campaign", attributes: { definition: { name: "Fall sale", archived: false }, updated_at: "2026-10-01" }, relationships: { "campaign-audiences": { data: [{ type: "campaign-audience", id: "A1" }] }, "campaign-messages": { data: [{ type: "campaign-message", id: "M1" }] } } }], included: [{ id: "A1", type: "campaign-audience", attributes: { definition: { included: ["S1"], excluded: ["L1"] } } }, { id: "M1", type: "campaign-message", attributes: { definition: { status: "scheduled" } }, relationships: { "campaign-variations": { data: [{ id: "V1", type: "campaign-variation" }] } } }], links: {} }],
-      [/campaign-variations\/V1/, { data: { id: "V1", type: "campaign-variation", attributes: { definition: { details: { channel: "email", content: { subject: "Fall is here", preview_text: "Save 20%", from_email: "hi@x.example" } } } } } }],
+      [/campaign-variations\/V1/, { data: { id: "V1", type: "campaign-variation", attributes: { definition: { details: { channel: "email", subject: "Fall is here", preview_text: "Save 20%", from_email: "hi@x.example" } } } } }],
       [/campaign-messages\/M1\/template/, { data: { id: "T1", type: "template", attributes: { html: "<p>{{ first_name }}</p>" } } }],
-      [/\/flows\/F1\?/, { data: { id: "F1", type: "flow", attributes: { definition: { entry_action_id: "a1", triggers: [{ type: "list", id: "L1" }], actions: [{ id: "a1", type: "send-email", links: { next: "a2" }, data: { message: { name: "Welcome", subject_line: "Welcome!", template_id: "T2" } } }, { id: "a2", type: "time-delay", links: {} }] } } } }],
+      [/\/flows\/F1\?/, { data: { id: "F1", type: "flow", attributes: { definition: { entry_action_id: "a1", triggers: [{ type: "list", id: "L1" }], actions: [{ id: "a1", type: "send-email", links: { next: "a2" }, data: { message: { name: "Welcome", subject_line: "Welcome!", template_id: "T2" } } }, { id: "a3", type: "send-mobile-push", links: {}, data: { message: { title: "Hi", body: "Your cart", on_open: "link", ios_link: "fern://cart" } } }, { id: "a2", type: "time-delay", links: {} }] } } } }],
       [/\/flows\?/, { data: [{ id: "F1", type: "flow", attributes: { name: "Welcome flow", status: "live", archived: false } }], links: {} }],
       [/\/templates\/T2/, { data: { id: "T2", type: "template", attributes: { html: "<p>hello</p>" } } }],
     ]);
@@ -64,7 +64,8 @@ describe("klaviyo adapter", () => {
     const f = snap.journeys[0]!;
     expect(f).toMatchObject({ status: "live", entryStepIds: ["a1"], audience: [{ id: "L1", kind: "list", mode: "trigger" }] });
     expect(f.steps[0]!.next).toEqual(["a2"]);
-    expect(snap.messages.find((m) => m.id === "F1:a1")).toMatchObject({ subject: "Welcome!", body: "<p>hello</p>" });
+    expect(snap.messages.find((m) => m.id === "F1:a1")).toMatchObject({ subject: "Welcome!", body: "<p>hello</p>", channel: "email" });
+    expect(snap.messages.find((m) => m.id === "F1:a3")).toMatchObject({ channel: "push", title: "Hi", deepLink: "fern://cart" });
   });
 });
 

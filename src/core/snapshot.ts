@@ -15,10 +15,39 @@ export interface AudienceRef {
   confidence: Confidence;
 }
 
+export type Channel = "email" | "push" | "sms" | "in-app" | "content-card" | "webhook" | "other";
+
+/** Map each platform's channel names (ios_push, send-sms, InApp…) onto one vocabulary. */
+export function normalizeChannel(raw: string | undefined): Channel {
+  const c = (raw ?? "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (c.includes("email")) return "email";
+  if (c.includes("push")) return "push";
+  if (c.includes("sms") || c.includes("mms") || c.includes("text")) return "sms";
+  if (c.includes("inapp")) return "in-app";
+  if (c.includes("contentcard")) return "content-card";
+  if (c.includes("webhook")) return "webhook";
+  return "other";
+}
+
+export interface Button {
+  text: string;
+  link?: string;
+}
+
 export interface Message {
   id: string;
   name: string;
-  channel: string;
+  /** Normalized channel; the platform's own name is kept in `platformChannel`. */
+  channel: Channel | string;
+  platformChannel?: string;
+  /** Push / in-app / content-card title or header. */
+  title?: string;
+  /** Push / in-app / SMS tap-through destination (deep link or URL). */
+  deepLink?: string;
+  imageUrl?: string;
+  buttons?: Button[];
+  /** SMS: true when the platform will append the account's opt-out text to this message. */
+  optOutAppended?: boolean;
   /** The campaign or journey this message belongs to (absent for standalone templates). */
   ownerId?: string;
   subject?: string;

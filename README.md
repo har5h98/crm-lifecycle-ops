@@ -25,12 +25,16 @@ what depends on what before you change it.
 | Setup | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
 | Setup | `/refresh` | Pull the latest campaigns, journeys, segments, templates and content blocks (or load the demo) | 🧪 |
 | QA | `/check-email` | Full QA on one email: HTML, links, unsubscribe, UTMs, personalization for several test profiles, house rules | ✅ |
-| QA | `/check-campaign` | QA a whole campaign or journey: every email (content blocks expanded), settings and structure | 🧪 |
+| QA | `/check-push` | Push QA: lock-screen length for your longest names, deep links, personalization blanks | ✅ |
+| QA | `/check-sms` | SMS QA: billed segments and Unicode traps, opt-out wording, sender name, links | ✅ |
+| QA | `/check-in-app` | In-app QA: length, buttons and their links, HTML structure | ✅ |
+| QA | `/check-campaign` | QA a whole campaign or journey: every message on every channel (content blocks expanded), settings and structure | 🧪 |
 | Impact | `/what-breaks` | "If I change or delete this attribute, segment, block, event or link, what live things are affected?" | 🧪 |
 | Impact | `/what-changed` | What changed in the account since last time, live items first | 🧪 |
 | Plan | `/plan-journey` | Design a journey and check it for overlap with what's already live | 🧪 |
 | Plan | `/show-journey` | Draw a live journey as a diagram, with structural problems flagged | 🧪 |
-| Build | `/build-plan` | Turn a brief into a step-by-step build checklist that reuses existing assets | 🧪 |
+| Build | `/build-plan` | Step-by-step build instructions in your platform\'s own terms, filled in with your house rules and reusable assets | 🧪 |
+| Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
 | Build | `/bulk-edit` | Find-and-replace preview across every subject, body and content block | 🧪 |
 | Launch | `/watch-launch` | Bounce, unsubscribe, spam and delivery rates against stated thresholds | 🧪 |
 | Report | `/ops-report` | Emails checked, problems caught, hours saved | ✅ |
@@ -97,6 +101,10 @@ warn  links.empty-href            "Read more" links to "#"
 What I couldn't check: content block "footer_v2" was not expanded.
 ```
 
+## How it works
+
+A plain-language tour of the architecture, data flow and design decisions: [docs/how-it-works.md](docs/how-it-works.md).
+
 ## What it can't see (yet)
 
 Honesty over false confidence: every result says what it couldn't verify, and every dependency says
@@ -109,8 +117,8 @@ how it's known (*confirmed by the API*, *read from the template*, *read from the
   prose. `/what-breaks` lists those live items as "can't rule out" and can read them from your Braze
   dashboard (via Claude in Chrome, one page at a time, with your OK).
 - **Iterable's API doesn't return journey step order**, so Iterable journeys show their emails but not the path between them.
-- **Only email bodies are QA'd** so far; SMS, push and in-app messages are listed as not checked.
-- **`/bulk-edit` previews only.** Writing changes through the APIs stays off until the adapters are field-tested.
+- **Webhooks and content cards aren't QA'd yet**; they're listed as not checked.
+- **It never builds or edits in your account.** `/build-plan` and `/edit-plan` tell you exactly how; `/bulk-edit` previews only.
 
 ## Safety
 

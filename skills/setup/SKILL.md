@@ -9,7 +9,7 @@ Goal: a rulebook that makes every check judge emails the way *this* team does. S
 for everyone (no unsubscribe, broken template syntax). Those are locked and need no setup. Everything
 else depends on the team, so ask.
 
-Keep it light: **4 short rounds, at most 4 questions each**, each with a sensible default the person can
+Keep it light: **4–5 short rounds, at most 4 questions each**, each with a sensible default the person can
 accept. Use the AskUserQuestion tool when available. Skip anything they've already told you.
 Start with `get_house_rules` and, if a rulebook exists, offer to review it instead of starting over.
 
@@ -37,6 +37,14 @@ If they have no example handy, ask these as direct questions instead.
 2. Words or phrases never to use (e.g. "act now", "guaranteed").
 3. Subject line: max length (default 60) · emoji allowed / warn / block · max exclamation marks.
 4. Tone in three words (used only for the advisory copy review).
+
+## Round 3b: channels (ask only about the channels they use)
+1. Which channels? Email · push · SMS · in-app.
+2. **Push**: the app's deep-link format (e.g. `fernbrook://` or `https://brand.example/app/`), whether every
+   push must have one, and length limits (defaults: title 40, body 120).
+3. **SMS**: max billed segments (default 2); does the platform append "Reply STOP" automatically, or must
+   it be in the copy (default: in the copy); must every text start with the brand name (default yes).
+4. **In-app**: max body length (default 150); must every message have a button.
 
 ## Round 4: personalization and strictness
 1. The attributes they personalize with most (e.g. first_name, loyalty_tier, city). Build 3–4 **synthetic**

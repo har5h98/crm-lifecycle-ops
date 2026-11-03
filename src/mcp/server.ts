@@ -9,6 +9,7 @@ import { z } from "zod";
 import { configuredPlatforms, ENV_VARS, getAdapter, workspaceFor } from "../adapters/index.js";
 import { checkCampaign, findItem } from "../checks/campaign.js";
 import { CHECKS } from "../checks/catalog.js";
+import { checkChannelMessage } from "../checks/channels.js";
 import { checkEmail } from "../checks/email.js";
 import { learnFromEmail } from "../checks/house.js";
 import { findOverlaps, whatBreaks } from "../core/graph.js";
@@ -19,6 +20,8 @@ import { bulkEditPreview, opsReport } from "../core/ops.js";
 import { loadRules, LOCKED_CHECKS, saveRules } from "../core/rules.js";
 import { diffSnapshots, homeDir, isActive, loadLatest, saveSnapshot, type Snapshot } from "../core/snapshot.js";
 import { demoSnapshot } from "../demo/fernbrook.js";
+import { howTo } from "../guides/howto.js";
+import { TASKS, type TaskId } from "../guides/types.js";
 
 // Read the version from the plugin manifest at runtime, so a release bump never changes dist/.
 function pluginVersion(): string {
@@ -103,10 +106,41 @@ tool(
 );
 
 tool(
+  "check_message",
+  {
+    title: "Check a push, SMS or in-app message",
+    description:
+      "QA one push notification, SMS/MMS or in-app message using the team's house rules: renders personalization for several synthetic personas, " +
+      "then checks length against lock-screen / segment / in-app limits, SMS encoding and billed segments, opt-out wording and sender name, " +
+      "deep links and other links (non-production hosts, malformed URIs), buttons, brand terms and spelling. Read-only; sends nothing.",
+    inputSchema: {
+      channel: z.enum(["push", "sms", "in-app"]),
+      platform: platformArg.describe("Which platform's template language the message uses."),
+      body: z.string().describe("Push body/alert, SMS text, or in-app message body (text or HTML)."),
+      title: z.string().optional().describe("Push title or in-app header."),
+      deep_link: z.string().optional().describe("Tap-through destination: deep link or URL."),
+      image_url: z.string().optional(),
+      buttons: z.array(z.object({ text: z.string(), link: z.string().optional() })).optional().describe("In-app buttons."),
+      name: z.string().optional(),
+      personas: z.array(persona).optional(),
+    },
+  },
+  async (args) => {
+    const { rules, exists } = await loadRules();
+    const report = await checkChannelMessage(
+      { channel: args.channel, platform: args.platform, name: args.name, title: args.title, body: args.body, deepLink: args.deep_link, imageUrl: args.image_url, buttons: args.buttons, personas: args.personas },
+      rules,
+    );
+    await logRun({ tool: "check_message", channel: args.channel, platform: args.platform, summary: report.summary, checkIds: report.findings.map((f) => f.checkId) });
+    return json({ ...report, houseRules: exists ? "applied" : "none yet: run /setup to teach it your team's conventions" });
+  },
+);
+
+tool(
   "check_campaign",
   {
     title: "Check a campaign or journey",
-    description: "QA every email in a campaign or journey (Canvas/flow) from the latest snapshot, expanding content blocks, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
+    description: "QA every message in a campaign or journey (Canvas/flow): emails with content blocks expanded, push, SMS and in-app, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
     inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
   },
   async ({ platform, workspace, name_or_id }) => {
@@ -396,6 +430,35 @@ tool(
     } catch (e) {
       return fail((e as Error).message);
     }
+  },
+);
+
+tool(
+  "how_to",
+  {
+    title: "Platform-specific build or edit instructions",
+    description:
+      "Step-by-step instructions for a build or edit task in Braze, Klaviyo or Iterable, in that platform's own terms, from a procedure " +
+      "library verified against the vendors' docs (with links). Filled in with the team's house rules (naming, sender, UTMs, fallback " +
+      "syntax, footer, channel limits) and, when a snapshot exists, the account: segments and blocks to reuse, whether the target is live, " +
+      "and shared content that would change other live programs. The plugin never edits the account; a person follows the steps. " +
+      `Tasks: ${Object.entries(TASKS).map(([k, v]) => `${k} (${v})`).join("; ")}.`,
+    inputSchema: {
+      platform: platformArg,
+      task: z.enum(Object.keys(TASKS) as [TaskId, ...TaskId[]]),
+      workspace: workspaceArg,
+      target: z.string().optional().describe("Existing campaign or journey being changed (edit tasks)."),
+      channels: z.array(z.enum(["email", "push", "sms", "in-app"])).optional(),
+      audience: z.string().optional().describe("Who it's for, in plain words, to find segments to reuse."),
+      attributes: z.array(z.string()).optional().describe("Personalization attributes the copy will use."),
+    },
+  },
+  async ({ platform, task, workspace, target, channels, audience, attributes }) => {
+    const { rules } = await loadRules();
+    const ws = resolveWorkspace(platform, workspace);
+    const { latest: snap } = await loadLatest(platform, ws);
+    await logRun({ tool: "how_to", platform, task });
+    return json(howTo(platform, task, rules, snap, { target, channels, audience, attributes }));
   },
 );
 

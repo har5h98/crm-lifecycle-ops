@@ -21,12 +21,16 @@ accounts; keep this list in sync with the README):
 | Setup | `/connect` | Connect Braze, Klaviyo or Iterable with a read-only key | 🧪 |
 | Setup | `/refresh` | Pull the latest campaigns, journeys, segments and templates (or load the demo) | 🧪 |
 | QA | `/check-email` | Full QA on one email | ✅ |
-| QA | `/check-campaign` | QA a whole campaign or journey: every email plus settings and structure | 🧪 |
+| QA | `/check-push` | Push QA: lock-screen length for your longest names, deep links, personalization blanks | ✅ |
+| QA | `/check-sms` | SMS QA: billed segments and Unicode traps, opt-out wording, sender name, links | ✅ |
+| QA | `/check-in-app` | In-app QA: length, buttons and their links, HTML structure | ✅ |
+| QA | `/check-campaign` | QA a whole campaign or journey: every message on every channel plus settings and structure | 🧪 |
 | Impact | `/what-breaks` | "If I change or delete this, what live things are affected?" | 🧪 |
 | Impact | `/what-changed` | What changed in the account since last time | 🧪 |
 | Plan | `/plan-journey` | Design a journey and check it against what's live | 🧪 |
 | Plan | `/show-journey` | Draw a live journey as a diagram | 🧪 |
-| Build | `/build-plan` | Brief → step-by-step build checklist | 🧪 |
+| Build | `/build-plan` | Step-by-step build instructions in your platform\'s own terms, filled in with your house rules and reusable assets | 🧪 |
+| Build | `/edit-plan` | How to safely change something that exists (live copy, running journeys, shared blocks, audiences), and what else it affects | 🧪 |
 | Build | `/bulk-edit` | Find-and-replace preview across every email | 🧪 |
 | Launch | `/watch-launch` | Health check after a send | 🧪 |
 | Report | `/ops-report` | What the checks caught and time saved | ✅ |

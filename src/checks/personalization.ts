@@ -123,7 +123,7 @@ function textOf(html: string): string {
 // Patterns that appear when data is missing. We only report them when a persona produces MORE
 // of them than the complete profile does, so copy that legitimately contains them isn't flagged.
 const ARTIFACTS: { id: string; pattern: RegExp; message: string }[] = [
-  { id: "personalization.dangling-punctuation", pattern: /\w[ \t]+[,!?.;:](?=\s|$)/g, message: "a blank where a value should be (e.g. \"Hi ,\")" },
+  { id: "personalization.dangling-punctuation", pattern: /^[ \t]*[,!?.;:](?=\s)|\w[ \t]+[,!?.;:](?=\s|$)/gm, message: "a blank where a value should be (e.g. \"Hi ,\")" },
   { id: "personalization.literal-null", pattern: /\b(undefined|null|nil|NaN)\b|\[object Object\]/g, message: "a literal undefined/null/nil in the copy" },
 ];
 
@@ -154,6 +154,20 @@ export async function checkPersonalization(
     });
   }
   if (platform === "klaviyo") notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
+
+  if (platform === "iterable") {
+    // In Iterable, eq/ifEq/lt/gt on an empty or missing field fails the template, and the message
+    // isn't sent to that person at all. Fields wrapped in defaultIfEmpty are safe.
+    for (const m of source.matchAll(/\{\{#?(eq|ifEq|ifNotEq|lt|gt|lte|gte)\s+([A-Za-z_][\w.]*)/g)) {
+      findings.push({
+        checkId: "personalization.iterable-empty-comparison",
+        severity: "warn",
+        message: `"${m[0]}}}" compares ${m[2]} directly; if it's empty for someone, Iterable fails the template and skips the send for them.`,
+        evidence: m[0],
+        fix: `Wrap the field: {{#${m[1]} (defaultIfEmpty ${m[2]} "") …}}.`,
+      });
+    }
+  }
 
   let render: (ctx: Record<string, unknown>) => Promise<string>;
   try {

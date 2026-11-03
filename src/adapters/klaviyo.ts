@@ -1,4 +1,4 @@
-import type { AudienceRef, JourneyStep, Message, Snapshot, Status } from "../core/snapshot.js";
+import { normalizeChannel, type AudienceRef, type JourneyStep, type Snapshot, type Status } from "../core/snapshot.js";
 import { arr, getJson, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
 
@@ -137,23 +137,33 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
               /* subject line stays unknown */
             }
           }
-          const content = obj(details.content);
+          // Each campaign message targets one channel; its variation's `details` is keyed by channel.
+          const channel = normalizeChannel(str(details.channel) ?? "email");
+          const tid = str(details.template_id);
           snap.messages.push({
             id: mid,
             name: str(mdef.name) ?? str(def.name) ?? mid,
-            channel: str(details.channel) ?? "email",
+            channel,
+            platformChannel: str(details.channel),
             ownerId: c.id,
-            subject: str(details.subject) ?? str(content.subject),
-            preheader: str(details.preview_text) ?? str(content.preview_text),
-            from: str(details.from_email) ?? str(content.from_email),
-            body: await templateHtml(`/campaign-messages/${mid}/template`),
+            subject: str(details.subject),
+            preheader: str(details.preview_text),
+            from: str(details.from_email),
+            title: str(details.title),
+            deepLink: str(details.ios_deep_link) ?? str(details.android_deep_link) ?? str(details.web_url),
+            buttons: arr(details.action_buttons).map((b) => ({ text: str(obj(b).label) ?? "", link: str(obj(b).url) ?? str(obj(b).ios_deep_link) })),
+            optOutAppended: channel === "sms" ? details.add_opt_out_language === true : undefined,
+            body:
+              channel === "email"
+                ? (tid ? await templateHtml(`/templates/${tid}`) : "") || (await templateHtml(`/campaign-messages/${mid}/template`))
+                : (str(details.body) ?? ""),
           });
         }
         snap.campaigns.push({
           id: c.id,
           name: str(def.name) ?? c.id,
           status: campaignStatus(def.archived === true, statuses),
-          channels: ["email"],
+          channels: [...new Set(snap.messages.filter((m) => m.ownerId === c.id).map((m) => String(m.channel)))],
           messageIds,
           audience: resolve(audience),
           conversionEvents: str(obj(def.send_settings).exit_condition_conversion_metric_id) ? [str(obj(def.send_settings).exit_condition_conversion_metric_id)!] : undefined,
@@ -177,16 +187,24 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
             if (Object.keys(message).length > 0) {
               const mid = `${f.id}:${id}`;
               const tid = str(message.template_id);
+              // Action types: send-email, send-sms, send-mobile-push… Flow fields differ from campaign ones
+              // (subject_line, ios_link/android_link/on_open).
+              const channel = normalizeChannel(str(a.type));
               messageIds.push(mid);
               snap.messages.push({
                 id: mid,
                 name: str(message.name) ?? `${str(f.attributes.name)} · ${str(a.type)}`,
-                channel: str(a.type)?.replace(/^send-/, "") ?? "email",
+                channel,
+                platformChannel: str(a.type),
                 ownerId: f.id,
-                subject: str(message.subject_line) ?? str(message.subject),
+                subject: str(message.subject_line),
                 preheader: str(message.preview_text),
                 from: str(message.from_email),
-                body: tid ? await templateHtml(`/templates/${tid}`) : "",
+                title: str(message.title),
+                deepLink: str(message.on_open) === "home" ? undefined : (str(message.ios_link) ?? str(message.android_link) ?? str(message.web_url)),
+                buttons: arr(message.action_buttons).map((b) => ({ text: str(obj(b).label) ?? "", link: str(obj(b).url) })),
+                optOutAppended: channel === "sms" ? message.add_opt_out_language === true : undefined,
+                body: channel === "email" ? (tid ? await templateHtml(`/templates/${tid}`) : "") : (str(message.body) ?? ""),
               });
             }
             steps.push({ id, name: str(message.name) ?? str(a.type) ?? id, type: str(a.type) ?? "action", messageIds, next });

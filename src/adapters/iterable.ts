@@ -1,4 +1,4 @@
-import type { Snapshot, Status } from "../core/snapshot.js";
+import { normalizeChannel, type Snapshot, type Status } from "../core/snapshot.js";
 import { arr, getJson, getText, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
 
@@ -57,7 +57,14 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         snap.segments.push({ id: str(l.id) ?? "", name: str(l.name) ?? "", kind: "list", description: str(l.listType) });
       }
 
-      const campaigns = arr((await get("/campaigns")).campaigns).map(obj);
+      // Paginate: the unpaginated form of GET /campaigns is deprecated (pageSize max 1000).
+      const campaigns: Record<string, unknown>[] = [];
+      for (let page = 1; page < 200; page++) {
+        const res = await get(`/campaigns?page=${page}&pageSize=1000&sort=-updatedAt`);
+        const batch = arr(res.campaigns).map(obj);
+        campaigns.push(...batch);
+        if (batch.length < 1000 || !str(res.nextPageUrl)) break;
+      }
       await mapLimit(campaigns, 5, async (c) => {
         const id = str(c.id)!;
         const templateId = str(c.templateId);
@@ -68,32 +75,44 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
           const prev = prevMessages.get(messageId);
           if (prev && prevCampaigns.get(id)?.updatedAt === updatedAt) {
             snap.messages.push(prev);
-          } else if (medium === "email") {
-            try {
-              const t = await get(`/templates/email/get?templateId=${encodeURIComponent(templateId!)}`);
-              const tpl = obj(t.template ?? t);
-              snap.messages.push({
-                id: messageId,
-                name: str(tpl.name) ?? str(c.name) ?? messageId,
-                channel: "email",
-                ownerId: id,
-                subject: str(tpl.subject),
-                preheader: str(tpl.preheaderText),
-                from: str(tpl.fromEmail),
-                body: str(tpl.html) ?? "",
-              });
-            } catch (e) {
-              gaps.push(`Template for "${str(c.name)}" could not be read: ${(e as Error).message}`);
-            }
           } else {
-            snap.messages.push({ id: messageId, name: str(c.name) ?? messageId, channel: medium, ownerId: id, body: "" });
+            const kind = normalizeChannel(medium);
+            const path = { email: "email", push: "push", sms: "sms", "in-app": "inapp" }[kind as string];
+            if (!path) {
+              snap.messages.push({ id: messageId, name: str(c.name) ?? messageId, channel: kind, platformChannel: medium, ownerId: id, body: "" });
+              gaps.push(`"${str(c.name)}" is a ${medium} campaign; its content can't be read through Iterable's API.`);
+            } else {
+              try {
+                const tpl = obj(await get(`/templates/${path}/get?templateId=${encodeURIComponent(templateId!)}`));
+                // Push: Studio templates keep the tap destination in defaultAction; the legacy deeplink may be empty.
+                const action = obj(tpl.defaultAction);
+                const legacy = obj(tpl.deeplink);
+                snap.messages.push({
+                  id: messageId,
+                  name: str(tpl.name) ?? str(c.name) ?? messageId,
+                  channel: kind,
+                  platformChannel: medium,
+                  ownerId: id,
+                  subject: str(tpl.subject),
+                  preheader: str(tpl.preheaderText),
+                  from: str(tpl.fromEmail),
+                  title: str(tpl.title) ?? str(obj(tpl.inboxMetadata).title),
+                  deepLink: str(action.data) ?? str(legacy.ios) ?? str(legacy.android),
+                  imageUrl: str(tpl.imageUrl),
+                  buttons: arr(tpl.buttons).map((b) => ({ text: str(obj(b).title) ?? "", link: str(obj(obj(b).action).data) })),
+                  body: str(tpl.html) ?? str(tpl.message) ?? "",
+                });
+              } catch (e) {
+                gaps.push(`Template for "${str(c.name)}" could not be read: ${(e as Error).message}`);
+              }
+            }
           }
         }
         snap.campaigns.push({
           id,
           name: str(c.name) ?? id,
           status: campaignStatus(str(c.campaignState)),
-          channels: [medium],
+          channels: [normalizeChannel(medium)],
           messageIds: messageId ? [messageId] : [],
           audience: [
             ...arr(c.listIds).map((x) => ({ id: String(x), kind: "list" as const, mode: "include" as const, confidence: "api-verified" as const })),
@@ -104,17 +123,21 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         });
       });
 
-      let journeys: Record<string, unknown>[] = [];
+      const journeys: Record<string, unknown>[] = [];
       try {
-        const res = await get("/journeys");
-        journeys = arr(res.journeys ?? res.workflows ?? obj(res.data).journeys).map(obj);
+        for (let page = 1; page < 200; page++) {
+          const res = await get(`/journeys?page=${page}&pageSize=50`);
+          const batch = arr(res.journeys).map(obj);
+          journeys.push(...batch);
+          if (batch.length < 50 || !str(res.nextPageUrl)) break;
+        }
       } catch (e) {
         gaps.push(`Journeys could not be listed: ${(e as Error).message}`);
       }
       for (const j of journeys) {
         const id = str(j.id) ?? "";
         const attached = snap.campaigns.filter((c) => c.tags?.includes(`journey:${id}`));
-        const enabled = j.enabled ?? j.isEnabled ?? j.isPublished;
+        const enabled = j.enabled;
         snap.journeys.push({
           id,
           name: str(j.name) ?? id,
@@ -122,7 +145,8 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
           entryStepIds: [],
           steps: attached.map((c) => ({ id: c.id, name: c.name, type: "message (order unknown)", messageIds: c.messageIds, next: [] })),
           stepsKnown: false,
-          audience: [],
+          audience: arr(j.triggerEventNames).map((e) => ({ id: String(e), kind: "event" as const, mode: "trigger" as const, confidence: "api-verified" as const })),
+          tags: obj(j.draft).id ? ["has an unpublished draft"] : [],
           updatedAt: str(j.updatedAt),
         });
       }

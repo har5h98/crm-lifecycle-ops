@@ -39,7 +39,7 @@ export function extractLinks(html: string): Link[] {
   return links;
 }
 
-function isNonProdHost(host: string): boolean {
+export function isNonProdHost(host: string): boolean {
   if (host === "127.0.0.1" || host === "[::1]" || host.endsWith(".local") || host.endsWith(".test")) return true;
   if (PLACEHOLDER_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return true;
   return host.split(".").some((label) => NON_PROD_LABEL.test(label));

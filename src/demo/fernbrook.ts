@@ -31,6 +31,9 @@ export function demoSnapshot(): Snapshot {
       { id: "c_deals", name: "Weekend Deals Blast", status: "live", channels: ["email"], messageIds: ["m_deals"], audience: unknown, conversionEvents: ["Order Placed"], tags: ["promo"] },
       { id: "c_drop", name: "Price Drop Alert", status: "live", channels: ["email"], messageIds: ["m_drop"], audience: unknown, conversionEvents: [] },
       { id: "c_recipes", name: "Holiday Recipes", status: "draft", channels: ["email"], messageIds: ["m_recipes"], audience: unknown },
+      { id: "c_lunch", name: "Lunch Rush Push", status: "live", channels: ["push"], messageIds: ["m_lunch_push"], audience: unknown, conversionEvents: ["Order Placed"] },
+      { id: "c_flash", name: "Flash Sale Text", status: "scheduled", channels: ["sms"], messageIds: ["m_flash_sms"], audience: unknown, conversionEvents: ["Order Placed"] },
+      { id: "c_app", name: "New App Features", status: "live", channels: ["in-app"], messageIds: ["m_app_iam"], audience: unknown, conversionEvents: [] },
     ],
     journeys: [
       {
@@ -66,6 +69,34 @@ export function demoSnapshot(): Snapshot {
       },
     ],
     messages: [
+      {
+        id: "m_lunch_push",
+        name: "Lunch Rush",
+        channel: "push",
+        platformChannel: "ios_push",
+        ownerId: "c_lunch",
+        title: "{{${first_name}}}, lunch is on us: free delivery until 2pm today only",
+        body: "Order by 2pm for free delivery on everything in the deli and hot food counters.",
+        deepLink: "https://staging.fernbrook.example/deli",
+      },
+      {
+        id: "m_flash_sms",
+        name: "Flash Sale",
+        channel: "sms",
+        platformChannel: "sms",
+        ownerId: "c_flash",
+        body: "Hi {{${first_name} | default: 'there'}}! Today’s flash sale: 30% off berries & stone fruit — ends at midnight. Shop now: https://www.fernbrook.example/flash",
+      },
+      {
+        id: "m_app_iam",
+        name: "New App Features",
+        channel: "in-app",
+        platformChannel: "in_app_message",
+        ownerId: "c_app",
+        title: "Reorder in one tap",
+        body: "Your past orders now live on the home screen.",
+        buttons: [{ text: "Try it", link: "fernbrook://orders" }, { text: "", link: "fernbrook://home" }],
+      },
       {
         id: "m_deals",
         name: "Weekend Deals",

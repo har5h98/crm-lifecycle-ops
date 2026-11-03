@@ -2,6 +2,7 @@ import { checkJourneyStructure } from "../core/journey.js";
 import { summarize, type Finding } from "../core/model.js";
 import { DEFAULT_RULES, applyRules, type Rulebook } from "../core/rules.js";
 import type { Campaign, Journey, Snapshot } from "../core/snapshot.js";
+import { checkChannelMessage } from "./channels.js";
 import { checkEmail } from "./email.js";
 import { checkCampaignName } from "./house.js";
 
@@ -47,8 +48,17 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
   for (const id of messageIds) {
     const m = snap.messages.find((x) => x.id === id);
     if (!m) continue;
+    if (m.channel === "push" || m.channel === "sms" || m.channel === "in-app") {
+      const r = await checkChannelMessage(
+        { channel: m.channel, platform: snap.platform, platformChannel: m.platformChannel, optOutAppended: m.optOutAppended, name: `${m.name} (${m.channel})`, title: m.title, body: m.body, deepLink: m.deepLink, imageUrl: m.imageUrl, buttons: m.buttons },
+        rules,
+      );
+      messages.push(r);
+      notVerified.push(...r.notVerified);
+      continue;
+    }
     if (m.channel !== "email" || !m.body) {
-      notVerified.push(`"${m.name}" (${m.channel}) wasn't QA'd: only email bodies are checked so far.`);
+      notVerified.push(`"${m.name}" (${m.platformChannel ?? m.channel}) wasn't QA'd: ${m.channel === "webhook" ? "webhooks" : "this channel"} isn't checked yet.`);
       continue;
     }
     // Expand Braze content blocks we have, so footers and shared modules are checked too.
@@ -66,7 +76,7 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
     name: item.name,
     status: item.status,
     settings: applied.findings,
-    messages: messages.map((m) => ({ name: m.target, summary: m.summary, findings: m.findings, waived: m.waived })),
+    messages: messages.map((m) => ({ name: m.target, summary: m.summary, findings: m.findings, waived: m.waived, stats: "stats" in m ? m.stats : undefined })),
     notVerified: [...new Set(notVerified)],
     summary: summarize(all),
     snapshotTakenAt: snap.takenAt,

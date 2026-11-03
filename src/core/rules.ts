@@ -75,6 +75,32 @@ export const RulebookSchema = z.object({
       maxExclamationsInSubject: z.number().int().min(0).optional(),
     })
     .default({ subjectMaxLength: 60, emojiInSubject: "allowed" }),
+  push: z
+    .object({
+      /** Characters before titles/bodies risk truncation on common lock screens (see channels.ts). */
+      titleMax: z.number().int().positive().default(40),
+      bodyMax: z.number().int().positive().default(120),
+      /** The app's deep-link prefixes, e.g. "fernbrook://" or "https://www.fernbrook.example/app/". */
+      deepLinkPrefixes: z.array(z.string()).default([]),
+      requireDeepLink: z.boolean().default(false),
+    })
+    .default({ titleMax: 40, bodyMax: 120, deepLinkPrefixes: [], requireDeepLink: false }),
+  sms: z
+    .object({
+      /** Most teams cap marketing texts at 1–2 segments; each extra segment is billed. */
+      maxSegments: z.number().int().positive().default(2),
+      /** Require opt-out wording ("Reply STOP to opt out") in the message itself. */
+      requireOptOut: z.boolean().default(true),
+      /** Require the brand name so recipients know who's texting. */
+      requireBrandName: z.boolean().default(true),
+    })
+    .default({ maxSegments: 2, requireOptOut: true, requireBrandName: true }),
+  inApp: z
+    .object({
+      bodyMax: z.number().int().positive().default(150),
+      requireButton: z.boolean().default(false),
+    })
+    .default({ bodyMax: 150, requireButton: false }),
   naming: z.object({ campaignPattern: z.string().optional(), example: z.string().optional() }).default({}),
   /** Per-check severity overrides. Locked checks ignore these. */
   severity: z.record(z.string(), z.enum(["fail", "warn", "info", "off"])).default({}),

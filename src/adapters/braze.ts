@@ -1,4 +1,4 @@
-import type { Snapshot, Status, Message, JourneyStep } from "../core/snapshot.js";
+import { normalizeChannel, type Snapshot, type Status, type Message, type JourneyStep } from "../core/snapshot.js";
 import { arr, getJson, mapLimit, obj, str } from "./http.js";
 import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from "./types.js";
 
@@ -16,20 +16,29 @@ function status(d: Record<string, unknown>): Status {
   return "stopped";
 }
 
+// Braze's docs show two shapes: campaign details use `alert` (push body) and `message` (in-app body);
+// the Canvas example uses `body` and `header`. Accept both. Push tap-through is `action`.
 function mapMessages(raw: unknown, ownerId: string, prefix: string): Message[] {
-  return Object.entries(obj(raw)).map(([variationId, m]) => {
-    const msg = obj(m);
-    return {
-      id: variationId,
-      name: str(msg.name) ?? `${prefix} (${str(msg.channel) ?? "message"})`,
-      channel: str(msg.channel) ?? "unknown",
-      ownerId,
-      subject: str(msg.subject),
-      preheader: str(msg.preheader),
-      from: str(msg.from),
-      body: str(msg.body) ?? str(msg.message) ?? str(msg.alert) ?? "",
-    };
-  });
+  return Object.entries(obj(raw))
+    .filter(([, m]) => str(obj(m).type) !== "control")
+    .map(([variationId, m]) => {
+      const msg = obj(m);
+      const platformChannel = str(msg.channel) ?? "unknown";
+      return {
+        id: variationId,
+        name: str(msg.name) ?? `${prefix} (${platformChannel})`,
+        channel: normalizeChannel(platformChannel),
+        platformChannel,
+        ownerId,
+        subject: str(msg.subject),
+        preheader: str(msg.preheader),
+        from: str(msg.from),
+        title: str(msg.title) ?? str(msg.header),
+        deepLink: str(msg.action) ?? str(msg.uri),
+        imageUrl: str(msg.image_url),
+        body: str(msg.body) ?? str(msg.alert) ?? str(msg.message) ?? "",
+      };
+    });
 }
 
 // Most list endpoints page with ?page=N (100 per page); content blocks use ?limit=&offset= instead.
@@ -100,7 +109,7 @@ export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
             id,
             name: str(d.name) ?? str(c.name) ?? id,
             status: status(d),
-            channels: arr(d.channels).map(String),
+            channels: arr(d.channels).map((c) => normalizeChannel(String(c))),
             messageIds: messages.map((m) => m.id),
             audience: [{ id: "?", kind: "unknown", mode: "include", confidence: "unknown" }],
             conversionEvents: arr(d.conversion_behaviors).map((b) => str(obj(b).custom_event_name) ?? str(obj(b).type) ?? "conversion"),

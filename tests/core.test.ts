@@ -109,7 +109,7 @@ describe("diff and bulk edit", () => {
     const a = demoSnapshot();
     const b = demoSnapshot();
     b.campaigns[2]!.status = "live";
-    b.messages[0]!.subject = "New subject";
+    b.messages.find((m) => m.id === "m_deals")!.subject = "New subject";
     b.campaigns.splice(1, 1);
     const changes = diffSnapshots(a, b);
     expect(changes).toEqual(
