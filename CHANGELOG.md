@@ -3,6 +3,14 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.4.0...v0.5.0) (2026-11-03)
+
+
+### Features
+
+* new plugin icon (lifecycle loop with check) ([933f22d](https://github.com/har5h98/crm-lifecycle-ops/commit/933f22d4a1eec79adea81cd506feabb9a94e8dc6))
+* plugin icon; read API keys only from plugin settings ([4713fbb](https://github.com/har5h98/crm-lifecycle-ops/commit/4713fbb46b5234b181316c6734e08ae424187a61))
+
 ## [0.4.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.3.0...v0.4.0) (2026-11-03)
 
 
