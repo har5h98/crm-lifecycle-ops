@@ -1,7 +1,7 @@
 {
   "name": "crm-lifecycle-ops",
   "displayName": "CRM Lifecycle Ops",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable: plan, build, check and change campaigns faster without breaking what's live.",
   "author": {
     "name": "Harsh Singhal",

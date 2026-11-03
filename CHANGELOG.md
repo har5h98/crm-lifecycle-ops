@@ -3,6 +3,25 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.1](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.0...v0.5.1) (2026-11-03)
+
+
+### Features
+
+* 'Shared rules file' setting; docs match what the engine does ([730a857](https://github.com/har5h98/crm-lifecycle-ops/commit/730a8577ede343d30924e69cb7c20f45e7a3c979))
+* annotate every MCP tool; typos never read as 'safe to change' ([92099ba](https://github.com/har5h98/crm-lifecycle-ops/commit/92099bac265ec9f1cbf9612dc1dd5859f1682bc7))
+
+
+### Bug Fixes
+
+* fewer false alarms on unsubscribe routes and personalized push titles ([3fd8fd2](https://github.com/har5h98/crm-lifecycle-ops/commit/3fd8fd26b3ea09fa5dc95aa1c674a73aa29a1c6d))
+* first-run guidance for Klaviyo and Iterable; start-here matches the README ([32fe968](https://github.com/har5h98/crm-lifecycle-ops/commit/32fe9687140a25d17cc7f081f3eaddf443cf8a83))
+
+
+### Miscellaneous Chores
+
+* release 0.5.1 ([07cfa9e](https://github.com/har5h98/crm-lifecycle-ops/commit/07cfa9e81a971aa86f56b518dcfc90b332cb5c63))
+
 ## [0.5.0](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.4.0...v0.5.0) (2026-11-03)
 
 
