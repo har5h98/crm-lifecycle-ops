@@ -21,12 +21,12 @@
       "license": "MIT",
       "category": "marketing",
       "tags": [
+        "lifecycle-marketing",
+        "crm",
+        "marketing-operations",
         "braze",
         "klaviyo",
-        "iterable",
-        "email-qa",
-        "crm",
-        "lifecycle-marketing"
+        "iterable"
       ]
     }
   ]

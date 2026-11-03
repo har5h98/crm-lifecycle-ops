@@ -11,14 +11,17 @@
   "repository": "https://github.com/har5h98/crm-lifecycle-ops",
   "license": "MIT",
   "keywords": [
+    "lifecycle-marketing",
+    "crm",
+    "marketing-operations",
     "braze",
     "klaviyo",
     "iterable",
-    "email-qa",
-    "crm",
-    "lifecycle-marketing",
-    "marketing-operations",
-    "liquid",
+    "campaign-qa",
+    "email",
+    "sms",
+    "push-notifications",
+    "journeys",
     "mcp"
   ],
   "mcpServers": {
@@ -105,5 +108,7 @@
       "required": false
     }
   },
-  "privacyPolicyUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/PRIVACY.md"
+  "privacyPolicyUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/PRIVACY.md",
+  "documentationUrl": "https://github.com/har5h98/crm-lifecycle-ops/blob/main/docs/how-it-works.md",
+  "supportUrl": "https://github.com/har5h98/crm-lifecycle-ops/issues"
 }
