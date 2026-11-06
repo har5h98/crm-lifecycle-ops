@@ -147,7 +147,9 @@ export function previewText(html: string): PreviewText {
 export function checkPreheader(html: string, opts: { subject?: string; preheader?: string }): Finding[] {
   const findings: Finding[] = [];
   const p = previewText(html);
-  const shown = squash(opts.preheader ?? p.hidden ?? p.firstVisible);
+  // Quote what a reader sees: template tags become [name] (or […]) instead of raw {{ … }}.
+  const readable = (s: string) => s.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) => (/name/i.test(tag) ? "[name]" : "[…]"));
+  const shown = squash(readable(opts.preheader ?? p.hidden ?? p.firstVisible));
   if (!shown) return findings;
   const source =
     opts.preheader !== undefined ? "The preheader" : p.hidden ? "The hidden preheader" : "With no preheader, the inbox preview";

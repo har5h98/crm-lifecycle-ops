@@ -41,3 +41,9 @@ describe("preheader", () => {
     expect(checkPreheader("<p>x</p>", { subject: "Summer sale is here", preheader: "25% off everything, ends Sunday" })).toEqual([]);
   });
 });
+
+it("quotes the inbox preview as readers see it, not as template code", () => {
+  const [f] = checkPreheader('<p>View this email in your browser</p><h1>Picks, {{defaultIfEmpty firstName "friend"}}</h1>', {});
+  expect(f?.message).toContain("[name]");
+  expect(f?.message).not.toContain("{{");
+});
