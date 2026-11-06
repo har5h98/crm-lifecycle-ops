@@ -1,5 +1,6 @@
 import { summarize, type CheckReport, type Finding, type Persona, type Platform } from "../core/model.js";
 import { applyRules, DEFAULT_RULES, type Rulebook } from "../core/rules.js";
+import { checkAccessibility, checkPreheader } from "./a11y.js";
 import { checkHouseRules } from "./house.js";
 import { checkHtml } from "./html.js";
 import { checkLinks, checkLinksLive } from "./links.js";
@@ -67,6 +68,8 @@ export async function checkEmail(
       .sort((a, b) => b.length - a.length)[0];
   }
   findings.push(...checkSubject(input.subject, input.preheader));
+  findings.push(...checkAccessibility(input.html));
+  findings.push(...checkPreheader(input.html, { subject: subjectSeen ?? input.subject, preheader: input.preheader }));
   findings.push(...checkHouseRules({ html: input.html, subject: input.subject, subjectSeen, from: input.from }, rules));
 
   if (input.checkLinksLive) {
