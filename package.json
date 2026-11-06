@@ -1,6 +1,6 @@
 {
   "name": "crm-lifecycle-ops",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable: plan, build, check and change campaigns faster without breaking what's live.",
   "keywords": [
     "braze",
