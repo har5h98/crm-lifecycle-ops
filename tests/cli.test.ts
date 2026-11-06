@@ -41,3 +41,15 @@ describe("crm-lifecycle-ops check", () => {
     expect(detectPlatform('Hi {{defaultIfEmpty firstName "there"}}')).toBe("iterable");
   });
 });
+
+it("--demo checks the bundled sample emails and finds their planted problems", async () => {
+  const r = await run("--demo", "--json");
+  const files = JSON.parse(r.out).files as { file: string; findings: { checkId: string }[] }[];
+  const by = (name: string) => files.find((f) => f.file.endsWith(name))!.findings.map((f) => f.checkId);
+  expect(files).toHaveLength(4);
+  expect(by("order-shipped.html").filter((id) => !id.startsWith("html.no-preheader"))).toEqual([]);
+  expect(by("price-drop-alert.html")).toContain("links.non-production-host");
+  expect(by("welcome.html")).toContain("personalization.dangling-punctuation");
+  expect(by("weekly-picks.html")).toEqual(expect.arrayContaining(["copy.preheader-boilerplate", "a11y.vague-link-text"]));
+  expect(r.code).toBe(1);
+});

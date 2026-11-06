@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<body style="margin:0;background:#f6f4ef">
+<div style="display:none;max-height:0;overflow:hidden">Prices just dropped on 3 items in your cart.</div>
+<table role="presentation" width="100%"><tr><td style="font-family:Arial,sans-serif;font-size:16px;padding:24px">
+  <h1 style="font-size:24px">Good news, {{${first_name} | default: 'friend'}}</h1>
+  <p>Items you saved are now cheaper. They won't stay this price for long.</p>
+  <!-- Copied from the staging build and never swapped back: -->
+  <a href="https://staging.fernbrook.example/cart?utm_source=braze&amp;utm_medium=email&amp;utm_campaign=price_drop">See my items</a>
+  <p style="font-size:13px">Fernbrook Market, 120 Harbor St, Portland, OR 97204<br>
+  <a href="{{${set_user_to_unsubscribed_url}}}">Unsubscribe</a></p>
+</td></tr></table>
+</body>
+</html>

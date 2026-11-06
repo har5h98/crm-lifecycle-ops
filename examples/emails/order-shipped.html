@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<body style="margin:0">
+<div style="display:none;max-height:0;overflow:hidden">Arriving Thursday between 2 and 4pm.</div>
+<table role="presentation" width="100%"><tr><td style="font-family:Arial,sans-serif;font-size:16px;padding:24px">
+  <h1 style="font-size:24px">Your order is on its way, {{${first_name} | default: 'friend'}}</h1>
+  <p>Track it any time, or change the delivery window up to an hour before.</p>
+  <a href="https://fernbrook.example/orders/track?utm_source=braze&amp;utm_medium=email&amp;utm_campaign=order_shipped">Track your order</a>
+  <p style="font-size:13px">Fernbrook Market, 120 Harbor St, Portland, OR 97204<br>
+  <a href="{{${set_user_to_unsubscribed_url}}}">Unsubscribe</a></p>
+</td></tr></table>
+</body>
+</html>

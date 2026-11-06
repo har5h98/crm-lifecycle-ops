@@ -14692,7 +14692,7 @@ var require_liquid_node = __commonJS({
     function readFile6(filepath) {
       return readFileAsync(filepath, "utf8");
     }
-    function existsSync(filepath) {
+    function existsSync2(filepath) {
       try {
         fs$1.statSync(filepath);
         return true;
@@ -14714,7 +14714,7 @@ var require_liquid_node = __commonJS({
       } catch (e) {
       }
     }
-    function dirname3(filepath) {
+    function dirname4(filepath) {
       return path.dirname(filepath);
     }
     var realpathAsync = promisify(fs$1.realpath);
@@ -14742,11 +14742,11 @@ var require_liquid_node = __commonJS({
       __proto__: null,
       exists,
       readFile: readFile6,
-      existsSync,
+      existsSync: existsSync2,
       readFileSync: readFileSync2,
       resolve,
       fallback,
-      dirname: dirname3,
+      dirname: dirname4,
       contains,
       containsSync,
       sep: path.sep
@@ -18160,8 +18160,8 @@ var require_liquid_node = __commonJS({
 // src/mcp/server.ts
 import { readFileSync } from "node:fs";
 import { appendFile, mkdir as mkdir4, readFile as readFile5, stat as stat2 } from "node:fs/promises";
-import { dirname as dirname2, join as join6 } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname as dirname3, join as join6 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -52451,7 +52451,8 @@ function previewText(html) {
 function checkPreheader(html, opts) {
   const findings = [];
   const p = previewText(html);
-  const shown = squash(opts.preheader ?? p.hidden ?? p.firstVisible);
+  const readable = (s) => s.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) => /name/i.test(tag) ? "[name]" : "[\u2026]");
+  const shown = squash(readable(opts.preheader ?? p.hidden ?? p.firstVisible));
   if (!shown) return findings;
   const source = opts.preheader !== void 0 ? "The preheader" : p.hidden ? "The hidden preheader" : "With no preheader, the inbox preview";
   if (BOILERPLATE.test(shown))
@@ -52647,8 +52648,11 @@ async function checkCampaign(snap, query, rules = DEFAULT_RULES) {
 
 // src/cli/check.ts
 import { readdir as readdir2, readFile as readFile3, stat } from "node:fs/promises";
-import { extname, join as join3, relative } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname as dirname2, extname, join as join3, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 var HELP = `Usage: crm-lifecycle-ops check <file.html | folder>... [options]
+       crm-lifecycle-ops check --demo     (try it on the bundled sample emails)
 
 Checks email HTML with the same rule-based checks as /check-email and exits 1 if anything
 reaches the --fail-on level.
@@ -52661,11 +52665,12 @@ Options:
   --rules <path>                      House rules file (default: the one /setup saved)
   --fail-on fail|warn                 Exit 1 on blocking problems only (default) or on warnings too
   --json                              Machine-readable output
+  --demo                              Check the sample emails that ship with the package
   -h, --help                          Show this help
 `;
 var ICON = { fail: "\u2717", warn: "!", info: "i" };
 function parse3(argv) {
-  const o = { paths: [], transactional: false, failOn: "fail", json: false };
+  const o = { paths: [], transactional: false, failOn: "fail", json: false, demo: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -52688,6 +52693,7 @@ function parse3(argv) {
         if (f !== "fail" && f !== "warn") return `--fail-on takes "fail" or "warn".`;
         o.failOn = f;
       } else if (a === "--json") o.json = true;
+      else if (a === "--demo") o.demo = true;
       else if (a.startsWith("-")) return `Unknown option ${a}.
 
 ${HELP}`;
@@ -52696,7 +52702,16 @@ ${HELP}`;
       return e.message;
     }
   }
+  if (o.demo) {
+    const samples = demoFolder();
+    if (!samples) return "The sample emails aren't in this install. Try: npx crm-lifecycle-ops@latest check --demo";
+    o.paths.push(samples);
+  }
   return o.paths.length ? o : HELP;
+}
+function demoFolder() {
+  const here = dirname2(fileURLToPath(import.meta.url));
+  return [join3(here, "../examples/emails"), join3(here, "../../examples/emails")].find((p) => existsSync(p));
 }
 async function htmlFiles(path) {
   const s = await stat(path);
@@ -52757,11 +52772,11 @@ async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
   }
   for (const r of results) {
     const v = r.summary.fail ? "\u2717 Don't send" : r.summary.warn ? "! Fix before sending" : "\u2713 Ready";
-    const shown = relative(process.cwd(), r.file);
+    const shown = opts.demo ? basename(r.file) : relative(process.cwd(), r.file);
     write(`
 ${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform})
 `);
-    for (const f of r.findings) write(`  ${ICON[f.severity]} ${f.checkId.padEnd(34)} ${f.message}
+    for (const f of r.findings) write(`  ${ICON[f.severity]} ${`${f.checkId} `.padEnd(38)} ${f.message}
 `);
   }
   const total = results.reduce((t, r) => ({ fail: t.fail + r.summary.fail, warn: t.warn + r.summary.warn }), { fail: 0, warn: 0 });
@@ -54472,7 +54487,7 @@ function howTo(platform, task, rules, snap, ctx = {}) {
 // src/mcp/server.ts
 function pluginVersion() {
   try {
-    const manifest = join6(dirname2(fileURLToPath(import.meta.url)), "../.claude-plugin/plugin.json");
+    const manifest = join6(dirname3(fileURLToPath2(import.meta.url)), "../.claude-plugin/plugin.json");
     return JSON.parse(readFileSync(manifest, "utf8")).version;
   } catch {
     return "unknown";

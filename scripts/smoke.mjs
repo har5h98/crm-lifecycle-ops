@@ -82,4 +82,10 @@ const cli = spawnSync(process.execPath, ["dist/mcp-server.js", "check", bad], {
 if (cli.status !== 1 || !cli.stdout.includes("links.non-production-host"))
   fail(`CLI check: exit ${cli.status}, output: ${cli.stdout}${cli.stderr}`);
 console.log("✓ CLI check exits 1 on a blocking problem");
+
+// The README's 30-second try must work from any folder, using the samples shipped in the package.
+const demo = spawnSync(process.execPath, [join(process.cwd(), "dist/mcp-server.js"), "check", "--demo"], { encoding: "utf8", cwd: home });
+if (demo.status !== 1 || !demo.stdout.includes("price-drop-alert.html"))
+  fail(`check --demo: exit ${demo.status}, output: ${demo.stdout}${demo.stderr}`);
+console.log("✓ check --demo works from any folder");
 console.log("Smoke test passed.");

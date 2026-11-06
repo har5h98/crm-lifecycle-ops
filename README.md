@@ -13,6 +13,19 @@ Ship campaigns faster. Break nothing that's live.
 A Claude Code plugin for lifecycle, CRM and marketing-ops teams who build campaigns by hand.
 It knows your live account and your team's rules. It is **read-only**: it never sends or edits anything.
 
+## Try it in 30 seconds
+
+No account and no Claude Code needed, just Node.js 20+. This checks four sample emails that ship with the package:
+
+```bash
+npx crm-lifecycle-ops check --demo
+```
+
+<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/cli-demo.svg" alt="Terminal running npx crm-lifecycle-ops check --demo: one sample email is ready, one links to a staging site and must not be sent, one greets people without a name as 'Hi ,', and one has accessibility problems and a 'View in browser' inbox preview" width="820"></p>
+
+Then point it at your own templates: `npx crm-lifecycle-ops check path/to/emails`. That covers emails. The plugin below
+adds the rest: every channel, your live account, what a change will break, and build steps.
+
 ## What it does
 
 | | | Try |

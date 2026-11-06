@@ -1,5 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
-import { extname, join, relative } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname, extname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { checkEmail } from "../checks/email.js";
 import type { Platform, Severity } from "../core/model.js";
 import { loadRules } from "../core/rules.js";
@@ -9,6 +11,7 @@ import { loadRules } from "../core/rules.js";
 // finding reaches the --fail-on level so a pipeline can stop a broken email from shipping.
 
 const HELP = `Usage: crm-lifecycle-ops check <file.html | folder>... [options]
+       crm-lifecycle-ops check --demo     (try it on the bundled sample emails)
 
 Checks email HTML with the same rule-based checks as /check-email and exits 1 if anything
 reaches the --fail-on level.
@@ -21,6 +24,7 @@ Options:
   --rules <path>                      House rules file (default: the one /setup saved)
   --fail-on fail|warn                 Exit 1 on blocking problems only (default) or on warnings too
   --json                              Machine-readable output
+  --demo                              Check the sample emails that ship with the package
   -h, --help                          Show this help
 `;
 
@@ -35,10 +39,11 @@ interface Options {
   rules?: string;
   failOn: "fail" | "warn";
   json: boolean;
+  demo: boolean;
 }
 
 function parse(argv: string[]): Options | string {
-  const o: Options = { paths: [], transactional: false, failOn: "fail", json: false };
+  const o: Options = { paths: [], transactional: false, failOn: "fail", json: false, demo: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     const value = () => {
@@ -61,13 +66,25 @@ function parse(argv: string[]): Options | string {
         if (f !== "fail" && f !== "warn") return `--fail-on takes "fail" or "warn".`;
         o.failOn = f;
       } else if (a === "--json") o.json = true;
+      else if (a === "--demo") o.demo = true;
       else if (a.startsWith("-")) return `Unknown option ${a}.\n\n${HELP}`;
       else o.paths.push(a);
     } catch (e) {
       return (e as Error).message;
     }
   }
+  if (o.demo) {
+    const samples = demoFolder();
+    if (!samples) return "The sample emails aren't in this install. Try: npx crm-lifecycle-ops@latest check --demo";
+    o.paths.push(samples);
+  }
   return o.paths.length ? o : HELP;
+}
+
+/** The sample emails shipped in the package (examples/emails), from the bundle in dist/ or from src/cli/. */
+function demoFolder(): string | undefined {
+  const here = dirname(fileURLToPath(import.meta.url));
+  return [join(here, "../examples/emails"), join(here, "../../examples/emails")].find((p) => existsSync(p));
 }
 
 async function htmlFiles(path: string): Promise<string[]> {
@@ -133,9 +150,9 @@ export async function runCheckCli(argv: string[], write: (s: string) => void = (
   }
   for (const r of results) {
     const v = r.summary.fail ? "✗ Don't send" : r.summary.warn ? "! Fix before sending" : "✓ Ready";
-    const shown = relative(process.cwd(), r.file);
+    const shown = opts.demo ? basename(r.file) : relative(process.cwd(), r.file);
     write(`\n${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform})\n`);
-    for (const f of r.findings) write(`  ${ICON[f.severity]} ${f.checkId.padEnd(34)} ${f.message}\n`);
+    for (const f of r.findings) write(`  ${ICON[f.severity]} ${`${f.checkId} `.padEnd(38)} ${f.message}\n`);
   }
   const total = results.reduce((t, r) => ({ fail: t.fail + r.summary.fail, warn: t.warn + r.summary.warn }), { fail: 0, warn: 0 });
   write(

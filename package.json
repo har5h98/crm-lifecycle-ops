@@ -37,6 +37,7 @@
   },
   "files": [
     "dist/",
+    "examples/emails/",
     ".claude-plugin/plugin.json",
     "README.md",
     "LICENSE",
