@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { configuredPlatforms, ENV_VARS, getAdapter, workspaceFor } from "../adapters/index.js";
 import { checkCampaign, findItem } from "../checks/campaign.js";
+import { runCheckCli } from "../cli/check.js";
 import { CHECKS } from "../checks/catalog.js";
 import { checkChannelMessage } from "../checks/channels.js";
 import { checkEmail } from "../checks/email.js";
@@ -18,6 +19,7 @@ import { evaluateHealth, THRESHOLDS } from "../core/health.js";
 import { checkJourneyStructure, journeyDiagram } from "../core/journey.js";
 import type { Platform } from "../core/model.js";
 import { bulkEditPreview, operatorName, opsReport, teamDir } from "../core/ops.js";
+import { type CampaignResult, saveSignOff, signOffMarkdown } from "../core/report.js";
 import { loadRules, LOCKED_CHECKS, saveRules } from "../core/rules.js";
 import {
   carryForwardSeenAudiences,
@@ -101,6 +103,14 @@ async function latest(platform: Platform, workspace?: string): Promise<Snapshot>
   return latest;
 }
 
+// `crm-lifecycle-ops check …` runs the email checks from a terminal or CI and exits; anything else
+// starts the MCP server that Claude talks to.
+if (process.argv[2] === "check") process.exit(await runCheckCli(process.argv.slice(3)));
+if (process.argv[2] === "--version") {
+  console.log(VERSION);
+  process.exit(0);
+}
+
 const server = new McpServer({ name: "crm-lifecycle-ops", version: VERSION });
 
 // What each tool touches, so clients can show it and decide what needs approval. Nothing here ever
@@ -110,7 +120,7 @@ const READS = { readOnlyHint: true, openWorldHint: false };
 const ANNOTATIONS: Record<string, ToolAnnotations> = {
   check_email: { ...READS, openWorldHint: true }, // optional live link check
   check_message: { ...READS },
-  check_campaign: { ...READS },
+  check_campaign: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, // optional sign-off report file
   list_checks: { ...READS },
   get_house_rules: { ...READS },
   save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
@@ -265,12 +275,33 @@ tool(
     title: "Check a campaign or journey",
     description:
       "QA every message in a campaign or journey (Canvas/flow): emails with content blocks expanded, push, SMS and in-app, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
-    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
+    inputSchema: {
+      platform: platformArg,
+      workspace: workspaceArg,
+      name_or_id: z.string(),
+      sign_off_report: z
+        .boolean()
+        .optional()
+        .describe("Also save a Markdown QA sign-off report (findings, what wasn't verified, reviewer sign-off) and return its path."),
+    },
   },
-  async ({ platform, workspace, name_or_id }) => {
+  async ({ platform, workspace, name_or_id, sign_off_report }) => {
     const snap = await latest(platform, workspace);
     const { rules } = await loadRules();
     const result = await checkCampaign(snap, name_or_id, rules);
+    if (sign_off_report && "settings" in result && result.settings && result.messages) {
+      const at = new Date();
+      const markdown = signOffMarkdown(result as CampaignResult, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
+      const reportPath = await saveSignOff(result as CampaignResult, markdown, at);
+      await logRun({
+        tool: "check_campaign",
+        platform,
+        messages: result.messages.length,
+        summary: result.summary,
+        checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId),
+      });
+      return json({ ...result, signOffReport: { path: reportPath, markdown } });
+    }
     if ("settings" in result && result.settings && result.messages) {
       await logRun({
         tool: "check_campaign",
