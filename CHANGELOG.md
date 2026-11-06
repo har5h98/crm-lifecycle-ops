@@ -3,6 +3,18 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.3](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.2...v0.5.3) (2026-11-06)
+
+
+### Features
+
+* try it in 30 seconds with npx crm-lifecycle-ops check --demo ([2c1356a](https://github.com/har5h98/crm-lifecycle-ops/commit/2c1356ae1de31642449b213213e3f2b2a77db15d))
+
+
+### Bug Fixes
+
+* inbox-preview warnings quote what readers see, not template code ([9c273de](https://github.com/har5h98/crm-lifecycle-ops/commit/9c273deeb97a0b58d50b9f46a3a5495a8fe1ccc7))
+
 ## [0.5.2](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.1...v0.5.2) (2026-11-06)
 
 
