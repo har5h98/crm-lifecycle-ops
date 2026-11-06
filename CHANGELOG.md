@@ -3,6 +3,16 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.2](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.1...v0.5.2) (2026-11-06)
+
+
+### Features
+
+* build and edit plans say how fresh their vendor steps are ([989d91a](https://github.com/har5h98/crm-lifecycle-ops/commit/989d91ab641bf1d552595e94526e6df08194b2b3))
+* crm-lifecycle-ops check, the email checks for CI ([d57ed4f](https://github.com/har5h98/crm-lifecycle-ops/commit/d57ed4f368bc1a9d4a8bc8f41cefaa129574c2e1))
+* email accessibility and inbox-preview checks ([4f49984](https://github.com/har5h98/crm-lifecycle-ops/commit/4f49984ae1af717c2beaa5ade8ada71765381200))
+* QA sign-off report from /check-campaign ([c45aa0e](https://github.com/har5h98/crm-lifecycle-ops/commit/c45aa0ea2b2be5a445e74a45377714727e1699d0))
+
 ## [0.5.1](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.0...v0.5.1) (2026-11-03)
 
 
