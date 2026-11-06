@@ -1,6 +1,8 @@
 name: Release
 on:
   push: { branches: [main] }
+  # Run by hand to finish a release whose publish step failed. Each step skips what's already done.
+  workflow_dispatch:
 permissions: { contents: write, pull-requests: write }
 jobs:
   release-please:
@@ -19,7 +21,7 @@ jobs:
   # npmjs.com: package settings → Trusted publisher → GitHub Actions, har5h98/crm-lifecycle-ops, release.yml.
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions: { contents: read, id-token: write }
     steps:
@@ -29,9 +31,26 @@ jobs:
       - run: npm install -g npm@latest # trusted publishing needs npm 11.5+
       - run: npm ci
       - run: npm run check
-      - run: npm publish --access public --provenance
-      - name: Publish to the MCP Registry
+      - name: Publish to npm (skipped if this version is already there)
         run: |
+          v=$(node -p "require('./package.json').version")
+          if npm view "crm-lifecycle-ops@$v" version >/dev/null 2>&1; then echo "$v is already on npm"; else npm publish --access public --provenance; fi
+      # npm takes a minute or two to serve a new version, and the MCP Registry checks npm before accepting it.
+      - name: Wait until npm serves the new version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          for i in $(seq 1 36); do
+            if npm view "crm-lifecycle-ops@$v" version >/dev/null 2>&1; then echo "npm serves $v"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::npm still doesn't serve $v after 6 minutes"; exit 1
+      - name: Publish to the MCP Registry (skipped if this version is already listed)
+        run: |
+          v=$(node -p "require('./package.json').version")
+          if curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=crm-lifecycle-ops" \
+            | jq -e --arg v "$v" '[.servers[] | (.server // .) | select(.version == $v)] | length > 0' >/dev/null; then
+            echo "$v is already in the MCP Registry"; exit 0
+          fi
           curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
