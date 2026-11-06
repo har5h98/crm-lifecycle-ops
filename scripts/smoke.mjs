@@ -64,5 +64,22 @@ const plan = await call("how_to", { platform: "klaviyo", task: "edit-live-journe
 if (!plan.steps?.length) fail("how_to: no steps");
 console.log("✓ how_to");
 
+const signOff = await call("check_campaign", { platform: "braze", name_or_id: "Price Drop Alert", sign_off_report: true });
+if (!signOff.signOffReport?.markdown?.includes("QA sign-off")) fail("check_campaign: no sign-off report");
+console.log("✓ check_campaign sign-off report");
+
 await client.close();
+
+// The same bundle doubles as a CLI for CI: a blocking problem must exit 1.
+const { spawnSync } = await import("node:child_process");
+const { writeFileSync } = await import("node:fs");
+const bad = join(home, "bad.html");
+writeFileSync(bad, '<a href="https://staging.example.com/x">Shop</a> unsubscribe');
+const cli = spawnSync(process.execPath, ["dist/mcp-server.js", "check", bad], {
+  encoding: "utf8",
+  env: { ...process.env, CLO_HOME: home },
+});
+if (cli.status !== 1 || !cli.stdout.includes("links.non-production-host"))
+  fail(`CLI check: exit ${cli.status}, output: ${cli.stdout}${cli.stderr}`);
+console.log("✓ CLI check exits 1 on a blocking problem");
 console.log("Smoke test passed.");

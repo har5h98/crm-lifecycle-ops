@@ -64,6 +64,32 @@ Leave `env` out to use the demo account. Every setting is listed in [`server.jso
 
 </details>
 
+<details>
+<summary><b>Check email templates in CI</b></summary>
+
+The same checks run from a terminal, so a pipeline can stop a broken email before anyone launches it. It
+exits 1 on a blocking problem (or on warnings too, with `--fail-on warn`), and uses your house rules.
+
+```bash
+npx crm-lifecycle-ops check emails/ --rules team-rules.json
+```
+
+```yaml
+# .github/workflows/email-qa.yml
+on: pull_request
+jobs:
+  email-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx -y crm-lifecycle-ops check emails/
+```
+
+`--help` lists the options (`--platform`, `--subject`, `--transactional`, `--json`). The template language is
+detected per file.
+
+</details>
+
 > **Early alpha.** Everything works on the demo account and against mocked API responses. It hasn't been
 > field-tested on real accounts yet. If a result looks wrong, `/report-problem` turns it into a test and a fix.
 
@@ -88,7 +114,8 @@ warn  sms.no-opt-out         No "Reply STOP to opt out"
 ```
 
 **Code makes every pass/fail call, never AI.** Claude adds a labelled, advisory review (subject line, CTA, tone)
-on top.
+on top. Need a record for the launch ticket? Ask `/check-campaign` for a **QA sign-off report**: a Markdown file
+with every finding, what couldn't be verified and a reviewer sign-off, ready to paste into Jira, Slack or Notion.
 
 ## All commands
 
@@ -124,7 +151,8 @@ on top.
 
 | Channel | Catches |
 |---|---|
-| **Email** | Broken Outlook blocks, unclosed tables, missing alt text, Gmail clipping, missing preheader; staging or malformed links, `http://`, inconsistent UTMs, broken pages (live check); missing unsubscribe (skipped for transactional mail) |
+| **Email** | Broken Outlook blocks, unclosed tables, missing alt text, Gmail clipping; a preheader that's missing, repeats the subject or reads "View in browser"; staging or malformed links, `http://`, inconsistent UTMs, broken pages (live check); missing unsubscribe (skipped for transactional mail) |
+| **Accessibility** (email) | Missing `lang`, "click here" links, image-only links with no alt text, layout tables screen readers read as data, text under 12px |
 | **Push** | Title and body length for your *longest* customer names, line breaks that hide titles on iOS, deep links, Android's required title (Braze) |
 | **SMS** | Billed segments the way carriers count them, the exact character that switches a text to Unicode, opt-out wording, sender name, each platform's limits |
 | **In-app** | Body length, buttons and their links, click-through destination, HTML structure |
@@ -181,7 +209,7 @@ customers), and sends nothing to the author or any third party.
 | A local MCP server (`node dist/mcp-server.js`, readable source in `src/`) | When Claude Code loads the plugin | Your machine only |
 | Read-only API calls | `/refresh`, `/watch-launch` | Only the platform you connected: your Braze REST endpoint, `a.klaviyo.com`, or `api.iterable.com` / `api.eu.iterable.com` |
 | Link checks (unsubscribe and tracking links are never requested) | Only when you ask for a live link check | The links in the email being checked |
-| Local files: snapshots, house rules, a usage log of check ids and counts | Normal use | `~/.crm-lifecycle-ops/` |
+| Local files: snapshots, house rules, QA sign-off reports, a usage log of check ids and counts | Normal use | `~/.crm-lifecycle-ops/` |
 | A copy of the usage log (counts only, never message content) | Only if you set a team report folder | The folder you chose |
 | A GitHub issue | Only via `/report-problem`, after you approve the exact text | `github.com/har5h98/crm-lifecycle-ops` |
 
@@ -198,7 +226,9 @@ API keys are read only from the plugin's settings (secure storage). See [SECURIT
 1. **You report:** `/report-problem` turns a wrong result into a redacted GitHub issue (it asks before posting).
 2. **It becomes a test:** each confirmed report joins [`tests/corpus/`](tests/corpus) and must pass from then on.
 3. **Fixes are drafted automatically:** Claude writes the test and the fix as a pull request for human review.
-4. **Vendor changes are watched:** a weekly job checks the Braze, Klaviyo and Iterable APIs for changes.
+4. **Vendor changes are watched:** a weekly job checks the Braze, Klaviyo and Iterable APIs for changes, and a
+   monthly one opens a checklist to re-verify the build and edit guides against the vendors' docs. Every plan
+   says when its steps were last verified, and warns once that's more than 90 days ago.
 
 Wrong results are the most valuable contribution. See [CONTRIBUTING.md](CONTRIBUTING.md).
 

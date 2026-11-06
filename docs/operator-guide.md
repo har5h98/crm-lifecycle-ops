@@ -26,6 +26,7 @@ A one-page routine for campaign operators and the lead who sets the tool up. No 
 | Changing something that's live | See what else it affects, then get the safe way to change it | `/what-breaks`, then `/edit-plan` |
 | Copy is drafted | Check each message as you go | `/check-email`, `/check-push`, `/check-sms`, `/check-in-app` |
 | Build is finished | Check the whole campaign or journey, every channel, before sending | `/check-campaign <name>` |
+| Ready to launch | Save a QA sign-off report for the launch ticket and have a reviewer approve it | "`/check-campaign <name>` with a sign-off report" |
 | 1 hour and 24 hours after launch | Check delivery health | `/watch-launch <name>` |
 
 ## Reading a result

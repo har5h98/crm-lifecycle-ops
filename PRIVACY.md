@@ -1,6 +1,6 @@
 # Privacy policy
 
-*Last updated: November 3, 2026*
+*Last updated: November 6, 2026*
 
 crm-lifecycle-ops is an open-source plugin that runs entirely on your computer. The author runs no server and
 receives no data from it.
@@ -17,6 +17,7 @@ receives no data from it.
 All on your computer, under `~/.crm-lifecycle-ops/`:
 - account snapshots (the campaign and template data above), keeping the 30 newest;
 - your team's house rules (or in the *shared rules file* you choose in the plugin's settings);
+- QA sign-off reports you ask for (findings for a campaign, as Markdown);
 - a usage log of which checks ran and how many problems they found, never message content.
 
 If you set a *team report folder*, the usage log (counts and check ids only) is also written there.

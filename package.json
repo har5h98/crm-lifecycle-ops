@@ -32,6 +32,7 @@
   },
   "type": "module",
   "bin": {
+    "crm-lifecycle-ops": "dist/mcp-server.js",
     "crm-lifecycle-ops-mcp": "dist/mcp-server.js"
   },
   "files": [

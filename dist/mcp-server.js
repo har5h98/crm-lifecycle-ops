@@ -3878,7 +3878,7 @@ var require_fast_uri = __commonJS({
         normalizeString(uri, options);
       } else if (typeof uri === "object") {
         uri = /** @type {T} */
-        parse3(serialize(uri, options), options);
+        parse4(serialize(uri, options), options);
       }
       return uri;
     }
@@ -3918,50 +3918,50 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative, options, skipNormalization) {
+    function resolveComponent(base, relative2, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
-        base = parse3(serialize(base, options), options);
-        relative = parse3(serialize(relative, options), options);
+        base = parse4(serialize(base, options), options);
+        relative2 = parse4(serialize(relative2, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+      if (!options.tolerant && relative2.scheme) {
+        target.scheme = relative2.scheme;
+        target.userinfo = relative2.userinfo;
+        target.host = relative2.host;
+        target.port = relative2.port;
+        target.path = removeDotSegments(relative2.path || "");
+        target.query = relative2.query;
       } else {
-        if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
+          target.userinfo = relative2.userinfo;
+          target.host = relative2.host;
+          target.port = relative2.port;
+          target.path = removeDotSegments(relative2.path || "");
+          target.query = relative2.query;
         } else {
-          if (!relative.path) {
+          if (!relative2.path) {
             target.path = base.path;
-            if (relative.query !== void 0) {
-              target.query = relative.query;
+            if (relative2.query !== void 0) {
+              target.query = relative2.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+            if (relative2.path[0] === "/") {
+              target.path = removeDotSegments(relative2.path);
             } else {
               const baseHasAuthority = base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0;
               if (baseHasAuthority && !base.path) {
-                target.path = "/" + relative.path;
+                target.path = "/" + relative2.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target.path = relative2.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
               }
               target.path = base.scheme === void 0 && !baseHasAuthority && target.path[0] !== "/" ? removeDotSegmentsRelative(target.path) : removeDotSegments(target.path);
             }
-            target.query = relative.query;
+            target.query = relative2.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3969,7 +3969,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
+      target.fragment = relative2.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -4240,7 +4240,7 @@ var require_fast_uri = __commonJS({
       }
       return { parsed, malformedAuthorityOrPort, malformedPercentEncoding, malformedSchemeSpecific, malformedHost, malformedScheme };
     }
-    function parse3(uri, opts) {
+    function parse4(uri, opts) {
       return parseWithStatus(uri, opts).parsed;
     }
     function normalizeString(uri, opts) {
@@ -4277,7 +4277,7 @@ var require_fast_uri = __commonJS({
       resolveComponent,
       equal,
       serialize,
-      parse: parse3
+      parse: parse4
     };
     module.exports = fastUri;
     module.exports.default = fastUri;
@@ -8724,7 +8724,7 @@ var require_parser = __commonJS({
         parseError: function parseError(str2, hash2) {
           throw new Error(str2);
         },
-        parse: function parse3(input2) {
+        parse: function parse4(input2) {
           var self = this, stack = [0], vstack = [null], lstack = [], table = this.table, yytext = "", yylineno = 0, yyleng = 0, recovering = 0, TERROR = 2, EOF = 1;
           this.lexer.setInput(input2);
           this.lexer.yy = this.yy;
@@ -9652,7 +9652,7 @@ var require_base2 = __commonJS({
     "use strict";
     exports.__esModule = true;
     exports.parseWithoutProcessing = parseWithoutProcessing;
-    exports.parse = parse3;
+    exports.parse = parse4;
     function _interopRequireWildcard(obj2) {
       if (obj2 && obj2.__esModule) {
         return obj2;
@@ -9691,7 +9691,7 @@ var require_base2 = __commonJS({
       var ast = _parser2["default"].parse(input2);
       return ast;
     }
-    function parse3(input2, options) {
+    function parse4(input2, options) {
       var ast = parseWithoutProcessing(input2, options);
       var strip = new _whitespaceControl2["default"](options);
       return strip.accept(ast);
@@ -10371,7 +10371,7 @@ var require_util2 = __commonJS({
       return path;
     }
     exports.normalize = normalize;
-    function join5(aRoot, aPath) {
+    function join7(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -10403,11 +10403,11 @@ var require_util2 = __commonJS({
       }
       return joined;
     }
-    exports.join = join5;
+    exports.join = join7;
     exports.isAbsolute = function(aPath) {
       return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
     };
-    function relative(aRoot, aPath) {
+    function relative2(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -10426,7 +10426,7 @@ var require_util2 = __commonJS({
       }
       return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
     }
-    exports.relative = relative;
+    exports.relative = relative2;
     var supportsNullProto = (function() {
       var obj2 = /* @__PURE__ */ Object.create(null);
       return !("__proto__" in obj2);
@@ -10576,7 +10576,7 @@ var require_util2 = __commonJS({
             parsed.path = parsed.path.substring(0, index + 1);
           }
         }
-        sourceURL = join5(urlGenerate(parsed), sourceURL);
+        sourceURL = join7(urlGenerate(parsed), sourceURL);
       }
       return normalize(sourceURL);
     }
@@ -14689,7 +14689,7 @@ var require_liquid_node = __commonJS({
         return false;
       }
     }
-    function readFile5(filepath) {
+    function readFile6(filepath) {
       return readFileAsync(filepath, "utf8");
     }
     function existsSync(filepath) {
@@ -14741,7 +14741,7 @@ var require_liquid_node = __commonJS({
     var fs = /* @__PURE__ */ Object.freeze({
       __proto__: null,
       exists,
-      readFile: readFile5,
+      readFile: readFile6,
       existsSync,
       readFileSync: readFileSync2,
       resolve,
@@ -15972,13 +15972,13 @@ var require_liquid_node = __commonJS({
         throw this.lookupError(file2, dirs);
       }
       *candidates(file2, dirs, currentFile) {
-        const { fs: fs2, extname } = this.options;
+        const { fs: fs2, extname: extname2 } = this.options;
         if (this.shouldLoadRelative(file2) && currentFile) {
-          const referenced = fs2.resolve(this.dirname(currentFile), file2, extname);
+          const referenced = fs2.resolve(this.dirname(currentFile), file2, extname2);
           yield referenced;
         }
         for (const dir of dirs) {
-          const referenced = fs2.resolve(dir, file2, extname);
+          const referenced = fs2.resolve(dir, file2, extname2);
           yield referenced;
         }
         if (fs2.fallback !== void 0) {
@@ -16380,7 +16380,7 @@ var require_liquid_node = __commonJS({
       uri_escape,
       slugify: slugify2
     });
-    var join5 = argumentsToValue(function(v, arg) {
+    var join7 = argumentsToValue(function(v, arg) {
       const array2 = toArray(v);
       const sep = isNil(arg) ? " " : stringify(arg);
       let outputSize = sep.length * Math.max(array2.length - 1, 0);
@@ -16628,7 +16628,7 @@ var require_liquid_node = __commonJS({
     }
     var arrayFilters = /* @__PURE__ */ Object.freeze({
       __proto__: null,
-      join: join5,
+      join: join7,
       last,
       first,
       reverse,
@@ -18159,8 +18159,8 @@ var require_liquid_node = __commonJS({
 
 // src/mcp/server.ts
 import { readFileSync } from "node:fs";
-import { appendFile, mkdir as mkdir3, readFile as readFile4, stat } from "node:fs/promises";
-import { dirname as dirname2, join as join4 } from "node:path";
+import { appendFile, mkdir as mkdir4, readFile as readFile5, stat as stat2 } from "node:fs/promises";
+import { dirname as dirname2, join as join6 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // node_modules/zod/v3/helpers/util.js
@@ -23653,18 +23653,18 @@ var validateAsync = async (schema, value, _ctx) => {
   return result.issues.length === 0;
 };
 var _encode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return parse3(schema, value, ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
-    return parse3(schema, value, _ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
@@ -25159,7 +25159,7 @@ function capSize(inst, size) {
   if (!caps.length)
     return;
   const cap = Math.min(...caps.map((c) => c[0]));
-  const parse3 = inst._zod.parse;
+  const parse4 = inst._zod.parse;
   inst._zod.parse = (payload, ctx) => {
     const n = size(payload.value);
     if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
@@ -25173,7 +25173,7 @@ function capSize(inst, size) {
         }
       }
     }
-    return parse3(payload, ctx);
+    return parse4(payload, ctx);
   };
 }
 var arraySize = (input2) => Array.isArray(input2) ? input2.length : -1;
@@ -52334,6 +52334,145 @@ async function checkChannelMessage(input2, rules = DEFAULT_RULES) {
   };
 }
 
+// src/checks/a11y.ts
+var VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|read more|more|go|tap here)[.!]?$/i;
+var MIN_FONT_PX = 12;
+var BOILERPLATE = /^(view (this )?(email|message|it) (in|on) (your |a )?(web )?browser|view (in|on) (the )?(web|browser|online)|having trouble (viewing|reading)|can'?t see (this|images)|email not displaying)/i;
+var isHidden = (style) => /display:none|mso-hide:all|visibility:hidden|max-height:0|font-size:[01]px/.test(style);
+var squash = (s) => s.replace(/\s+/g, " ").trim();
+function scan(html) {
+  const findings = [];
+  let hasHtmlTag = false;
+  let hasLang = false;
+  let layoutTables = 0;
+  const vague = /* @__PURE__ */ new Set();
+  let namelessLinks = 0;
+  const tiny = /* @__PURE__ */ new Set();
+  const stack = [];
+  let skipText = 0;
+  let link = null;
+  let hiddenText;
+  let hiddenBuf = null;
+  let hiddenDepth = -1;
+  let visible = "";
+  const parser = new Parser(
+    {
+      onopentag(name, attrs) {
+        const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
+        const parentHidden = stack.some((s) => s.hidden);
+        const hidden = parentHidden || isHidden(style);
+        stack.push({ name, hidden });
+        if (["head", "style", "script", "title"].includes(name)) skipText++;
+        if (name === "html") {
+          hasHtmlTag = true;
+          hasLang = Boolean(attrs.lang?.trim() || attrs["xml:lang"]?.trim());
+        }
+        if (name === "table" && !/^(presentation|none)$/i.test(attrs.role ?? "")) layoutTables++;
+        if (name === "a" && attrs.href !== void 0) link = { text: "", imgAlt: [] };
+        if (name === "img" && link) link.imgAlt.push((attrs.alt ?? "").trim());
+        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
+        if (size && !hidden) {
+          const px = Number(size[1]);
+          if (px >= 2 && px < MIN_FONT_PX) tiny.add(px);
+        }
+        if (hidden && !parentHidden && hiddenText === void 0 && hiddenBuf === null) {
+          hiddenBuf = "";
+          hiddenDepth = stack.length;
+        }
+      },
+      ontext(text) {
+        if (skipText) return;
+        if (link) link.text += text;
+        if (hiddenBuf !== null) hiddenBuf += text;
+        else if (!stack.some((s) => s.hidden) && visible.length < 300) visible += text;
+      },
+      onclosetag(name) {
+        if (["head", "style", "script", "title"].includes(name)) skipText = Math.max(0, skipText - 1);
+        if (name === "a" && link) {
+          const text = squash(link.text);
+          if (text && VAGUE_LINK_TEXT.test(text)) vague.add(text);
+          if (!text && link.imgAlt.length && link.imgAlt.every((a) => !a)) namelessLinks++;
+          link = null;
+        }
+        if (hiddenBuf !== null && stack.length === hiddenDepth) {
+          if (squash(hiddenBuf)) hiddenText = squash(hiddenBuf);
+          hiddenBuf = null;
+        }
+        stack.pop();
+      }
+    },
+    { decodeEntities: true, lowerCaseTags: true }
+  );
+  parser.write(html);
+  parser.end();
+  if (hasHtmlTag && !hasLang)
+    findings.push({
+      checkId: "a11y.no-lang",
+      severity: "warn",
+      message: "The <html> tag has no lang attribute, so screen readers guess the language and may mispronounce the whole email.",
+      fix: 'Add the language, e.g. <html lang="en">.'
+    });
+  if (vague.size)
+    findings.push({
+      checkId: "a11y.vague-link-text",
+      severity: "warn",
+      message: `Link text that means nothing on its own: ${[...vague].map((t) => `"${t}"`).join(", ")}. Screen-reader users often hear links as a list.`,
+      fix: 'Say where the link goes: "See the new arrivals" instead of "Click here".'
+    });
+  if (namelessLinks)
+    findings.push({
+      checkId: "a11y.image-link-no-alt",
+      severity: "warn",
+      message: `${namelessLinks} link(s) contain only an image with no alt text, so they have no name for screen readers, or when images are blocked.`,
+      fix: "Give the image alt text that says where the link goes."
+    });
+  if (layoutTables)
+    findings.push({
+      checkId: "a11y.layout-table-role",
+      severity: "info",
+      message: `${layoutTables} table(s) have no role="presentation"; screen readers announce each layout table's rows and columns.`,
+      fix: 'Add role="presentation" to tables used for layout (not to real data tables).'
+    });
+  if (tiny.size)
+    findings.push({
+      checkId: "a11y.small-text",
+      severity: "info",
+      message: `Text set at ${[...tiny].sort((a, b) => a - b).join("px, ")}px; under ${MIN_FONT_PX}px is hard to read, and iOS enlarges it unpredictably.`,
+      fix: `Use at least ${MIN_FONT_PX}px for body copy and footers (14\u201316px is typical).`
+    });
+  return { findings, preview: { hidden: hiddenText, firstVisible: squash(visible).slice(0, 140) } };
+}
+function checkAccessibility(html) {
+  return scan(html).findings;
+}
+function previewText(html) {
+  return scan(html).preview;
+}
+function checkPreheader(html, opts) {
+  const findings = [];
+  const p = previewText(html);
+  const shown = squash(opts.preheader ?? p.hidden ?? p.firstVisible);
+  if (!shown) return findings;
+  const source = opts.preheader !== void 0 ? "The preheader" : p.hidden ? "The hidden preheader" : "With no preheader, the inbox preview";
+  if (BOILERPLATE.test(shown))
+    findings.push({
+      checkId: "copy.preheader-boilerplate",
+      severity: "warn",
+      message: `${source} reads "${shown.slice(0, 60)}${shown.length > 60 ? "\u2026" : ""}", which wastes the second line of the inbox listing.`,
+      fix: "Set a preheader that adds to the subject line (an offer, a detail, a reason to open)."
+    });
+  const norm3 = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const subject = opts.subject ? norm3(opts.subject) : "";
+  if (subject.length >= 8 && norm3(shown).startsWith(subject))
+    findings.push({
+      checkId: "copy.preheader-repeats-subject",
+      severity: "warn",
+      message: `${source} repeats the subject line, so the inbox shows the same words twice.`,
+      fix: "Use the preheader for something the subject doesn't say."
+    });
+  return findings;
+}
+
 // src/checks/email.ts
 function checkSubject(subject, preheader) {
   const findings = [];
@@ -52364,6 +52503,8 @@ async function checkEmail(input2, rules = DEFAULT_RULES) {
     subjectSeen = s.renders.filter((r) => r.persona !== ACCENTED_PERSONA && r.output !== null).map((r) => r.output.trim()).sort((a, b) => b.length - a.length)[0];
   }
   findings.push(...checkSubject(input2.subject, input2.preheader));
+  findings.push(...checkAccessibility(input2.html));
+  findings.push(...checkPreheader(input2.html, { subject: subjectSeen ?? input2.subject, preheader: input2.preheader }));
   findings.push(...checkHouseRules({ html: input2.html, subject: input2.subject, subjectSeen, from: input2.from }, rules));
   if (input2.checkLinksLive) {
     const live = await checkLinksLive(input2.html);
@@ -52504,6 +52645,134 @@ async function checkCampaign(snap, query, rules = DEFAULT_RULES) {
   };
 }
 
+// src/cli/check.ts
+import { readdir as readdir2, readFile as readFile3, stat } from "node:fs/promises";
+import { extname, join as join3, relative } from "node:path";
+var HELP = `Usage: crm-lifecycle-ops check <file.html | folder>... [options]
+
+Checks email HTML with the same rule-based checks as /check-email and exits 1 if anything
+reaches the --fail-on level.
+
+Options:
+  --platform braze|klaviyo|iterable   Template language (default: detected from the file)
+  --subject "..."                     Subject line to check with the email
+  --preheader "..."                   Preheader to check with the email
+  --transactional                     Receipts, password resets: no unsubscribe required
+  --rules <path>                      House rules file (default: the one /setup saved)
+  --fail-on fail|warn                 Exit 1 on blocking problems only (default) or on warnings too
+  --json                              Machine-readable output
+  -h, --help                          Show this help
+`;
+var ICON = { fail: "\u2717", warn: "!", info: "i" };
+function parse3(argv) {
+  const o = { paths: [], transactional: false, failOn: "fail", json: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    const value = () => {
+      const v = argv[++i];
+      if (v === void 0) throw new Error(`${a} needs a value`);
+      return v;
+    };
+    try {
+      if (a === "-h" || a === "--help") return HELP;
+      else if (a === "--platform") {
+        const p = value();
+        if (!["braze", "klaviyo", "iterable"].includes(p)) return `Unknown platform "${p}". Use braze, klaviyo or iterable.`;
+        o.platform = p;
+      } else if (a === "--subject") o.subject = value();
+      else if (a === "--preheader") o.preheader = value();
+      else if (a === "--transactional") o.transactional = true;
+      else if (a === "--rules") o.rules = value();
+      else if (a === "--fail-on") {
+        const f = value();
+        if (f !== "fail" && f !== "warn") return `--fail-on takes "fail" or "warn".`;
+        o.failOn = f;
+      } else if (a === "--json") o.json = true;
+      else if (a.startsWith("-")) return `Unknown option ${a}.
+
+${HELP}`;
+      else o.paths.push(a);
+    } catch (e) {
+      return e.message;
+    }
+  }
+  return o.paths.length ? o : HELP;
+}
+async function htmlFiles(path) {
+  const s = await stat(path);
+  if (s.isFile()) return [path];
+  const out = [];
+  for (const entry of await readdir2(path, { withFileTypes: true })) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const full = join3(path, entry.name);
+    if (entry.isDirectory()) out.push(...await htmlFiles(full));
+    else if ([".html", ".htm"].includes(extname(entry.name).toLowerCase())) out.push(full);
+  }
+  return out.sort();
+}
+function detectPlatform(html) {
+  if (/\{\{\s*\$\{|\{\{\s*custom_attribute\.|content_blocks\.\$\{|\babort_message\b/.test(html)) return "braze";
+  if (/\{\{\s*person\.|\{%\s*(unsubscribe|manage_preferences|web_view)\b|\|\s*default:\s*'/.test(html)) return "klaviyo";
+  if (/\{\{#(if|ifEq|each|unless)\b|\{\{defaultIfEmpty\b|\{\{unsubscribeUrl\}\}/.test(html)) return "iterable";
+  return "braze";
+}
+async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
+  const opts = parse3(argv);
+  if (typeof opts === "string") {
+    write(opts.endsWith("\n") ? opts : `${opts}
+`);
+    return opts === HELP ? 0 : 2;
+  }
+  if (opts.rules) process.env.CLO_RULES = opts.rules;
+  const { rules } = await loadRules();
+  const files = [];
+  for (const p of opts.paths) {
+    try {
+      files.push(...await htmlFiles(p));
+    } catch {
+      write(`Can't read ${p}
+`);
+      return 2;
+    }
+  }
+  if (!files.length) {
+    write("No .html files found.\n");
+    return 2;
+  }
+  const results = [];
+  for (const file2 of files) {
+    const html = await readFile3(file2, "utf8");
+    const platform = opts.platform ?? detectPlatform(html);
+    const r = await checkEmail(
+      { html, platform, name: file2, subject: opts.subject, preheader: opts.preheader, transactional: opts.transactional },
+      rules
+    );
+    results.push({ file: file2, ...r });
+  }
+  const failing = results.filter((r) => r.summary.fail > 0 || opts.failOn === "warn" && r.summary.warn > 0);
+  if (opts.json) {
+    write(`${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, files: results }, null, 2)}
+`);
+    return failing.length ? 1 : 0;
+  }
+  for (const r of results) {
+    const v = r.summary.fail ? "\u2717 Don't send" : r.summary.warn ? "! Fix before sending" : "\u2713 Ready";
+    const shown = relative(process.cwd(), r.file);
+    write(`
+${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform})
+`);
+    for (const f of r.findings) write(`  ${ICON[f.severity]} ${f.checkId.padEnd(34)} ${f.message}
+`);
+  }
+  const total = results.reduce((t, r) => ({ fail: t.fail + r.summary.fail, warn: t.warn + r.summary.warn }), { fail: 0, warn: 0 });
+  write(
+    `
+${results.length} file${results.length === 1 ? "" : "s"} checked: ${total.fail} blocking, ${total.warn} warnings. ${failing.length ? `${failing.length} failed (--fail-on ${opts.failOn}).` : "Passed."}
+`
+  );
+  return failing.length ? 1 : 0;
+}
+
 // src/checks/catalog.ts
 var CHECKS = [
   { id: "html.gmail-clipping", severity: "warn", catches: "HTML over ~102 KB, which Gmail clips" },
@@ -52512,6 +52781,13 @@ var CHECKS = [
   { id: "html.unmatched-close", severity: "warn", catches: "Closing tags with no opening tag" },
   { id: "html.img-missing-alt", severity: "warn", catches: "Images without alt text" },
   { id: "html.no-preheader", severity: "info", catches: "No hidden preheader text" },
+  { id: "a11y.no-lang", severity: "warn", catches: "<html> without a lang attribute, so screen readers guess the language" },
+  { id: "a11y.vague-link-text", severity: "warn", catches: 'Links named "click here", "here", "read more" and similar' },
+  { id: "a11y.image-link-no-alt", severity: "warn", catches: "Image-only links with no alt text, which have no name for screen readers" },
+  { id: "a11y.layout-table-role", severity: "info", catches: 'Layout tables without role="presentation"' },
+  { id: "a11y.small-text", severity: "info", catches: "Visible text set under 12px" },
+  { id: "copy.preheader-boilerplate", severity: "warn", catches: 'Inbox preview that reads "View this email in your browser" or similar' },
+  { id: "copy.preheader-repeats-subject", severity: "warn", catches: "Preheader that starts by repeating the subject line" },
   { id: "links.no-unsubscribe", severity: "fail", catches: "No unsubscribe link or tag anywhere in the email" },
   { id: "links.empty-href", severity: "warn", catches: 'Links with href="" or "#"' },
   { id: "links.malformed", severity: "fail", catches: "Links that are not valid URLs" },
@@ -52926,14 +53202,14 @@ function evaluateHealth(s) {
   }
   if (s.uniqueOpens !== void 0) rates.uniqueOpen = pct(s.uniqueOpens / base);
   if (s.uniqueClicks !== void 0) rates.uniqueClick = pct(s.uniqueClicks / base);
-  const verdict = findings.some((f) => f.severity === "fail") ? "act now" : findings.length ? "watch" : "healthy";
-  return { verdict, findings, rates };
+  const verdict2 = findings.some((f) => f.severity === "fail") ? "act now" : findings.length ? "watch" : "healthy";
+  return { verdict: verdict2, findings, rates };
 }
 
 // src/core/ops.ts
-import { readdir as readdir2, readFile as readFile3 } from "node:fs/promises";
+import { readdir as readdir3, readFile as readFile4 } from "node:fs/promises";
 import { userInfo } from "node:os";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 function operatorName() {
   const set3 = process.env.CLO_OPERATOR;
   if (set3 && !set3.startsWith("${")) return set3;
@@ -52949,7 +53225,7 @@ function teamDir() {
 }
 async function readLog(file2) {
   try {
-    return (await readFile3(file2, "utf8")).split("\n").filter(Boolean);
+    return (await readFile4(file2, "utf8")).split("\n").filter(Boolean);
   } catch {
     return [];
   }
@@ -52963,11 +53239,11 @@ async function opsReport(days = 30, minutesPerManualCheck = 20, opts = {}) {
       throw new Error(
         "No team report folder is set. Add one in /plugin configure crm-lifecycle-ops (a shared drive folder everyone can write to)."
       );
-    const files = (await readdir2(dir).catch(() => [])).filter((f) => f.endsWith(".jsonl"));
-    for (const f of files) lines.push(...await readLog(join3(dir, f)));
+    const files = (await readdir3(dir).catch(() => [])).filter((f) => f.endsWith(".jsonl"));
+    for (const f of files) lines.push(...await readLog(join4(dir, f)));
     scope = `team folder (${files.length} operator${files.length === 1 ? "" : "s"})`;
   } else {
-    lines = await readLog(join3(homeDir(), "qa-log.jsonl"));
+    lines = await readLog(join4(homeDir(), "qa-log.jsonl"));
   }
   const since = Date.now() - days * 864e5;
   const entries = lines.map((l) => {
@@ -53031,7 +53307,7 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
   for (const j of snap.journeys)
     for (const s of j.steps) for (const m of s.messageIds) owner.set(m, { name: j.name, active: isActive(j.status) });
   const changes = [];
-  const scan = (where, item, text, active, inside) => {
+  const scan2 = (where, item, text, active, inside) => {
     if (!text) return;
     const hits = [...text.matchAll(pattern)];
     if (hits.length === 0 || opts.activeOnly && !active) return;
@@ -53059,11 +53335,11 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
   };
   for (const m of snap.messages) {
     const o = owner.get(m.id);
-    scan("subject", m.name, m.subject, o?.active ?? false, o?.name);
-    scan("preheader", m.name, m.preheader, o?.active ?? false, o?.name);
-    scan("body", m.name, m.body, o?.active ?? false, o?.name);
+    scan2("subject", m.name, m.subject, o?.active ?? false, o?.name);
+    scan2("preheader", m.name, m.preheader, o?.active ?? false, o?.name);
+    scan2("body", m.name, m.body, o?.active ?? false, o?.name);
   }
-  for (const b of snap.contentBlocks) scan("content block", b.name, b.body, b.usedBy.length > 0);
+  for (const b of snap.contentBlocks) scan2("content block", b.name, b.body, b.usedBy.length > 0);
   return {
     find,
     replace,
@@ -53072,6 +53348,67 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
     tip: changes.some((c) => c.where === "content block") ? "Some matches are in content blocks: editing the block once updates every message that includes it." : void 0,
     applying: "Preview only. Applying edits through the API is turned off until the adapters have been field-tested on real accounts; make the changes in the platform using this list."
   };
+}
+
+// src/core/report.ts
+import { mkdir as mkdir3, writeFile as writeFile3 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+var ICON2 = { fail: "\u{1F534}", warn: "\u{1F7E1}", info: "\u2139\uFE0F" };
+var cell = (s) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
+function verdict(summary) {
+  if (summary.fail) return `\u{1F534} Don't launch: ${summary.fail} blocking problem${summary.fail > 1 ? "s" : ""}`;
+  if (summary.warn) return `\u{1F7E1} Fix first: ${summary.warn} warning${summary.warn > 1 ? "s" : ""}`;
+  return "\u{1F7E2} Ready";
+}
+function signOffMarkdown(r, ctx) {
+  const rows = (findings) => findings.map((f) => `| ${ICON2[f.severity]} ${f.severity} | \`${f.checkId}\` | ${cell(f.message)} | ${cell(f.fix ?? "")} |`).join("\n");
+  const table = (findings) => findings.length ? `| Severity | Check | What we found | Fix |
+|---|---|---|---|
+${rows(findings)}` : "No problems found.";
+  const out = [
+    `# QA sign-off: ${r.name}`,
+    "",
+    `**${verdict(r.summary)}**`,
+    "",
+    `| | |`,
+    `|---|---|`,
+    `| ${r.kind === "journey" ? "Journey" : "Campaign"} | ${cell(r.name)} (\`${r.id}\`, ${r.status}) |`,
+    `| Platform | ${ctx.platform} |`,
+    `| Checked by | ${cell(ctx.operator)}, ${ctx.checkedAt.toISOString().slice(0, 16).replace("T", " ")} UTC |`,
+    `| Account snapshot | ${r.snapshotTakenAt.slice(0, 16).replace("T", " ")} UTC |`,
+    `| Totals | ${r.summary.fail} blocking \xB7 ${r.summary.warn} warnings \xB7 ${r.summary.info} notes, across ${r.messages.length} message${r.messages.length === 1 ? "" : "s"} |`,
+    "",
+    "## Settings and structure",
+    "",
+    table(r.settings)
+  ];
+  for (const m of r.messages) {
+    out.push("", `## ${m.name}  ${verdict(m.summary)}`, "", table(m.findings));
+    if (m.waived?.length) out.push("", "Waived by house rules:", ...m.waived.map((w) => `- \`${w.finding.checkId}\`: ${w.reason}`));
+  }
+  if (r.notVerified.length) out.push("", "## Not verified (check these by hand)", "", ...r.notVerified.map((n) => `- [ ] ${n}`));
+  out.push(
+    "",
+    "## Sign-off",
+    "",
+    "- [ ] Blocking problems fixed, or launch deferred",
+    "- [ ] Warnings fixed or accepted with a reason",
+    "- [ ] Test send reviewed on desktop and mobile",
+    "",
+    "Reviewer: ______________________  Date: __________  Approved to launch: \u2610 Yes \u2610 No",
+    "",
+    `<sub>Generated by crm-lifecycle-ops ${ctx.version}. Pass/fail calls are made by rule-based checks, not AI.</sub>`,
+    ""
+  );
+  return out.join("\n");
+}
+async function saveSignOff(r, markdown, at) {
+  const dir = join5(homeDir(), "reports");
+  await mkdir3(dir, { recursive: true });
+  const slug = r.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || r.id;
+  const path = join5(dir, `${slug}-${at.toISOString().slice(0, 16).replace(/[:T]/g, "-")}.md`);
+  await writeFile3(path, markdown, "utf8");
+  return path;
 }
 
 // src/demo/fernbrook.ts
@@ -54012,6 +54349,11 @@ var TASKS = {
   "test-and-preview": "Preview as a user and send tests",
   "pause-stop-duplicate": "Pause, stop or duplicate"
 };
+var GUIDE_STALE_AFTER_DAYS = 90;
+function guideFreshness(verifiedAt, now = /* @__PURE__ */ new Date()) {
+  const daysAgo = Math.max(0, Math.floor((now.getTime() - (/* @__PURE__ */ new Date(`${verifiedAt}T00:00:00Z`)).getTime()) / 864e5));
+  return { verifiedAt, daysAgo, stale: daysAgo > GUIDE_STALE_AFTER_DAYS };
+}
 
 // src/guides/howto.ts
 var words = (s) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
@@ -54100,6 +54442,11 @@ function howTo(platform, task, rules, snap, ctx = {}) {
   } else {
     reuse.push("No snapshot yet: run /refresh to get suggestions from your account (segments and blocks to reuse, what's live).");
   }
+  const freshness = guideFreshness(guide.verifiedAt);
+  if (freshness.stale)
+    warnings.push(
+      `These ${guide.platform} steps were last checked against the vendor's docs ${freshness.daysAgo} days ago; menus and rules may have moved. Follow the doc links where a step doesn't match what you see, and report it with /report-problem.`
+    );
   return {
     platform: guide.platform,
     task: TASKS[task],
@@ -54117,6 +54464,7 @@ function howTo(platform, task, rules, snap, ctx = {}) {
     ],
     docs: [...procedure.docs, ...guide.personalization.docs],
     verifiedAt: guide.verifiedAt,
+    freshness,
     unverified: guide.unverified
   };
 }
@@ -54124,7 +54472,7 @@ function howTo(platform, task, rules, snap, ctx = {}) {
 // src/mcp/server.ts
 function pluginVersion() {
   try {
-    const manifest = join4(dirname2(fileURLToPath(import.meta.url)), "../.claude-plugin/plugin.json");
+    const manifest = join6(dirname2(fileURLToPath(import.meta.url)), "../.claude-plugin/plugin.json");
     return JSON.parse(readFileSync(manifest, "utf8")).version;
   } catch {
     return "unknown";
@@ -54134,24 +54482,24 @@ var VERSION = pluginVersion();
 async function logRun(entry) {
   const line = JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), operator: operatorName(), ...entry }) + "\n";
   try {
-    await mkdir3(homeDir(), { recursive: true });
-    await appendFile(join4(homeDir(), "qa-log.jsonl"), line);
+    await mkdir4(homeDir(), { recursive: true });
+    await appendFile(join6(homeDir(), "qa-log.jsonl"), line);
   } catch {
   }
   const team = teamDir();
   if (team) {
     try {
-      await mkdir3(team, { recursive: true });
-      await appendFile(join4(team, `${operatorName().replace(/[^\w.-]/g, "_")}.jsonl`), line);
+      await mkdir4(team, { recursive: true });
+      await appendFile(join6(team, `${operatorName().replace(/[^\w.-]/g, "_")}.jsonl`), line);
     } catch {
     }
   }
 }
 async function readEmailFile(path) {
   if (!/\.(html?|txt)$/i.test(path)) throw new Error("Only .html, .htm or .txt files can be checked.");
-  const { size } = await stat(path);
+  const { size } = await stat2(path);
   if (size > 5 * 1024 * 1024) throw new Error("That file is over 5 MB; it doesn't look like an email.");
-  return readFile4(path, "utf8");
+  return readFile5(path, "utf8");
 }
 var json2 = (v) => ({ content: [{ type: "text", text: JSON.stringify(v, null, 2) }] });
 var fail = (text) => ({ isError: true, content: [{ type: "text", text }] });
@@ -54175,13 +54523,19 @@ async function latest(platform, workspace) {
   }
   return latest2;
 }
+if (process.argv[2] === "check") process.exit(await runCheckCli(process.argv.slice(3)));
+if (process.argv[2] === "--version") {
+  console.log(VERSION);
+  process.exit(0);
+}
 var server = new McpServer({ name: "crm-lifecycle-ops", version: VERSION });
 var READS = { readOnlyHint: true, openWorldHint: false };
 var ANNOTATIONS = {
   check_email: { ...READS, openWorldHint: true },
   // optional live link check
   check_message: { ...READS },
-  check_campaign: { ...READS },
+  check_campaign: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  // optional sign-off report file
   list_checks: { ...READS },
   get_house_rules: { ...READS },
   save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
@@ -54308,12 +54662,30 @@ tool(
   {
     title: "Check a campaign or journey",
     description: "QA every message in a campaign or journey (Canvas/flow): emails with content blocks expanded, push, SMS and in-app, plus its settings: audience, conversion events, naming and journey structure (dead ends, unreachable steps).",
-    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: external_exports.string() }
+    inputSchema: {
+      platform: platformArg,
+      workspace: workspaceArg,
+      name_or_id: external_exports.string(),
+      sign_off_report: external_exports.boolean().optional().describe("Also save a Markdown QA sign-off report (findings, what wasn't verified, reviewer sign-off) and return its path.")
+    }
   },
-  async ({ platform, workspace, name_or_id }) => {
+  async ({ platform, workspace, name_or_id, sign_off_report }) => {
     const snap = await latest(platform, workspace);
     const { rules } = await loadRules();
     const result = await checkCampaign(snap, name_or_id, rules);
+    if (sign_off_report && "settings" in result && result.settings && result.messages) {
+      const at = /* @__PURE__ */ new Date();
+      const markdown = signOffMarkdown(result, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
+      const reportPath = await saveSignOff(result, markdown, at);
+      await logRun({
+        tool: "check_campaign",
+        platform,
+        messages: result.messages.length,
+        summary: result.summary,
+        checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId)
+      });
+      return json2({ ...result, signOffReport: { path: reportPath, markdown } });
+    }
     if ("settings" in result && result.settings && result.messages) {
       await logRun({
         tool: "check_campaign",

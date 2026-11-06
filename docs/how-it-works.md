@@ -71,7 +71,9 @@ Real customer data is never used.
 
 **Per channel:**
 - **Email**: HTML structure (Outlook conditional comments, unclosed tables), Gmail's ~102 KB clipping,
-  alt text, preheader, links (staging hosts, `http://`, broken pages, UTM consistency), unsubscribe.
+  alt text, the inbox preview (a missing preheader, one that repeats the subject, or "View in browser"
+  showing instead), links (staging hosts, `http://`, broken pages, UTM consistency), unsubscribe, and
+  accessibility (`lang`, vague or nameless links, layout tables, text under 12px).
 - **Push**: title/body length for the *longest* rendered profile against lock-screen limits, deep-link format and destination.
 - **SMS**: counts billed segments the way carriers do (GSM-7: 160, then 153 per segment; a single
   smart quote or emoji switches to Unicode: 70, then 67), shows the exact character to swap, checks
@@ -144,6 +146,8 @@ Each plan is filled in with the team's specifics:
 - `/what-changed` compares snapshots, so a daily refresh catches unannounced edits.
 - `/watch-launch` pulls delivery numbers and grades bounce, unsubscribe, spam-complaint and delivery
   rates against stated thresholds (e.g. Gmail's guidance to stay under 0.3% spam complaints).
+- `/check-campaign` can save a **QA sign-off report** (Markdown): verdict, every finding, what couldn't be
+  verified, and a reviewer sign-off block, for the launch ticket.
 - `/ops-report` reads a local log of tool runs (check ids and counts, never content): emails checked,
   blocking problems caught, most common issues, weekly trend, estimated hours saved (assumption stated).
 
@@ -155,7 +159,9 @@ Each plan is filled in with the team's specifics:
 - **CI** runs type checks, tests and a build on every change; CodeQL scans for security issues; secret
   scanning blocks committed keys; Dependabot keeps dependencies current.
 - **Vendor drift watch.** A weekly job fingerprints the Braze, Klaviyo and Iterable API specs and opens an
-  issue when one changes.
+  issue when one changes. Vendor *screens* change without an API change, so a monthly job also opens a
+  checklist to re-verify every build and edit guide against its doc links; plans warn users when their guide
+  is more than 90 days past verification.
 - **Auto-fix loop.** A maintainer can label a confirmed wrong-result issue `autofix`; Claude writes the test
   case and the fix as a pull request for human review.
 
@@ -169,6 +175,7 @@ Each plan is filled in with the team's specifics:
 | Confidence label on every dependency | "I can't see this" is better than false confidence |
 | Synthetic test profiles only | No customer data ever leaves the platform |
 | Local snapshots and logs | Nothing is sent to a third-party server |
+| Same engine in Claude and on the command line | `crm-lifecycle-ops check` gives CI pipelines the identical verdicts |
 | House rules, with locked checks | Teams differ on style, not on compliance |
 
 ## 9. Known limits

@@ -227,3 +227,37 @@ describe("shared rules file setting (improvement pass, 2026-11-03)", () => {
     expect(rulesPath()).toBe("/team/drive/rules.json");
   });
 });
+
+describe("QA sign-off report (0.5.2)", () => {
+  it("records the verdict, every finding, what wasn't verified and a sign-off block", async () => {
+    const { checkCampaign } = await import("../src/checks/campaign.js");
+    const { signOffMarkdown } = await import("../src/core/report.js");
+    const r = await checkCampaign(demoSnapshot(), "Price Drop Alert");
+    if (!("settings" in r) || !r.settings || !r.messages) throw new Error("no result");
+    const md = signOffMarkdown(r as never, {
+      platform: "braze",
+      operator: "Sam",
+      checkedAt: new Date("2026-11-06T10:00:00Z"),
+      version: "0.5.2",
+    });
+    expect(md).toMatch(/^# QA sign-off: Price Drop Alert/);
+    expect(md).toContain("🔴 Don't launch");
+    expect(md).toContain("links.non-production-host");
+    expect(md).toContain("Reviewer:");
+    expect(md).toContain("Checked by | Sam, 2026-11-06 10:00 UTC");
+  });
+});
+
+describe("guide freshness (0.5.2)", () => {
+  it("counts days since verification and goes stale after 90", async () => {
+    const { guideFreshness } = await import("../src/guides/types.js");
+    expect(guideFreshness("2026-11-02", new Date("2026-11-06T12:00:00Z"))).toEqual({ verifiedAt: "2026-11-02", daysAgo: 4, stale: false });
+    expect(guideFreshness("2026-01-01", new Date("2026-11-06T12:00:00Z")).stale).toBe(true);
+  });
+  it("plans carry their freshness", async () => {
+    const { howTo } = await import("../src/guides/howto.js");
+    const { DEFAULT_RULES } = await import("../src/core/rules.js");
+    const plan = howTo("braze", "edit-live-journey", DEFAULT_RULES);
+    expect(plan.freshness.verifiedAt).toBe(plan.verifiedAt);
+  });
+});
