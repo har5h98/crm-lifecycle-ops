@@ -4,7 +4,7 @@ import type { Platform } from "../core/model.js";
 import type { Rulebook } from "../core/rules.js";
 import { isActive, type Snapshot } from "../core/snapshot.js";
 import { GUIDES } from "./index.js";
-import { TASKS, type TaskId } from "./types.js";
+import { guideFreshness, TASKS, type TaskId } from "./types.js";
 
 // Builds platform-specific instructions for a task, filled in with this team's house rules and,
 // when a snapshot exists, with this account's real assets: what to reuse, what's live, what a
@@ -126,6 +126,12 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
     reuse.push("No snapshot yet: run /refresh to get suggestions from your account (segments and blocks to reuse, what's live).");
   }
 
+  const freshness = guideFreshness(guide.verifiedAt);
+  if (freshness.stale)
+    warnings.push(
+      `These ${guide.platform} steps were last checked against the vendor's docs ${freshness.daysAgo} days ago; menus and rules may have moved. Follow the doc links where a step doesn't match what you see, and report it with /report-problem.`,
+    );
+
   return {
     platform: guide.platform,
     task: TASKS[task],
@@ -143,6 +149,7 @@ export function howTo(platform: Platform, task: TaskId, rules: Rulebook, snap?: 
     ],
     docs: [...procedure.docs, ...guide.personalization.docs],
     verifiedAt: guide.verifiedAt,
+    freshness,
     unverified: guide.unverified,
   };
 }

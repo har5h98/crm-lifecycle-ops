@@ -1,0 +1,28 @@
+name: Monthly guide review
+# Build and edit guides describe vendor screens, which change without an API change. Once a month,
+# open one checklist issue to re-verify them (skipped if last month's is still open).
+on:
+  schedule: [{ cron: "23 7 1 * *" }]
+  workflow_dispatch:
+permissions: { contents: read, issues: write }
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - id: list
+        run: |
+          if npx tsx scripts/guide-review.ts > review.md; then echo "stale=false" >> "$GITHUB_OUTPUT"; else echo "stale=true" >> "$GITHUB_OUTPUT"; fi
+          cat review.md
+      - env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh label create guide-review --color FBCA04 --description "Monthly re-check of build/edit guides" 2>/dev/null || true
+          if [ "$(gh issue list --label guide-review --state open --json number --jq 'length')" != "0" ]; then
+            echo "Last month's guide review is still open; not opening another."; exit 0
+          fi
+          title="Monthly guide review: $(date -u +%B\ %Y)"
+          [ "${{ steps.list.outputs.stale }}" = "true" ] && title="$title (stale guides)"
+          gh issue create --title "$title" --label guide-review --body-file review.md

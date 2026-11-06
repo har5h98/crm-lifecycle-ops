@@ -28,6 +28,15 @@ export interface Procedure {
   docs: string[];
 }
 
+/** Vendor UIs change without warning; past this, plans say the steps may be out of date. */
+export const GUIDE_STALE_AFTER_DAYS = 90;
+
+/** How long ago a guide was checked against the vendor's docs, and whether that's too long. */
+export function guideFreshness(verifiedAt: string, now = new Date()): { verifiedAt: string; daysAgo: number; stale: boolean } {
+  const daysAgo = Math.max(0, Math.floor((now.getTime() - new Date(`${verifiedAt}T00:00:00Z`).getTime()) / 86_400_000));
+  return { verifiedAt, daysAgo, stale: daysAgo > GUIDE_STALE_AFTER_DAYS };
+}
+
 export interface PlatformGuide {
   platform: Platform;
   /** When these procedures were last checked against the vendor's docs. */
