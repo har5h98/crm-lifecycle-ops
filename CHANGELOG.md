@@ -3,6 +3,13 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.4](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.3...v0.5.4) (2026-11-07)
+
+
+### Bug Fixes
+
+* no false alarms on real Braze, Klaviyo and Iterable templates ([1c2fdbb](https://github.com/har5h98/crm-lifecycle-ops/commit/1c2fdbbe35454b3f94c21e058a256f918ccbbcaf))
+
 ## [0.5.3](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.2...v0.5.3) (2026-11-06)
 
 
