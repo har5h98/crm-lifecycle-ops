@@ -53,3 +53,40 @@ it("--demo checks the bundled sample emails and finds their planted problems", a
   expect(by("weekly-picks.html")).toEqual(expect.arrayContaining(["copy.preheader-boilerplate", "a11y.vague-link-text"]));
   expect(r.code).toBe(1);
 });
+
+it("uses the built-in rules unless a rules file is named, and says which", async () => {
+  const rules = join(dir, "..", `clo-rules-${process.pid}.json`);
+  writeFileSync(rules, JSON.stringify({ severity: { "links.non-production-host": "warn" } }));
+  const saved = process.env.CLO_RULES;
+  delete process.env.CLO_RULES;
+  try {
+    const plain = await run(join(dir, "bad.html"));
+    expect(plain.out).toContain("Rules: built-in defaults");
+    expect(plain.code).toBe(1);
+    const team = await run(join(dir, "bad.html"), "--rules", rules);
+    expect(team.out).toContain(`Rules: ${rules}`);
+    expect(team.code).toBe(0);
+    expect((await run(join(dir, "bad.html"), "--rules", join(dir, "nope.json"))).code).toBe(2);
+  } finally {
+    if (saved === undefined) delete process.env.CLO_RULES;
+    else process.env.CLO_RULES = saved;
+  }
+});
+
+it("says when the template language was guessed", async () => {
+  const r = await run(join(dir, "warn.html"));
+  expect(r.out).toContain("(braze, guessed)");
+  expect((await run(join(dir, "bad.html"))).out).toContain("(klaviyo)");
+});
+
+it("never shows a bare Ready when part of the email couldn't be checked", async () => {
+  const f = join(dir, "..", `clo-cc-${process.pid}.html`);
+  writeFileSync(
+    f,
+    '<html lang="en"><body>{% connected_content https://api.x.com/r :save r %}<p>{{r.title}}</p><a href="{{${set_user_to_unsubscribed_url}}}">Unsubscribe</a></body></html>',
+  );
+  const r = await run(f, "--platform", "braze");
+  expect(r.out).toContain("Ready, except 1 part not checked");
+  expect(r.out).toContain("connected_content");
+  expect(r.code).toBe(0);
+});

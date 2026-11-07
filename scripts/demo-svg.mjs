@@ -31,9 +31,9 @@ for (const raw of run.stdout.split("\n")) {
     continue;
   }
   flushNotes();
-  const file = raw.match(/^(\S+\.html)\s+(✓ Ready|✗ Don't send|! Fix before sending)\s+\((\w+)\)$/u);
+  const file = raw.match(/^(\S+\.html)\s+(✓ Ready|✗ Don't send|! Fix before sending)\s+\(([^)]+)\)$/u);
   if (file) lines.push({ kind: "file", file: file[1].replace(/^examples\/emails\//, ""), verdict: file[2], platform: file[3] });
-  else lines.push({ kind: "summary", text: raw.trim() });
+  else lines.push({ kind: raw.startsWith("Rules:") ? "dim" : "summary", text: raw.trim() });
 }
 flushNotes();
 

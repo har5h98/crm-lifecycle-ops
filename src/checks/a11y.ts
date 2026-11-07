@@ -5,7 +5,8 @@ import type { Finding } from "../core/model.js";
 // clear, mechanical answer; colour contrast needs the rendered email and isn't attempted.
 
 // Link text that says nothing out of context (screen readers list links on their own).
-const VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|read more|more|go|tap here)[.!]?$/i;
+const VAGUE_LINK_TEXT =
+  /^(click( here)?|here|this|this link|link|(read|learn|see|find out|view) more|more|more info|details|go|tap here|start here)[.!…]?$/i;
 // Hidden-preheader tricks use font-size 0 or 1px; anything from 2px to 11px is real text that's too small.
 const MIN_FONT_PX = 12;
 // The first thing an inbox previews when no preheader is set, and it wastes the preview.
@@ -36,10 +37,11 @@ function scan(html: string): Scan {
   let namelessLinks = 0;
   const tiny = new Set<number>();
 
-  // Element stack: is this element hidden, and does it open a link?
-  const stack: { name: string; hidden: boolean }[] = [];
+  // Element stack: is this element hidden, and what font size does it set (inherited by its text)?
+  const stack: { name: string; hidden: boolean; px?: number }[] = [];
   let skipText = 0; // inside <head>, <style>, <script>, <title>
-  let link: { text: string; imgAlt: string[] } | null = null;
+  // imgAlt: each image's alt, or undefined when the attribute is missing (html.img-missing-alt reports those).
+  let link: { text: string; imgAlt: (string | undefined)[] } | null = null;
   let hiddenText: string | undefined;
   let hiddenBuf: string | null = null;
   let hiddenDepth = -1;
@@ -51,7 +53,8 @@ function scan(html: string): Scan {
         const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
         const parentHidden = stack.some((s) => s.hidden);
         const hidden = parentHidden || isHidden(style);
-        stack.push({ name, hidden });
+        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
+        stack.push({ name, hidden, px: size ? Number(size[1]) : undefined });
         if (["head", "style", "script", "title"].includes(name)) skipText++;
         if (name === "html") {
           hasHtmlTag = true;
@@ -59,12 +62,7 @@ function scan(html: string): Scan {
         }
         if (name === "table" && !/^(presentation|none)$/i.test(attrs.role ?? "")) layoutTables++;
         if (name === "a" && attrs.href !== undefined) link = { text: "", imgAlt: [] };
-        if (name === "img" && link) link.imgAlt.push((attrs.alt ?? "").trim());
-        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
-        if (size && !hidden) {
-          const px = Number(size[1]);
-          if (px >= 2 && px < MIN_FONT_PX) tiny.add(px);
-        }
+        if (name === "img" && link) link.imgAlt.push(attrs.alt?.trim());
         if (hidden && !parentHidden && hiddenText === undefined && hiddenBuf === null) {
           hiddenBuf = "";
           hiddenDepth = stack.length;
@@ -72,6 +70,11 @@ function scan(html: string): Scan {
       },
       ontext(text) {
         if (skipText) return;
+        // Small text counts only where there is visible text: spacer cells (font-size:10px with &nbsp;) are fine.
+        if (text.trim() && !stack.some((s) => s.hidden)) {
+          const px = [...stack].reverse().find((s) => s.px !== undefined)?.px;
+          if (px !== undefined && px >= 2 && px < MIN_FONT_PX) tiny.add(px);
+        }
         if (link) link.text += text;
         if (hiddenBuf !== null) hiddenBuf += text;
         else if (!stack.some((s) => s.hidden) && visible.length < 300) visible += text;
@@ -81,7 +84,8 @@ function scan(html: string): Scan {
         if (name === "a" && link) {
           const text = squash(link.text);
           if (text && VAGUE_LINK_TEXT.test(text)) vague.add(text);
-          if (!text && link.imgAlt.length && link.imgAlt.every((a) => !a)) namelessLinks++;
+          // Missing alt attributes are already html.img-missing-alt; this catches alt="" on a link's only content.
+          if (!text && link.imgAlt.length && link.imgAlt.every((a) => a === "")) namelessLinks++;
           link = null;
         }
         if (hiddenBuf !== null && stack.length === hiddenDepth) {
@@ -114,7 +118,7 @@ function scan(html: string): Scan {
     findings.push({
       checkId: "a11y.image-link-no-alt",
       severity: "warn",
-      message: `${namelessLinks} link(s) contain only an image with no alt text, so they have no name for screen readers, or when images are blocked.`,
+      message: `${namelessLinks} link(s) contain only an image marked decorative (alt=""), so they have no name for screen readers, or when images are blocked.`,
       fix: "Give the image alt text that says where the link goes.",
     });
   if (layoutTables)

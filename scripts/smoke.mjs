@@ -64,9 +64,11 @@ const plan = await call("how_to", { platform: "klaviyo", task: "edit-live-journe
 if (!plan.steps?.length) fail("how_to: no steps");
 console.log("✓ how_to");
 
-const signOff = await call("check_campaign", { platform: "braze", name_or_id: "Price Drop Alert", sign_off_report: true });
-if (!signOff.signOffReport?.markdown?.includes("QA sign-off")) fail("check_campaign: no sign-off report");
-console.log("✓ check_campaign sign-off report");
+const readOnly = tools.find((t) => t.name === "check_campaign")?.annotations?.readOnlyHint;
+if (readOnly !== true) fail("check_campaign must stay read-only (the sign-off report has its own tool)");
+const signOff = await call("save_sign_off_report", { platform: "braze", name_or_id: "Price Drop Alert" });
+if (!signOff.markdown?.includes("QA sign-off") || !signOff.path) fail("save_sign_off_report: no report");
+console.log("✓ save_sign_off_report");
 
 await client.close();
 

@@ -28,7 +28,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with: { node-version: 22, registry-url: "https://registry.npmjs.org" }
-      - run: npm install -g npm@latest # trusted publishing needs npm 11.5+
+      # Pinned: this job holds a publishing identity, so nothing it runs should change without a commit.
+      # Trusted publishing needs npm 11.5+; 12.2.2 published 0.5.3.
+      - run: npm install -g npm@12.2.2
       - run: npm ci
       - run: npm run check
       - name: Publish to npm (skipped if this version is already there)
@@ -51,6 +53,9 @@ jobs:
             | jq -e --arg v "$v" '[.servers[] | (.server // .) | select(.version == $v)] | length > 0' >/dev/null; then
             echo "$v is already in the MCP Registry"; exit 0
           fi
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          # Pinned with its checksum (GitHub's asset digest). To upgrade: gh api repos/modelcontextprotocol/registry/releases/latest
+          curl -sSfL -o mcp-publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.8/mcp-publisher_linux_amd64.tar.gz"
+          echo "09f1fa70ee146b640584274a1a6b2b8a0310b05d4321fa9224e6df6a016d67f4  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish

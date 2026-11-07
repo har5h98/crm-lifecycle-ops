@@ -17,7 +17,7 @@ argument-hint: "<campaign or journey name>"
    - **What I couldn't check**, verbatim from `notVerified`.
    - **Waived by house rules**: a one-line count, expandable on request.
 4. **Sign-off report.** Offer once: *"Want a sign-off report for the launch ticket?"* If yes (or if they asked
-   for one up front, e.g. "QA and write it up"), call `check_campaign` again with `sign_off_report: true`. Give
-   the saved path from `signOffReport.path`, and say it's Markdown that pastes into Jira, Slack, Confluence or
+   for one up front, e.g. "QA and write it up"), call `save_sign_off_report` with the same name. Give
+   the saved `path`, and say it's Markdown that pastes into Jira, Slack, Confluence or
    Notion with a reviewer sign-off at the end. Don't paste the whole report into chat unless asked.
 5. If they disagree with a finding: fine for their team → `/house-rules`; tool is wrong → `/report-problem`.

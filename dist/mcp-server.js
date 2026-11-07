@@ -48755,8 +48755,7 @@ function rulesPath() {
   const shared = process.env.CLO_RULES?.trim();
   return shared && !shared.startsWith("${") ? shared : join2(homeDir(), "rules.json");
 }
-async function loadRules() {
-  const path = rulesPath();
+async function loadRules(path = rulesPath()) {
   try {
     return { rules: RulebookSchema.parse(JSON.parse(await readFile2(path, "utf8"))), path, exists: true };
   } catch (e) {
@@ -51088,6 +51087,7 @@ var TEMPLATE_SYNTAX = /\{\{|\{%|\$\{/;
 var NON_PROD_LABEL = /^(localhost|staging|stage|stg|dev|test|qa|uat|sandbox|preview)$|-(staging|stage|dev|test|qa|uat|sandbox|preview)$/;
 var PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
 var CLICK_TRACKING = /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
+var UTILITY_LINK = /unsubscrib|preference|opt-?out|\b(privacy|terms|legal|cookies?|help|support|faq|contact( us)?|account|log ?in|sign ?in)\b|view (this )?(email|message|it )?\s*(in|on) (your |a )?(web )?browser|web ?version|view online/i;
 function extractLinks(html) {
   const links = [];
   let current = null;
@@ -51218,17 +51218,19 @@ function checkLinks(html, opts = {}) {
         evidence: href
       });
     }
-    if (!/unsubscrib|preference/i.test(href + link.text)) {
-      tracked.push({ link, hasUtm: /[?&]utm_source=/i.test(href) });
+    if (!UTILITY_LINK.test(`${href} ${link.text}`)) {
+      tracked.push({ link, domain: registrableDomain(url2.hostname), hasUtm: /[?&]utm_source=/i.test(href) });
     }
   }
-  const withUtm = tracked.filter((t) => t.hasUtm).length;
-  if (withUtm > 0 && withUtm < tracked.length) {
-    const missing = tracked.filter((t) => !t.hasUtm).map((t) => t.link.text || t.link.href);
+  const tagged = new Set(tracked.filter((t) => t.hasUtm).map((t) => t.domain));
+  const comparable = tracked.filter((t) => tagged.has(t.domain));
+  const withUtm = comparable.filter((t) => t.hasUtm).length;
+  if (withUtm > 0 && withUtm < comparable.length) {
+    const missing = comparable.filter((t) => !t.hasUtm).map((t) => t.link.text || t.link.href);
     findings.push({
       checkId: "links.utm-inconsistent",
       severity: "warn",
-      message: `${withUtm} of ${tracked.length} links carry UTM tags; these don't: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "\u2026" : ""}`,
+      message: `${withUtm} of ${comparable.length} links to your site carry UTM tags; these don't: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "\u2026" : ""}`,
       fix: "Tag every tracked link the same way, or attribution for this send will be incomplete."
     });
   }
@@ -51330,22 +51332,27 @@ var KEYWORDS = /* @__PURE__ */ new Set([
   "preference_center"
 ]);
 function normalizeBraze(src) {
-  return src.replace(/\$\{\s*([\w.]+)\s*\}/g, "$1");
+  return src.replace(/\.\$\{\s*([^}]*?\s[^}]*?)\s*\}/g, '["$1"]').replace(/\$\{\s*([\w.]+)\s*\}/g, "$1").replace(/\{%[\s\S]*?%\}/g, (tag) => tag.replace(/\{\{-?\s*([\s\S]*?)\s*-?\}\}/g, "$1"));
 }
 function referencedVariables(src, platform) {
-  const body = platform === "braze" ? normalizeBraze(src) : src;
   const found = /* @__PURE__ */ new Set();
+  let body = src;
+  if (platform === "braze") {
+    for (const m of src.matchAll(/(\w+)\.\$\{\s*([^}]*?\s[^}]*?)\s*\}/g)) found.add(`${m[1]}.${m[2]}`);
+    body = normalizeBraze(src).replace(/[A-Za-z_][\w.]*\["[^"]*"\]/g, " ");
+  }
   const blocks = [
     ...body.matchAll(/\{\{\{?([#^]?)(?!\/)([\s\S]*?)\}?\}\}/g),
-    ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless)\s+([\s\S]*?)-?%\}/g)
+    ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless|case|when|assign\s+\w+\s*=)\s+([\s\S]*?)-?%\}/g)
   ];
   for (const m of blocks) {
     const isLiquidTag = m[0].startsWith("{%");
     let expr = ((isLiquidTag ? m[1] : m[2]) ?? "").replace(/(['"]).*?\1/g, "").split(/\|(?!\|)/)[0] ?? "";
+    const hasHashArgs = /[A-Za-z_]\w*=/.test(expr);
     expr = expr.replace(/\(\s*[A-Za-z_][\w.]*/g, "(").replace(/[A-Za-z_]\w*=/g, " ");
     if (!isLiquidTag && platform === "iterable") {
       const words2 = expr.trim().split(/\s+/);
-      if (words2.length > 1 || m[1] === "#") expr = words2.slice(1).join(" ");
+      if (words2.length > 1 || m[1] === "#" || hasHashArgs) expr = words2.slice(1).join(" ");
     }
     for (const token of expr.match(/[A-Za-z_][\w.]*/g) ?? []) {
       const root = token.split(".")[0] ?? token;
@@ -51534,10 +51541,16 @@ function registerIterableHelpers(hb, notVerified) {
     "dateFormat",
     "replace",
     "truncate",
-    "formatNumber"
+    "formatNumber",
+    "toUpper",
+    "toLower"
   ]) {
     hb.registerHelper(name, (value) => typeof value === "string" || typeof value === "number" ? String(value) : "");
   }
+  hb.registerHelper("now", () => {
+    notVerified.add("Iterable's {{now}} was rendered as a sample date, not the send date.");
+    return "2026";
+  });
   hb.registerHelper("snippet", (name) => {
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
     return "";
@@ -51545,6 +51558,7 @@ function registerIterableHelpers(hb, notVerified) {
   for (const name of ["unsubscribeUrl", "unsubscribeMessageTypeUrl", "hostedUnsubscribeUrl", "viewInBrowserUrl"])
     hb.registerHelper(name, () => `https://links.iterable.com/${name}`);
   hb.registerHelper("helperMissing", function(...args) {
+    if (args.length === 1) return "";
     const opts = args[args.length - 1];
     notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);
     return "";
@@ -51589,6 +51603,10 @@ async function checkPersonalization(source, platform, personas) {
     src = src.replace(/\{%(-?)\s*elif\b/g, "{%$1 elsif");
   }
   if (platform === "iterable") {
+    src = src.replace(/\[\[[\s\S]*?\]\]/g, () => {
+      notVerified.add("Data feed values ([[ \u2026 ]]) weren't fetched; check them in Iterable's preview with a real user.");
+      return "data feed value";
+    });
     for (const m of source.matchAll(/\{\{#?(eq|ifEq|ifNotEq|lt|gt|lte|gte)\s+([A-Za-z_][\w.]*)/g)) {
       findings.push({
         checkId: "personalization.iterable-empty-comparison",
@@ -52335,7 +52353,7 @@ async function checkChannelMessage(input2, rules = DEFAULT_RULES) {
 }
 
 // src/checks/a11y.ts
-var VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|read more|more|go|tap here)[.!]?$/i;
+var VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|(read|learn|see|find out|view) more|more|more info|details|go|tap here|start here)[.!…]?$/i;
 var MIN_FONT_PX = 12;
 var BOILERPLATE = /^(view (this )?(email|message|it) (in|on) (your |a )?(web )?browser|view (in|on) (the )?(web|browser|online)|having trouble (viewing|reading)|can'?t see (this|images)|email not displaying)/i;
 var isHidden = (style) => /display:none|mso-hide:all|visibility:hidden|max-height:0|font-size:[01]px/.test(style);
@@ -52361,7 +52379,8 @@ function scan(html) {
         const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
         const parentHidden = stack.some((s) => s.hidden);
         const hidden = parentHidden || isHidden(style);
-        stack.push({ name, hidden });
+        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
+        stack.push({ name, hidden, px: size ? Number(size[1]) : void 0 });
         if (["head", "style", "script", "title"].includes(name)) skipText++;
         if (name === "html") {
           hasHtmlTag = true;
@@ -52369,12 +52388,7 @@ function scan(html) {
         }
         if (name === "table" && !/^(presentation|none)$/i.test(attrs.role ?? "")) layoutTables++;
         if (name === "a" && attrs.href !== void 0) link = { text: "", imgAlt: [] };
-        if (name === "img" && link) link.imgAlt.push((attrs.alt ?? "").trim());
-        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
-        if (size && !hidden) {
-          const px = Number(size[1]);
-          if (px >= 2 && px < MIN_FONT_PX) tiny.add(px);
-        }
+        if (name === "img" && link) link.imgAlt.push(attrs.alt?.trim());
         if (hidden && !parentHidden && hiddenText === void 0 && hiddenBuf === null) {
           hiddenBuf = "";
           hiddenDepth = stack.length;
@@ -52382,6 +52396,10 @@ function scan(html) {
       },
       ontext(text) {
         if (skipText) return;
+        if (text.trim() && !stack.some((s) => s.hidden)) {
+          const px = [...stack].reverse().find((s) => s.px !== void 0)?.px;
+          if (px !== void 0 && px >= 2 && px < MIN_FONT_PX) tiny.add(px);
+        }
         if (link) link.text += text;
         if (hiddenBuf !== null) hiddenBuf += text;
         else if (!stack.some((s) => s.hidden) && visible.length < 300) visible += text;
@@ -52391,7 +52409,7 @@ function scan(html) {
         if (name === "a" && link) {
           const text = squash(link.text);
           if (text && VAGUE_LINK_TEXT.test(text)) vague.add(text);
-          if (!text && link.imgAlt.length && link.imgAlt.every((a) => !a)) namelessLinks++;
+          if (!text && link.imgAlt.length && link.imgAlt.every((a) => a === "")) namelessLinks++;
           link = null;
         }
         if (hiddenBuf !== null && stack.length === hiddenDepth) {
@@ -52423,7 +52441,7 @@ function scan(html) {
     findings.push({
       checkId: "a11y.image-link-no-alt",
       severity: "warn",
-      message: `${namelessLinks} link(s) contain only an image with no alt text, so they have no name for screen readers, or when images are blocked.`,
+      message: `${namelessLinks} link(s) contain only an image marked decorative (alt=""), so they have no name for screen readers, or when images are blocked.`,
       fix: "Give the image alt text that says where the link goes."
     });
   if (layoutTables)
@@ -52658,11 +52676,14 @@ Checks email HTML with the same rule-based checks as /check-email and exits 1 if
 reaches the --fail-on level.
 
 Options:
-  --platform braze|klaviyo|iterable   Template language (default: detected from the file)
+  --platform braze|klaviyo|iterable   Template language (default: detected from the file; shown as
+                                      "guessed" when nothing in the file gives it away)
   --subject "..."                     Subject line to check with the email
   --preheader "..."                   Preheader to check with the email
   --transactional                     Receipts, password resets: no unsubscribe required
-  --rules <path>                      House rules file (default: the one /setup saved)
+  --rules <path>                      House rules file, e.g. one committed to the repo (default: the
+                                      built-in rules, or CLO_RULES if set). /setup saves yours to
+                                      ~/.crm-lifecycle-ops/rules.json
   --fail-on fail|warn                 Exit 1 on blocking problems only (default) or on warnings too
   --json                              Machine-readable output
   --demo                              Check the sample emails that ship with the package
@@ -52725,11 +52746,11 @@ async function htmlFiles(path) {
   }
   return out.sort();
 }
-function detectPlatform(html) {
+function platformFromSyntax(html) {
   if (/\{\{\s*\$\{|\{\{\s*custom_attribute\.|content_blocks\.\$\{|\babort_message\b/.test(html)) return "braze";
   if (/\{\{\s*person\.|\{%\s*(unsubscribe|manage_preferences|web_view)\b|\|\s*default:\s*'/.test(html)) return "klaviyo";
   if (/\{\{#(if|ifEq|each|unless)\b|\{\{defaultIfEmpty\b|\{\{unsubscribeUrl\}\}/.test(html)) return "iterable";
-  return "braze";
+  return void 0;
 }
 async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
   const opts = parse3(argv);
@@ -52738,8 +52759,25 @@ async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
 `);
     return opts === HELP ? 0 : 2;
   }
-  if (opts.rules) process.env.CLO_RULES = opts.rules;
-  const { rules } = await loadRules();
+  const envRules = process.env.CLO_RULES?.trim();
+  const rulesFile = opts.rules ?? (envRules && !envRules.startsWith("${") ? envRules : void 0);
+  let rules = DEFAULT_RULES;
+  if (rulesFile) {
+    try {
+      const loaded = await loadRules(rulesFile);
+      if (!loaded.exists) {
+        write(`Can't find the rules file ${rulesFile}
+`);
+        return 2;
+      }
+      rules = loaded.rules;
+    } catch (e) {
+      write(`${e.message}
+`);
+      return 2;
+    }
+  }
+  const rulesLabel = rulesFile ? `Rules: ${rulesFile}` : "Rules: built-in defaults (--rules uses your team's file)";
   const files = [];
   for (const p of opts.paths) {
     try {
@@ -52757,32 +52795,41 @@ async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
   const results = [];
   for (const file2 of files) {
     const html = await readFile3(file2, "utf8");
-    const platform = opts.platform ?? detectPlatform(html);
+    const detected = opts.platform ?? platformFromSyntax(html);
+    const platform = detected ?? "braze";
     const r = await checkEmail(
       { html, platform, name: file2, subject: opts.subject, preheader: opts.preheader, transactional: opts.transactional },
       rules
     );
-    results.push({ file: file2, ...r });
+    results.push({ file: file2, platformGuessed: !detected, ...r });
   }
   const failing = results.filter((r) => r.summary.fail > 0 || opts.failOn === "warn" && r.summary.warn > 0);
   if (opts.json) {
-    write(`${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, files: results }, null, 2)}
-`);
+    write(
+      `${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, rules: rulesFile ?? "defaults", files: results }, null, 2)}
+`
+    );
     return failing.length ? 1 : 0;
   }
+  const LINKS_NOTE = /^Links were checked for format and host only/;
+  const unverified = (r) => r.notVerified.filter((n) => !LINKS_NOTE.test(n));
   for (const r of results) {
-    const v = r.summary.fail ? "\u2717 Don't send" : r.summary.warn ? "! Fix before sending" : "\u2713 Ready";
+    const open2 = unverified(r);
+    const v = r.summary.fail ? "\u2717 Don't send" : r.summary.warn ? "! Fix before sending" : open2.length ? `\u2713 Ready, except ${open2.length} part${open2.length > 1 ? "s" : ""} not checked` : "\u2713 Ready";
     const shown = opts.demo ? basename(r.file) : relative(process.cwd(), r.file);
     write(`
-${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform})
+${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform}${r.platformGuessed ? ", guessed" : ""})
 `);
     for (const f of r.findings) write(`  ${ICON[f.severity]} ${`${f.checkId} `.padEnd(38)} ${f.message}
+`);
+    for (const n of open2) write(`  ? ${"not verified ".padEnd(38)} ${n}
 `);
   }
   const total = results.reduce((t, r) => ({ fail: t.fail + r.summary.fail, warn: t.warn + r.summary.warn }), { fail: 0, warn: 0 });
   write(
     `
 ${results.length} file${results.length === 1 ? "" : "s"} checked: ${total.fail} blocking, ${total.warn} warnings. ${failing.length ? `${failing.length} failed (--fail-on ${opts.failOn}).` : "Passed."}
+${rulesLabel}. Links were checked for format and host, not opened.
 `
   );
   return failing.length ? 1 : 0;
@@ -52797,10 +52844,14 @@ var CHECKS = [
   { id: "html.img-missing-alt", severity: "warn", catches: "Images without alt text" },
   { id: "html.no-preheader", severity: "info", catches: "No hidden preheader text" },
   { id: "a11y.no-lang", severity: "warn", catches: "<html> without a lang attribute, so screen readers guess the language" },
-  { id: "a11y.vague-link-text", severity: "warn", catches: 'Links named "click here", "here", "read more" and similar' },
-  { id: "a11y.image-link-no-alt", severity: "warn", catches: "Image-only links with no alt text, which have no name for screen readers" },
+  { id: "a11y.vague-link-text", severity: "warn", catches: 'Links named "click here", "read more", "learn more", "details" and similar' },
+  {
+    id: "a11y.image-link-no-alt",
+    severity: "warn",
+    catches: 'Image-only links whose image is marked decorative (alt=""), so the link has no name for screen readers'
+  },
   { id: "a11y.layout-table-role", severity: "info", catches: 'Layout tables without role="presentation"' },
-  { id: "a11y.small-text", severity: "info", catches: "Visible text set under 12px" },
+  { id: "a11y.small-text", severity: "info", catches: "Visible text set under 12px (spacer cells with no text are ignored)" },
   { id: "copy.preheader-boilerplate", severity: "warn", catches: 'Inbox preview that reads "View this email in your browser" or similar' },
   { id: "copy.preheader-repeats-subject", severity: "warn", catches: "Preheader that starts by repeating the subject line" },
   { id: "links.no-unsubscribe", severity: "fail", catches: "No unsubscribe link or tag anywhere in the email" },
@@ -52809,7 +52860,11 @@ var CHECKS = [
   { id: "links.non-production-host", severity: "fail", catches: "Links to staging, dev, test, localhost or example.com hosts" },
   { id: "links.relative", severity: "warn", catches: "Relative links (/path), which don't work in an inbox" },
   { id: "links.insecure-http", severity: "warn", catches: "Links using http:// instead of https://" },
-  { id: "links.utm-inconsistent", severity: "warn", catches: "Some tracked links carry UTM tags and others don't" },
+  {
+    id: "links.utm-inconsistent",
+    severity: "warn",
+    catches: "Some links to your site carry UTM tags and others don't (social links and footer pages like privacy or help are ignored)"
+  },
   { id: "links.broken", severity: "fail", catches: "Links that return HTTP 4xx/5xx (live check only)" },
   { id: "personalization.syntax-error", severity: "fail", catches: "Template syntax that doesn't parse" },
   { id: "personalization.render-error", severity: "fail", catches: "Templates that throw while rendering for a persona" },
@@ -54549,8 +54604,8 @@ var ANNOTATIONS = {
   check_email: { ...READS, openWorldHint: true },
   // optional live link check
   check_message: { ...READS },
-  check_campaign: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  // optional sign-off report file
+  check_campaign: { ...READS },
+  save_sign_off_report: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   list_checks: { ...READS },
   get_house_rules: { ...READS },
   save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
@@ -54680,27 +54735,13 @@ tool(
     inputSchema: {
       platform: platformArg,
       workspace: workspaceArg,
-      name_or_id: external_exports.string(),
-      sign_off_report: external_exports.boolean().optional().describe("Also save a Markdown QA sign-off report (findings, what wasn't verified, reviewer sign-off) and return its path.")
+      name_or_id: external_exports.string()
     }
   },
-  async ({ platform, workspace, name_or_id, sign_off_report }) => {
+  async ({ platform, workspace, name_or_id }) => {
     const snap = await latest(platform, workspace);
     const { rules } = await loadRules();
     const result = await checkCampaign(snap, name_or_id, rules);
-    if (sign_off_report && "settings" in result && result.settings && result.messages) {
-      const at = /* @__PURE__ */ new Date();
-      const markdown = signOffMarkdown(result, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
-      const reportPath = await saveSignOff(result, markdown, at);
-      await logRun({
-        tool: "check_campaign",
-        platform,
-        messages: result.messages.length,
-        summary: result.summary,
-        checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId)
-      });
-      return json2({ ...result, signOffReport: { path: reportPath, markdown } });
-    }
     if ("settings" in result && result.settings && result.messages) {
       await logRun({
         tool: "check_campaign",
@@ -54711,6 +54752,24 @@ tool(
       });
     }
     return json2(result);
+  }
+);
+tool(
+  "save_sign_off_report",
+  {
+    title: "Save a QA sign-off report",
+    description: "Re-run the campaign check and save the result as a Markdown QA sign-off report (verdict, findings per message, what wasn't verified, reviewer sign-off) under ~/.crm-lifecycle-ops/reports/. Returns the path and the Markdown. Use after check_campaign when someone wants a record for a launch ticket.",
+    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: external_exports.string() }
+  },
+  async ({ platform, workspace, name_or_id }) => {
+    const snap = await latest(platform, workspace);
+    const { rules } = await loadRules();
+    const result = await checkCampaign(snap, name_or_id, rules);
+    if (!("settings" in result && result.settings && result.messages)) return json2(result);
+    const at = /* @__PURE__ */ new Date();
+    const markdown = signOffMarkdown(result, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
+    const path = await saveSignOff(result, markdown, at);
+    return json2({ path, verdict: result.summary, markdown });
   }
 );
 tool(
@@ -54945,7 +55004,20 @@ tool(
   async ({ platform, workspace, kind, value }) => {
     const snap = await latest(platform, workspace);
     await logRun({ tool: "what_breaks", platform });
-    return json2({ snapshotTakenAt: snap.takenAt, ...whatBreaks(snap, kind, value) });
+    const r = whatBreaks(snap, kind, value);
+    const live = r.dependents.filter((d) => d.active);
+    const rest = r.dependents.filter((d) => !d.active);
+    const dependents = [...live.slice(0, 150), ...rest.slice(0, 50)];
+    const truncated = dependents.length < r.dependents.length || r.unknown.length > 100;
+    return json2({
+      snapshotTakenAt: snap.takenAt,
+      ...r,
+      dependents,
+      unknown: r.unknown.slice(0, 100),
+      ...truncated ? {
+        truncated: "Lists are capped (150 live, 50 inactive, 100 can't-rule-out); summary has the full counts. Narrow it with list_items."
+      } : {}
+    });
   }
 );
 tool(

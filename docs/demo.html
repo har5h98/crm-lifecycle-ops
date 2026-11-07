@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- Source for docs/demo.png. Regenerate after changing what the demo shows:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --hide-scrollbars \
+       --window-size=1200,764 --screenshot=docs/demo.png docs/demo.html
+     Every line is real output from the demo account (/refresh demo). -->
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&family=JetBrains+Mono:wght@400;700&display=block" rel="stylesheet">
+<style>
+  body { margin: 0; width: 1200px; height: 764px; background: #F4F3EE; font-family: "JetBrains Mono", monospace; }
+  .win { position: absolute; left: 40px; top: 40px; width: 1120px; height: 684px; background: #16181D; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+  .bar { height: 44px; background: #22252C; display: flex; gap: 8px; align-items: center; padding-left: 20px; }
+  .bar i { width: 12px; height: 12px; border-radius: 50%; background: #4A4E57; display: block; }
+  .body { padding: 22px 32px; color: #E6E7EA; font-size: 17px; }
+  .cmd { margin: 14px 0 10px; } .cmd b { color: #F28B5E; font-weight: 400; margin-right: 10px; }
+  h2 { font-family: "DM Sans", sans-serif; font-size: 21px; margin: 0 0 18px; }
+  p { margin: 0 0 7px; white-space: nowrap; } .dim { color: #8A8F99; } strong { font-weight: 700; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-weight: 700; font-size: 15px; margin-right: 8px; color: #16181D; }
+  .fail { background: #8F2D1B; color: #F6D9D2; } .warn { background: #F2C14E; } .note { background: #F2C14E; }
+  .gap { height: 18px; }
+</style></head><body><div class="win"><div class="bar"><i></i><i></i><i></i></div><div class="body">
+<p class="cmd"><b>›</b>/check-campaign Price Drop Alert</p>
+<h2>🔴 Don't send — 1 blocking problem</h2>
+<p><span class="tag fail">FAIL</span>"See items" links to <strong>staging.fernbrook.example</strong> <span class="dim">links.non-production-host</span></p>
+<p><span class="tag warn">WARN</span>Someone with no first name on file sees <strong>"Hi ,"</strong> <span class="dim">personalization.dangling-punctuation</span></p>
+<p><span class="tag warn">WARN</span>1 image has no alt text, so it's invisible to screen readers <span class="dim">html.img-missing-alt</span></p>
+<div class="gap"></div>
+<p class="cmd"><b>›</b>/what-breaks loyalty_tier</p>
+<h2>Changing it affects 2 live programs</h2>
+<p>Weekend Deals Blast · uses {{loyalty_tier}} in the body <span class="dim">read from the template</span></p>
+<p>Win-back · targets a segment that filters on it <span class="dim">seen on screen</span></p>
+<p>Can't rule out: 5 live items whose targeting Braze's API hides</p>
+<div class="gap"></div>
+<p class="cmd"><b>›</b>/edit-plan change the footer in Weekend Deals Blast</p>
+<h2>Before you start</h2>
+<p><span class="tag note">NOTE</span>footer_v2 is also in 3 other live programs: Price Drop Alert, Welcome Series, Win-back</p>
+<p>1. Content › Content Block › open footer_v2 <span class="dim">Braze, verified against the docs</span></p>
+<p>2. More › Duplicate first, so you can test the change as a draft</p>
+<p>3. Launch Content Block: every message that includes it updates at once</p>
+</div></div></body></html>

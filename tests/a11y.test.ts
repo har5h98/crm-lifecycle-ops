@@ -21,6 +21,14 @@ describe("accessibility", () => {
   });
 });
 
+it("ignores spacer cells, counts inherited sizes, and leaves missing alt to html.img-missing-alt", () => {
+  const lang = (b: string) => `<html lang="en"><body>${b}</body></html>`;
+  expect(checkAccessibility(lang('<div style="font-size:10px;line-height:10px">&nbsp;</div><p>Hi</p>'))).toEqual([]);
+  expect(ids(checkAccessibility(lang('<div style="font-size:10px"><span>Terms apply</span></div>')))).toEqual(["a11y.small-text"]);
+  expect(checkAccessibility(lang('<a href="https://x.com"><img src="a.png"></a>'))).toEqual([]);
+  expect(ids(checkAccessibility(lang('<a href="https://x.com">Learn more</a>')))).toEqual(["a11y.vague-link-text"]);
+});
+
 describe("preheader", () => {
   it("reads the hidden preheader, and the first visible text when there isn't one", () => {
     expect(previewText('<div style="display:none">Ends Sunday</div><p>Hi there</p>')).toEqual({

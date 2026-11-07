@@ -1,7 +1,7 @@
 # crm-lifecycle-ops
 
-**The AI copilot for lifecycle and CRM operations on Braze, Klaviyo and Iterable.**
-Ship campaigns faster. Break nothing that's live.
+**Pre-send QA for Braze, Klaviyo and Iterable.** Every email, text, push and in-app message is checked by code,
+as every kind of customer, before it goes out. Then, in your live account: what a change will break, and how to build it.
 
 [![CI](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/har5h98/crm-lifecycle-ops/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/har5h98/crm-lifecycle-ops)](https://github.com/har5h98/crm-lifecycle-ops/releases)
@@ -10,8 +10,9 @@ Ship campaigns faster. Break nothing that's live.
 
 <p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /what-breaks listing live programs that use loyalty_tier, and /edit-plan warning that a footer block is shared by three other live programs before giving Braze steps" width="820"></p>
 
-A Claude Code plugin for lifecycle, CRM and marketing-ops teams who build campaigns by hand.
-It knows your live account and your team's rules. It is **read-only**: it never sends or edits anything.
+A Claude Code plugin (and a CLI for CI) for lifecycle, CRM and marketing-ops teams who build campaigns by hand.
+The message checks work fully today; the live-account features are early alpha (see the status column below).
+It is **read-only**: it never sends or edits anything.
 
 ## Try it in 30 seconds
 
@@ -81,7 +82,9 @@ Leave `env` out to use the demo account. Every setting is listed in [`server.jso
 <summary><b>Check email templates in CI</b></summary>
 
 The same checks run from a terminal, so a pipeline can stop a broken email before anyone launches it. It
-exits 1 on a blocking problem (or on warnings too, with `--fail-on warn`), and uses your house rules.
+exits 1 on a blocking problem (or on warnings too, with `--fail-on warn`). It uses the built-in rules unless you
+pass a rules file, so it gives the same verdict on every machine; commit your team's file (the one `/setup`
+saves to `~/.crm-lifecycle-ops/rules.json`) and point at it:
 
 ```bash
 npx crm-lifecycle-ops check emails/ --rules team-rules.json
@@ -95,11 +98,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npx -y crm-lifecycle-ops check emails/
+      - run: npx -y crm-lifecycle-ops@0.5 check emails/ # pin a version so new checks don't change your build
 ```
 
 `--help` lists the options (`--platform`, `--subject`, `--transactional`, `--json`). The template language is
-detected per file.
+detected per file; the output says "guessed" when nothing in a file gives it away, so pass `--platform` then.
 
 </details>
 
@@ -115,8 +118,8 @@ Real output from the demo account:
 
 fail  links.non-production-host        "See items" points at staging.fernbrook.example
 warn  personalization.dangling-punct.  Someone with no first name on file sees "Hi ,"
-warn  links.utm-inconsistent           1 of 2 links carry UTM tags; "Help" doesn't
 warn  html.img-missing-alt             1 image has no alt text
+warn  a11y.no-lang                     No lang attribute, so screen readers guess the language
 
 /check-sms Flash Sale Text                🟡 Fix before sending
 

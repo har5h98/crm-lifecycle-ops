@@ -15,6 +15,10 @@ const PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
 const CLICK_TRACKING =
   /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
 
+// Footer and account links that teams don't tag: unsubscribe and preferences, legal, help, the web version.
+const UTILITY_LINK =
+  /unsubscrib|preference|opt-?out|\b(privacy|terms|legal|cookies?|help|support|faq|contact( us)?|account|log ?in|sign ?in)\b|view (this )?(email|message|it )?\s*(in|on) (your |a )?(web )?browser|web ?version|view online/i;
+
 export function extractLinks(html: string): Link[] {
   const links: Link[] = [];
   let current: Link | null = null;
@@ -117,7 +121,7 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
       });
   }
 
-  const tracked: { link: Link; hasUtm: boolean }[] = [];
+  const tracked: { link: Link; domain: string; hasUtm: boolean }[] = [];
   for (const link of links) {
     const { href } = link;
     const label = link.text || "(no link text)";
@@ -170,19 +174,22 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
         evidence: href,
       });
     }
-    if (!/unsubscrib|preference/i.test(href + link.text)) {
-      tracked.push({ link, hasUtm: /[?&]utm_source=/i.test(href) });
+    if (!UTILITY_LINK.test(`${href} ${link.text}`)) {
+      tracked.push({ link, domain: registrableDomain(url.hostname), hasUtm: /[?&]utm_source=/i.test(href) });
     }
   }
 
   // Mixed tagging is almost always a copy-paste miss; all-or-nothing is a team convention we can't judge.
-  const withUtm = tracked.filter((t) => t.hasUtm).length;
-  if (withUtm > 0 && withUtm < tracked.length) {
-    const missing = tracked.filter((t) => !t.hasUtm).map((t) => t.link.text || t.link.href);
+  // Only links to the same sites as the tagged ones count: nobody tags an Instagram or app-store link.
+  const tagged = new Set(tracked.filter((t) => t.hasUtm).map((t) => t.domain));
+  const comparable = tracked.filter((t) => tagged.has(t.domain));
+  const withUtm = comparable.filter((t) => t.hasUtm).length;
+  if (withUtm > 0 && withUtm < comparable.length) {
+    const missing = comparable.filter((t) => !t.hasUtm).map((t) => t.link.text || t.link.href);
     findings.push({
       checkId: "links.utm-inconsistent",
       severity: "warn",
-      message: `${withUtm} of ${tracked.length} links carry UTM tags; these don't: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "…" : ""}`,
+      message: `${withUtm} of ${comparable.length} links to your site carry UTM tags; these don't: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "…" : ""}`,
       fix: "Tag every tracked link the same way, or attribution for this send will be incomplete.",
     });
   }

@@ -128,8 +128,7 @@ export function rulesPath(): string {
   return shared && !shared.startsWith("${") ? shared : join(homeDir(), "rules.json");
 }
 
-export async function loadRules(): Promise<{ rules: Rulebook; path: string; exists: boolean }> {
-  const path = rulesPath();
+export async function loadRules(path = rulesPath()): Promise<{ rules: Rulebook; path: string; exists: boolean }> {
   try {
     return { rules: RulebookSchema.parse(JSON.parse(await readFile(path, "utf8"))), path, exists: true };
   } catch (e) {

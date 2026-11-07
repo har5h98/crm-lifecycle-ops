@@ -120,7 +120,8 @@ const READS = { readOnlyHint: true, openWorldHint: false };
 const ANNOTATIONS: Record<string, ToolAnnotations> = {
   check_email: { ...READS, openWorldHint: true }, // optional live link check
   check_message: { ...READS },
-  check_campaign: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, // optional sign-off report file
+  check_campaign: { ...READS },
+  save_sign_off_report: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   list_checks: { ...READS },
   get_house_rules: { ...READS },
   save_house_rules: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
@@ -279,29 +280,12 @@ tool(
       platform: platformArg,
       workspace: workspaceArg,
       name_or_id: z.string(),
-      sign_off_report: z
-        .boolean()
-        .optional()
-        .describe("Also save a Markdown QA sign-off report (findings, what wasn't verified, reviewer sign-off) and return its path."),
     },
   },
-  async ({ platform, workspace, name_or_id, sign_off_report }) => {
+  async ({ platform, workspace, name_or_id }) => {
     const snap = await latest(platform, workspace);
     const { rules } = await loadRules();
     const result = await checkCampaign(snap, name_or_id, rules);
-    if (sign_off_report && "settings" in result && result.settings && result.messages) {
-      const at = new Date();
-      const markdown = signOffMarkdown(result as CampaignResult, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
-      const reportPath = await saveSignOff(result as CampaignResult, markdown, at);
-      await logRun({
-        tool: "check_campaign",
-        platform,
-        messages: result.messages.length,
-        summary: result.summary,
-        checkIds: [...result.settings, ...result.messages.flatMap((m) => m.findings)].map((f) => f.checkId),
-      });
-      return json({ ...result, signOffReport: { path: reportPath, markdown } });
-    }
     if ("settings" in result && result.settings && result.messages) {
       await logRun({
         tool: "check_campaign",
@@ -312,6 +296,27 @@ tool(
       });
     }
     return json(result);
+  },
+);
+
+// Kept apart from check_campaign so the check itself stays read-only: this is the one QA tool that writes a file.
+tool(
+  "save_sign_off_report",
+  {
+    title: "Save a QA sign-off report",
+    description:
+      "Re-run the campaign check and save the result as a Markdown QA sign-off report (verdict, findings per message, what wasn't verified, reviewer sign-off) under ~/.crm-lifecycle-ops/reports/. Returns the path and the Markdown. Use after check_campaign when someone wants a record for a launch ticket.",
+    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
+  },
+  async ({ platform, workspace, name_or_id }) => {
+    const snap = await latest(platform, workspace);
+    const { rules } = await loadRules();
+    const result = await checkCampaign(snap, name_or_id, rules);
+    if (!("settings" in result && result.settings && result.messages)) return json(result); // candidates / not found
+    const at = new Date();
+    const markdown = signOffMarkdown(result as CampaignResult, { platform, operator: operatorName(), checkedAt: at, version: VERSION });
+    const path = await saveSignOff(result as CampaignResult, markdown, at);
+    return json({ path, verdict: result.summary, markdown });
   },
 );
 
@@ -578,7 +583,25 @@ tool(
   async ({ platform, workspace, kind, value }) => {
     const snap = await latest(platform, workspace);
     await logRun({ tool: "what_breaks", platform });
-    return json({ snapshotTakenAt: snap.takenAt, ...whatBreaks(snap, kind, value) });
+    // In a real account, first_name is in nearly every message; cap the lists so one answer can't flood
+    // the conversation. Live items come first and the summary keeps the full counts.
+    const r = whatBreaks(snap, kind, value);
+    const live = r.dependents.filter((d) => d.active);
+    const rest = r.dependents.filter((d) => !d.active);
+    const dependents = [...live.slice(0, 150), ...rest.slice(0, 50)];
+    const truncated = dependents.length < r.dependents.length || r.unknown.length > 100;
+    return json({
+      snapshotTakenAt: snap.takenAt,
+      ...r,
+      dependents,
+      unknown: r.unknown.slice(0, 100),
+      ...(truncated
+        ? {
+            truncated:
+              "Lists are capped (150 live, 50 inactive, 100 can't-rule-out); summary has the full counts. Narrow it with list_items.",
+          }
+        : {}),
+    });
   },
 );
 

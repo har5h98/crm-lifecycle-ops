@@ -62,27 +62,40 @@ const KEYWORDS = new Set([
 
 /** Braze writes standard attributes as {{${first_name}}}; strip the ${} so Liquid can read them. */
 function normalizeBraze(src: string): string {
-  return src.replace(/\$\{\s*([\w.]+)\s*\}/g, "$1");
+  return (
+    src
+      // Attribute names can contain spaces (custom_attribute.${Favorite Color}); Liquid reads those as ["…"].
+      .replace(/\.\$\{\s*([^}]*?\s[^}]*?)\s*\}/g, '["$1"]')
+      .replace(/\$\{\s*([\w.]+)\s*\}/g, "$1")
+      // Braze accepts output tags inside logic tags ({% assign t = {{custom_attribute.${tier}}} %}); standard
+      // Liquid doesn't, so unwrap them to the plain expression before parsing.
+      .replace(/\{%[\s\S]*?%\}/g, (tag) => tag.replace(/\{\{-?\s*([\s\S]*?)\s*-?\}\}/g, "$1"))
+  );
 }
 
 export function referencedVariables(src: string, platform: Platform): string[] {
-  const body = platform === "braze" ? normalizeBraze(src) : src;
   const found = new Set<string>();
+  let body = src;
+  if (platform === "braze") {
+    for (const m of src.matchAll(/(\w+)\.\$\{\s*([^}]*?\s[^}]*?)\s*\}/g)) found.add(`${m[1]}.${m[2]}`);
+    body = normalizeBraze(src).replace(/[A-Za-z_][\w.]*\["[^"]*"\]/g, " "); // already recorded above
+  }
   // Closing tags ({{/ifEq}}) and else markers carry no data.
   const blocks = [
     ...body.matchAll(/\{\{\{?([#^]?)(?!\/)([\s\S]*?)\}?\}\}/g),
-    ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless)\s+([\s\S]*?)-?%\}/g),
+    ...body.matchAll(/\{%-?\s*(?:if|elsif|elif|unless|case|when|assign\s+\w+\s*=)\s+([\s\S]*?)-?%\}/g),
   ];
   for (const m of blocks) {
     const isLiquidTag = m[0].startsWith("{%");
     // Drop quoted strings and Liquid filters ("| default: 'x'") before picking identifiers.
     let expr = ((isLiquidTag ? m[1] : m[2]) ?? "").replace(/(['"]).*?\1/g, "").split(/\|(?!\|)/)[0] ?? "";
+    const hasHashArgs = /[A-Za-z_]\w*=/.test(expr); // {{now format="yyyy"}}: "now" is a helper
     // Handlebars helpers: in {{helper arg …}}, {{#helper arg}} and (helper arg) the first word is the
     // helper's name, not customer data. A lone word ({{firstName}}) is data.
     expr = expr.replace(/\(\s*[A-Za-z_][\w.]*/g, "(").replace(/[A-Za-z_]\w*=/g, " ");
     if (!isLiquidTag && platform === "iterable") {
       const words = expr.trim().split(/\s+/);
-      if (words.length > 1 || m[1] === "#") expr = words.slice(1).join(" ");
+      if (words.length > 1 || m[1] === "#" || hasHashArgs) expr = words.slice(1).join(" ");
     }
     for (const token of expr.match(/[A-Za-z_][\w.]*/g) ?? []) {
       const root = token.split(".")[0] ?? token;
@@ -299,9 +312,15 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
     "replace",
     "truncate",
     "formatNumber",
+    "toUpper",
+    "toLower",
   ]) {
     hb.registerHelper(name, (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : ""));
   }
+  hb.registerHelper("now", () => {
+    notVerified.add("Iterable's {{now}} was rendered as a sample date, not the send date.");
+    return "2026";
+  });
   hb.registerHelper("snippet", (name: unknown) => {
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
     return "";
@@ -310,6 +329,8 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
   for (const name of ["unsubscribeUrl", "unsubscribeMessageTypeUrl", "hostedUnsubscribeUrl", "viewInBrowserUrl"])
     hb.registerHelper(name, () => `https://links.iterable.com/${name}`);
   hb.registerHelper("helperMissing", function (...args: unknown[]) {
+    // {{email}} with no arguments is a field this profile doesn't have, not a helper: blanks are judged per profile.
+    if (args.length === 1) return "";
     const opts = args[args.length - 1] as { name: string };
     notVerified.add(`Iterable helper "${opts.name}" is not emulated locally.`);
     return "";
@@ -373,6 +394,11 @@ export async function checkPersonalization(source: string, platform: Platform, p
   }
 
   if (platform === "iterable") {
+    // Data feeds can use the alternative [[ ]] syntax; their values come from the feed at send time.
+    src = src.replace(/\[\[[\s\S]*?\]\]/g, () => {
+      notVerified.add("Data feed values ([[ … ]]) weren't fetched; check them in Iterable's preview with a real user.");
+      return "data feed value";
+    });
     // In Iterable, eq/ifEq/lt/gt on an empty or missing field fails the template, and the message
     // isn't sent to that person at all. Fields wrapped in defaultIfEmpty are safe.
     for (const m of source.matchAll(/\{\{#?(eq|ifEq|ifNotEq|lt|gt|lte|gte)\s+([A-Za-z_][\w.]*)/g)) {
