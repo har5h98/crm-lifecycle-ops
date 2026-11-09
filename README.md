@@ -8,7 +8,9 @@ as every kind of customer, before it goes out. Then, in your live account: what 
 ![Status: early alpha](https://img.shields.io/badge/status-early%20alpha-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /what-breaks listing live programs that use loyalty_tier, and /edit-plan warning that a footer block is shared by three other live programs before giving Braze steps" width="820"></p>
+The 80-second demo (sound on):
+
+https://github.com/user-attachments/assets/dc4e632c-f71e-43d5-8451-6e2a67b6471e
 
 A Claude Code plugin (and a CLI for CI) for lifecycle, CRM and marketing-ops teams who build campaigns by hand.
 The message checks work fully today; the live-account features are early alpha (see the status column below).
@@ -110,6 +112,8 @@ detected per file; the output says "guessed" when nothing in a file gives it awa
 > field-tested on real accounts yet. If a result looks wrong, `/report-problem` turns it into a test and a fix.
 
 ## Example
+
+<p align="center"><img src="https://raw.githubusercontent.com/har5h98/crm-lifecycle-ops/main/docs/demo.png" alt="Terminal showing /check-campaign flagging a staging link and a blank first name, /what-breaks listing live programs that use loyalty_tier, and /edit-plan warning that a footer block is shared by three other live programs before giving Braze steps" width="820"></p>
 
 Real output from the demo account:
 
