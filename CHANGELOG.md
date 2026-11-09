@@ -3,6 +3,13 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.5](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.4...v0.5.5) (2026-11-09)
+
+
+### Miscellaneous Chores
+
+* release 0.5.5 so npm shows the demo film ([04b6576](https://github.com/har5h98/crm-lifecycle-ops/commit/04b6576e8588f2c72d1d4e61bf0cace7b5938ad8))
+
 ## [0.5.4](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.3...v0.5.4) (2026-11-07)
 
 
