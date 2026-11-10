@@ -12,7 +12,7 @@
       "name": "crm-lifecycle-ops",
       "source": "./",
       "description": "Pre-send QA for Braze, Klaviyo and Iterable: every email, text, push and in-app message is checked by code, as every kind of customer, before it goes out. Then, in your live account: what a change will break, and how to build it.",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "author": {
         "name": "Harsh Singhal"
       },
@@ -20,7 +20,14 @@
       "repository": "https://github.com/har5h98/crm-lifecycle-ops",
       "license": "MIT",
       "category": "marketing",
-      "tags": ["lifecycle-marketing", "crm", "marketing-operations", "braze", "klaviyo", "iterable"]
+      "tags": [
+        "lifecycle-marketing",
+        "crm",
+        "marketing-operations",
+        "braze",
+        "klaviyo",
+        "iterable"
+      ]
     }
   ]
 }

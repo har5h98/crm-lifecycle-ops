@@ -8,12 +8,12 @@
     "source": "github"
   },
   "websiteUrl": "https://github.com/har5h98/crm-lifecycle-ops",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "crm-lifecycle-ops",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "transport": {
         "type": "stdio"
       },
