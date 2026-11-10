@@ -1,3 +1,5 @@
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { Parser } from "htmlparser2";
 import type { Finding } from "../core/model.js";
 
@@ -7,10 +9,19 @@ export interface Link {
 }
 
 const TEMPLATE_SYNTAX = /\{\{|\{%|\$\{/;
-// Host labels that almost always mean "not production". Matched per dot-separated label, so
-// "staging.brand.com" and "brand-dev.com" are caught but "devon.co.uk" is not.
-const NON_PROD_LABEL = /^(localhost|staging|stage|stg|dev|test|qa|uat|sandbox|preview)$|-(staging|stage|dev|test|qa|uat|sandbox|preview)$/;
+// Host labels that almost always mean "not production". Matched per dot-separated subdomain label, so
+// "staging.brand.com" and "qa-shop.brand.com" are caught but "devon.co.uk" is not.
+const ENV = "staging|stage|stg|dev|test|qa|uat|sandbox|preview";
+const NON_PROD_LABEL = new RegExp(`^(localhost|${ENV})$|-(${ENV})$|^(${ENV})-`);
+// The same words hyphenated onto the domain itself ("brand-dev.com", "qa-brand.com"). Usually a test site,
+// but real brands exist with such names, so this is a warning the team can waive, not a blocker.
+const NON_PROD_DOMAIN_LABEL = /-(staging|stg|dev|qa|uat|sandbox)$|^(staging|stg|dev|qa|uat|sandbox)-/;
 const PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
+// Tunnels to someone's laptop: never a real destination.
+const TUNNEL_HOSTS = ["ngrok.io", "ngrok.app", "ngrok.dev", "ngrok-free.app", "ngrok-free.dev", "loca.lt", "trycloudflare.com"];
+// Hosting platforms' default addresses: usually a preview deploy, sometimes a small brand's real site.
+const PREVIEW_HOSTS = ["vercel.app", "netlify.app", "herokuapp.com"];
+const under = (h: string, domains: string[]) => domains.some((d) => h === d || h.endsWith(`.${d}`));
 // Click-tracking redirect hosts used by common ESPs (Braze/SendGrid/SparkPost/Klaviyo/Iterable/Mailchimp).
 const CLICK_TRACKING =
   /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
@@ -75,15 +86,69 @@ export function registrableDomain(host: string): string {
   return labels.slice(-n).join(".");
 }
 
+/** An address only reachable from inside a network or the machine itself (also what the live check refuses to request). */
+export function isPrivateAddress(address: string): boolean {
+  const a = address.toLowerCase().replace(/^\[|\]$/g, "");
+  if (isIP(a) === 4) {
+    const [x, y] = a.split(".").map(Number) as [number, number];
+    return (
+      x === 0 ||
+      x === 10 ||
+      x === 127 ||
+      (x === 169 && y === 254) ||
+      (x === 172 && y >= 16 && y <= 31) ||
+      (x === 192 && y === 168) ||
+      (x === 100 && y >= 64 && y <= 127)
+    );
+  }
+  if (isIP(a) === 6) {
+    if (a === "::1" || a === "::") return true;
+    if (a.startsWith("::ffff:")) return isPrivateAddress(a.slice(7));
+    return /^f[cd]/.test(a) || /^fe[89ab]/.test(a);
+  }
+  return false;
+}
+
 export function isNonProdHost(host: string): boolean {
   const h = host.toLowerCase();
-  if (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || /\.(local|test|invalid|localhost)$/.test(h)) return true;
-  if (PLACEHOLDER_HOSTS.some((p) => h === p || h.endsWith(`.${p}`))) return true;
+  if (h === "localhost" || /\.(local|test|invalid|localhost|internal)$/.test(h) || isPrivateAddress(h)) return true;
+  if (under(h, PLACEHOLDER_HOSTS) || under(h, TUNNEL_HOSTS)) return true;
   // Judge only the subdomain labels: "staging.brand.com" and "brand-dev.brand.com" are caught,
   // but real domains like go.dev, brand.qa or test.io are not.
   const registrable = registrableDomain(h);
   const sub = h.slice(0, Math.max(0, h.length - registrable.length - 1));
   return sub !== "" && sub.split(".").some((label) => NON_PROD_LABEL.test(label));
+}
+
+/** Hosts that are probably, not certainly, non-production: "brand-dev.com", "qa-brand.com", "brand.vercel.app". */
+export function looksNonProdHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (isNonProdHost(h) || isIP(h.replace(/^\[|\]$/g, ""))) return false;
+  if (under(h, PREVIEW_HOSTS)) return true;
+  return NON_PROD_DOMAIN_LABEL.test(registrableDomain(h).split(".")[0] ?? "");
+}
+
+const OPT_OUT = /unsubscrib|opt[-_ ]?out/i;
+const PREFERENCES = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i;
+
+/** Template tags outside HTML comments: {{ … }} and {% … %}. */
+const liveTags = (html: string) => html.replace(/<!--[\s\S]*?-->/g, " ").match(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g) ?? [];
+
+/**
+ * A real way out: a link whose address or text is about unsubscribing, or a platform unsubscribe tag.
+ * The word in the copy ("you can unsubscribe whenever you like") or in an HTML comment doesn't count.
+ */
+export function hasUnsubscribe(html: string, links: Link[] = extractLinks(html)): boolean {
+  if (links.some((l) => l.href !== "" && l.href !== "#" && OPT_OUT.test(`${l.href} ${l.text}`))) return true;
+  // Braze's {{${email_footer}}} is the workspace footer, which Braze requires to carry the unsubscribe link.
+  return liveTags(html).some((t) => OPT_OUT.test(t) || /\bemail_footer\b/.test(t));
+}
+
+function hasPreferenceCenter(html: string, links: Link[]): boolean {
+  return (
+    links.some((l) => l.href !== "" && l.href !== "#" && PREFERENCES.test(`${l.href} ${l.text}`)) ||
+    liveTags(html).some((t) => PREFERENCES.test(t))
+  );
 }
 
 export interface LinkCheckOptions {
@@ -97,12 +162,12 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
 
   if (opts.transactional) {
     // Nothing to check: transactional mail is exempt from unsubscribe rules.
-  } else if (!/unsubscrib|opt[- ]?out/i.test(html)) {
+  } else if (!hasUnsubscribe(html, links)) {
     // An unexpanded Braze content block (often the footer) may hold the link; say so rather than cry wolf.
     const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
     // A preference-center link (Braze ${preference_center_url}, Klaviyo {% manage_preferences %}) is a
     // valid opt-out route if that page offers "unsubscribe from all", so it's a question, not a failure.
-    const prefCenter = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i.test(html);
+    const prefCenter = hasPreferenceCenter(html, links);
     if (prefCenter)
       findings.push({
         checkId: "links.no-unsubscribe",
@@ -116,7 +181,9 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
         severity: blocks.length ? "warn" : "fail",
         message: blocks.length
           ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.`
-          : "No unsubscribe link or unsubscribe tag found.",
+          : /unsubscrib|opt[- ]?out/i.test(html)
+            ? "The email mentions unsubscribing, but no link or unsubscribe tag does it."
+            : "No unsubscribe link or unsubscribe tag found.",
         fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules).",
       });
   }
@@ -146,7 +213,8 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
     }
 
     // A fully dynamic href ({{ url }}) can only be judged after rendering; a static prefix can be judged now.
-    const staticPart = href.split(TEMPLATE_SYNTAX)[0] ?? "";
+    // "//www.brand.com/sale" inherits the page's scheme on a website; in an inbox most clients treat it as https.
+    const staticPart = (href.startsWith("//") ? `https:${href}` : href).split(TEMPLATE_SYNTAX)[0] ?? "";
     let url: URL;
     try {
       url = new URL(staticPart);
@@ -164,6 +232,22 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
         message: `Link "${label}" points at a non-production host (${url.hostname}).`,
         evidence: href,
         fix: "Swap the staging/test/placeholder URL for the live one.",
+      });
+    } else if (looksNonProdHost(url.hostname)) {
+      findings.push({
+        checkId: "links.non-production-host",
+        severity: "warn",
+        message: `Link "${label}" points at what looks like a test or preview site (${url.hostname}).`,
+        evidence: href,
+        fix: "Swap it for the live address. If this is your real site, add an exception for it.",
+      });
+    }
+    if (href.startsWith("//")) {
+      findings.push({
+        checkId: "links.relative",
+        severity: "warn",
+        message: `Link "${label}" has no https: at the front (${href}); some email clients won't open it.`,
+        fix: "Write the full https:// address.",
       });
     }
     if (url.protocol === "http:") {
@@ -197,8 +281,28 @@ export function checkLinks(html: string, opts: LinkCheckOptions = {}): Finding[]
   return findings;
 }
 
+type Resolve = (host: string) => Promise<string[]>;
+const dnsResolve: Resolve = async (host) => (await lookup(host, { all: true })).map((a) => a.address);
+
+/** Why a URL must not be requested from this machine, if there is a reason. */
+async function refuseToRequest(url: URL, resolve: Resolve): Promise<string | undefined> {
+  if (!/^https?:$/.test(url.protocol)) return "not a web address";
+  if (isNonProdHost(url.hostname)) return "a local, internal or test address";
+  let addresses: string[] = [];
+  try {
+    addresses = await resolve(url.hostname);
+  } catch {
+    return undefined; // doesn't resolve: let the request itself report that
+  }
+  return addresses.some(isPrivateAddress) ? "it resolves to an internal network address" : undefined;
+}
+
 /** Optional network pass: does each static link actually resolve? Off by default (slow, needs network). */
-export async function checkLinksLive(html: string, timeoutMs = 8000): Promise<{ findings: Finding[]; notVerified: string[] }> {
+export async function checkLinksLive(
+  html: string,
+  timeoutMs = 8000,
+  resolve: Resolve = dnsResolve,
+): Promise<{ findings: Finding[]; notVerified: string[] }> {
   const findings: Finding[] = [];
   const notVerified: string[] = [];
   // Never request anything that could act on a real recipient: unsubscribe and preference links,
@@ -223,8 +327,31 @@ export async function checkLinksLive(html: string, timeoutMs = 8000): Promise<{ 
     await Promise.all(
       urls.slice(i, i + 5).map(async (href) => {
         try {
-          // HEAD only: it fetches no page body and triggers nothing on well-behaved servers.
-          const res = await fetch(href, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+          // Redirects are followed by hand so every hop is vetted: an email link must never make this
+          // machine call something on the local network.
+          let url = new URL(href);
+          let res: Response | undefined;
+          for (let hop = 0; hop < 6; hop++) {
+            const refused = await refuseToRequest(url, resolve);
+            if (refused) {
+              notVerified.push(
+                hop === 0
+                  ? `${href} was not requested (${refused}).`
+                  : `${href} redirects to ${url.host}, which was not requested (${refused}).`,
+              );
+              return;
+            }
+            // HEAD only: it fetches no page body and triggers nothing on well-behaved servers.
+            res = await fetch(url, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(timeoutMs) });
+            const next = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+            if (!next) break;
+            url = new URL(next, url);
+            res = undefined;
+          }
+          if (!res) {
+            notVerified.push(`${href} redirects too many times to check; open it by hand.`);
+            return;
+          }
           if (res.status === 405 || res.status === 403 || res.status === 429) {
             notVerified.push(`${href} doesn't answer link checks (HTTP ${res.status}); open it by hand.`);
             return;

@@ -19,11 +19,24 @@ export const CHECKS: { id: string; severity: "fail" | "warn" | "info"; catches: 
   { id: "a11y.small-text", severity: "info", catches: "Visible text set under 12px (spacer cells with no text are ignored)" },
   { id: "copy.preheader-boilerplate", severity: "warn", catches: 'Inbox preview that reads "View this email in your browser" or similar' },
   { id: "copy.preheader-repeats-subject", severity: "warn", catches: "Preheader that starts by repeating the subject line" },
-  { id: "links.no-unsubscribe", severity: "fail", catches: "No unsubscribe link or tag anywhere in the email" },
+  {
+    id: "links.no-unsubscribe",
+    severity: "fail",
+    catches: "No unsubscribe link or tag anywhere in the email (the word alone, in copy or a comment, doesn't count)",
+  },
   { id: "links.empty-href", severity: "warn", catches: 'Links with href="" or "#"' },
   { id: "links.malformed", severity: "fail", catches: "Links that are not valid URLs" },
-  { id: "links.non-production-host", severity: "fail", catches: "Links to staging, dev, test, localhost or example.com hosts" },
-  { id: "links.relative", severity: "warn", catches: "Relative links (/path), which don't work in an inbox" },
+  {
+    id: "links.non-production-host",
+    severity: "fail",
+    catches:
+      "Links to staging, dev, test, localhost, internal-network, tunnel or example.com hosts (a warning for look-alikes such as brand-dev.com or a vercel.app preview)",
+  },
+  {
+    id: "links.relative",
+    severity: "warn",
+    catches: "Relative links (/path) and links with no https: at the front (//host/path), which don't work in an inbox",
+  },
   { id: "links.insecure-http", severity: "warn", catches: "Links using http:// instead of https://" },
   {
     id: "links.utm-inconsistent",

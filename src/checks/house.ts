@@ -1,5 +1,5 @@
 import type { Finding } from "../core/model.js";
-import type { Rulebook } from "../core/rules.js";
+import { safeRegex, type Rulebook } from "../core/rules.js";
 import { extractLinks, registrableDomain } from "./links.js";
 
 // Checks that only exist because a team told us its conventions (see src/core/rules.ts).
@@ -182,7 +182,7 @@ export function checkHouseRules(
             message: `Link "${l.text || l.href}" is missing ${param}.`,
             evidence: l.href,
           });
-        } else if (pattern && !TEMPLATE.test(value) && !new RegExp(pattern).test(value)) {
+        } else if (pattern && !TEMPLATE.test(value) && safeRegex(pattern)?.test(value) === false) {
           findings.push({
             checkId: "house.utm-format",
             severity: "warn",
@@ -267,8 +267,7 @@ export function checkHouseRules(
 }
 
 export function checkCampaignName(name: string, rules: Rulebook): Finding[] {
-  const pattern = rules.naming.campaignPattern;
-  if (!pattern || new RegExp(pattern).test(name)) return [];
+  if (safeRegex(rules.naming.campaignPattern)?.test(name) !== false) return [];
   return [
     {
       checkId: "house.naming",

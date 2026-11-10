@@ -7,7 +7,7 @@ description: Overview of crm-lifecycle-ops. What each command does, what works t
 
 Explain briefly, in this order, then suggest one next step that fits what they're doing.
 
-**What it is:** the AI copilot for lifecycle and CRM operations on Braze, Klaviyo or Iterable. It helps at
+**What it is:** pre-send QA and change safety for lifecycle and CRM operations on Braze, Klaviyo or Iterable. It helps at
 every step of an operator's job: **plan and build faster**, **change safely** (know what a change breaks
 before you make it), **send with confidence** (every message checked as every kind of customer), and
 **prove the impact**. Read-only: it never sends anything and never edits the account.

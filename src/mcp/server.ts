@@ -11,6 +11,7 @@ import { configuredPlatforms, ENV_VARS, getAdapter, workspaceFor } from "../adap
 import { checkCampaign, findItem } from "../checks/campaign.js";
 import { runCheckCli } from "../cli/check.js";
 import { CHECKS } from "../checks/catalog.js";
+import { closest } from "../core/fuzzy.js";
 import { checkChannelMessage } from "../checks/channels.js";
 import { checkEmail } from "../checks/email.js";
 import { learnFromEmail } from "../checks/house.js";
@@ -239,6 +240,14 @@ tool(
       webhook_method: z.string().optional().describe("Webhook HTTP method (POST, GET…)."),
       name: z.string().optional(),
       personas: z.array(persona).optional(),
+      platform_channel: z
+        .string()
+        .optional()
+        .describe('The platform\'s own channel name when it matters, e.g. "android_push" (Braze Android pushes need a title).'),
+      opt_out_appended: z
+        .boolean()
+        .optional()
+        .describe("True when the platform adds the SMS opt-out wording itself, so the text doesn't need its own."),
     },
   },
   async (args) => {
@@ -247,6 +256,8 @@ tool(
       {
         channel: args.channel,
         platform: args.platform,
+        platformChannel: args.platform_channel,
+        optOutAppended: args.opt_out_appended,
         name: args.name,
         title: args.title,
         body: args.body,
@@ -381,6 +392,17 @@ tool(
   },
   async ({ check_id, reason, match }) => {
     if (LOCKED_CHECKS.has(check_id)) return fail(`${check_id} is locked: it's wrong for every team, so it can't be waived.`);
+    // An id that matches no check would be saved and then silently waive nothing.
+    if (!CHECKS.some((c) => c.id === check_id)) {
+      const near = closest(
+        check_id,
+        CHECKS.map((c) => c.id),
+      );
+      return fail(
+        `There's no check called "${check_id}".${near.length ? ` Did you mean ${near.join(" or ")}?` : ""} list_checks shows them all.`,
+      );
+    }
+    if (!reason.trim()) return fail("Give a reason, so whoever reads the rulebook later knows why this was waived.");
     const { rules } = await loadRules();
     rules.exceptions.push({ checkId: check_id, reason, match, addedAt: new Date().toISOString() });
     const saved = await saveRules(rules);
@@ -746,11 +768,11 @@ tool(
     title: "Launch health",
     description:
       "Recent delivery numbers for a campaign or journey (sent, delivered, bounces, unsubscribes, spam complaints, opens, clicks) judged against stated thresholds. Needs a connected account.",
-    inputSchema: { platform: platformArg, name_or_id: z.string() },
+    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: z.string() },
   },
-  async ({ platform, name_or_id }) => {
+  async ({ platform, workspace, name_or_id }) => {
     try {
-      const snap = await latest(platform);
+      const snap = await latest(platform, workspace);
       if (snap.demo) return fail("Launch health needs a connected account; the demo has no delivery data.");
       const found = findItem(snap, name_or_id);
       if ("candidates" in found)

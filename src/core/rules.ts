@@ -21,6 +21,29 @@ export const LOCKED_CHECKS = new Set([
   "personalization.unrendered-syntax",
 ]);
 
+/** A pattern from the rulebook, compiled; undefined when it isn't a valid regular expression. */
+export function safeRegex(pattern: string | undefined, flags = ""): RegExp | undefined {
+  if (!pattern) return undefined;
+  try {
+    return new RegExp(pattern, flags);
+  } catch {
+    return undefined;
+  }
+}
+
+// A pattern that can't compile would otherwise throw in the middle of a check, for everyone sharing the file.
+const pattern = z.string().superRefine((value, ctx) => {
+  if (!value) return;
+  try {
+    new RegExp(value);
+  } catch (e) {
+    ctx.addIssue({
+      code: "custom",
+      message: `"${value}" isn't a valid pattern (${(e as Error).message.replace(/^Invalid regular expression: /, "")})`,
+    });
+  }
+});
+
 const persona = z.object({ name: z.string(), attributes: z.record(z.string(), z.unknown()) });
 
 export const RulebookSchema = z.object({
@@ -49,7 +72,7 @@ export const RulebookSchema = z.object({
       /** Domains links may point to (subdomains included). Empty = don't check. */
       domains: z.array(z.string()).default([]),
       /** Required UTM params → regex the value must match ("" = must just be present). */
-      requiredUtm: z.record(z.string(), z.string()).default({}),
+      requiredUtm: z.record(z.string(), pattern).default({}),
     })
     .default({ domains: [], requiredUtm: {} }),
   compliance: z
@@ -109,8 +132,8 @@ export const RulebookSchema = z.object({
     })
     .default({ titleMax: 45, bodyMax: 150 }),
   /** Campaigns/journeys whose name matches this regex are transactional (no unsubscribe needed). */
-  transactional: z.object({ namePattern: z.string().optional() }).default({}),
-  naming: z.object({ campaignPattern: z.string().optional(), example: z.string().optional() }).default({}),
+  transactional: z.object({ namePattern: pattern.optional() }).default({}),
+  naming: z.object({ campaignPattern: pattern.optional(), example: z.string().optional() }).default({}),
   /** Per-check severity overrides. Locked checks ignore these. */
   severity: z.record(z.string(), z.enum(["fail", "warn", "info", "off"])).default({}),
   /** "This is fine for us" decisions, each with a reason, so they're auditable later. */
@@ -121,6 +144,13 @@ export type Rulebook = z.infer<typeof RulebookSchema>;
 
 export const DEFAULT_RULES: Rulebook = RulebookSchema.parse({});
 
+/** Parses a rulebook; problems come back as one readable line each ("naming.campaignPattern: …"), not raw JSON. */
+function parseRules(input: unknown): Rulebook {
+  const result = RulebookSchema.safeParse(input);
+  if (result.success) return result.data;
+  throw new Error(result.error.issues.map((i) => `${i.path.join(".") || "rulebook"}: ${i.message}`).join("; "));
+}
+
 /** Where rules are read from, most specific first. */
 export function rulesPath(): string {
   // The plugin setting arrives empty (or as an unfilled placeholder) when it isn't set.
@@ -130,7 +160,7 @@ export function rulesPath(): string {
 
 export async function loadRules(path = rulesPath()): Promise<{ rules: Rulebook; path: string; exists: boolean }> {
   try {
-    return { rules: RulebookSchema.parse(JSON.parse(await readFile(path, "utf8"))), path, exists: true };
+    return { rules: parseRules(JSON.parse(await readFile(path, "utf8"))), path, exists: true };
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return { rules: DEFAULT_RULES, path, exists: false };
     throw new Error(`The rulebook at ${path} is invalid: ${(e as Error).message}`);
@@ -138,7 +168,7 @@ export async function loadRules(path = rulesPath()): Promise<{ rules: Rulebook; 
 }
 
 export async function saveRules(input: unknown): Promise<{ rules: Rulebook; path: string }> {
-  const rules = RulebookSchema.parse(input);
+  const rules = parseRules(input);
   for (const id of Object.keys(rules.severity)) {
     if (LOCKED_CHECKS.has(id)) delete rules.severity[id];
   }

@@ -1,7 +1,7 @@
 {
   "name": "crm-lifecycle-ops",
   "version": "0.5.5",
-  "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable: plan, build, check and change campaigns faster without breaking what's live.",
+  "description": "Pre-send QA for Braze, Klaviyo and Iterable: every email, text, push and in-app message is checked by code, as every kind of customer, before it goes out. Then, in your live account: what a change will break, and how to build it.",
   "keywords": [
     "braze",
     "klaviyo",

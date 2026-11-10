@@ -169,10 +169,17 @@ export async function runCheckCli(argv: string[], write: (s: string) => void = (
     results.push({ file, platformGuessed: !detected, ...r });
   }
 
+  // One subject or preheader given for a whole folder is judged against every email in it.
+  const shared = [opts.subject !== undefined && "--subject", opts.preheader !== undefined && "--preheader"].filter(Boolean).join(" and ");
+  const notes =
+    shared && results.length > 1
+      ? [`${shared} was applied to all ${results.length} files. Check one file at a time to give each email its own.`]
+      : [];
+
   const failing = results.filter((r) => r.summary.fail > 0 || (opts.failOn === "warn" && r.summary.warn > 0));
   if (opts.json) {
     write(
-      `${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, rules: rulesFile ?? "defaults", files: results }, null, 2)}\n`,
+      `${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, rules: rulesFile ?? "defaults", notes, files: results }, null, 2)}\n`,
     );
     return failing.length ? 1 : 0;
   }
@@ -198,7 +205,8 @@ export async function runCheckCli(argv: string[], write: (s: string) => void = (
   write(
     `\n${results.length} file${results.length === 1 ? "" : "s"} checked: ${total.fail} blocking, ${total.warn} warnings. ` +
       `${failing.length ? `${failing.length} failed (--fail-on ${opts.failOn}).` : "Passed."}\n` +
-      `${rulesLabel}. Links were checked for format and host, not opened.\n`,
+      `${rulesLabel}. Links were checked for format and host, not opened.\n` +
+      notes.map((n) => `Note: ${n}\n`).join(""),
   );
   return failing.length ? 1 : 0;
 }

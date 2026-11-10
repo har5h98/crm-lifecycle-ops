@@ -1,11 +1,23 @@
 import { closest } from "../core/fuzzy.js";
 import { checkJourneyStructure } from "../core/journey.js";
 import { summarize, type Finding } from "../core/model.js";
-import { DEFAULT_RULES, applyRules, type Rulebook } from "../core/rules.js";
+import { DEFAULT_RULES, applyRules, safeRegex, type Rulebook } from "../core/rules.js";
 import type { Campaign, Journey, Snapshot } from "../core/snapshot.js";
 import { checkChannelMessage } from "./channels.js";
 import { checkEmail } from "./email.js";
 import { checkCampaignName } from "./house.js";
+
+/**
+ * Puts Braze content blocks into the HTML, so footers and shared modules are checked too. Blocks can
+ * include other blocks; a block that includes itself (directly or in a loop) is left as its tag.
+ */
+export function expandContentBlocks(html: string, blocks: { name: string; body?: string }[], depth = 5, open: string[] = []): string {
+  return html.replace(/\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g, (whole, name: string) => {
+    const body = blocks.find((b) => b.name === name)?.body;
+    if (body === undefined || depth <= 0 || open.includes(name)) return whole;
+    return expandContentBlocks(body, blocks, depth - 1, [...open, name]);
+  });
+}
 
 export function findItem(
   snap: Snapshot,
@@ -104,12 +116,9 @@ export async function checkCampaign(snap: Snapshot, query: string, rules: Rulebo
       continue;
     }
     // Expand Braze content blocks we have, so footers and shared modules are checked too.
-    const html = m.body.replace(
-      /\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g,
-      (whole, name: string) => snap.contentBlocks.find((b) => b.name === name)?.body ?? whole,
-    );
-    const pattern = rules.transactional.namePattern;
-    const transactional = m.transactional === true || (!!pattern && new RegExp(pattern, "i").test(`${item.name} ${m.name}`));
+    const html = expandContentBlocks(m.body, snap.contentBlocks);
+    const transactional =
+      m.transactional === true || safeRegex(rules.transactional.namePattern, "i")?.test(`${item.name} ${m.name}`) === true;
     const r = await checkEmail(
       { html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from, transactional },
       rules,

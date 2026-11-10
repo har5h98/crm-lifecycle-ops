@@ -2,7 +2,7 @@
   "name": "crm-lifecycle-ops",
   "displayName": "CRM Lifecycle Ops",
   "version": "0.5.5",
-  "description": "The AI copilot for lifecycle & CRM operations on Braze, Klaviyo and Iterable: plan, build, check and change campaigns faster without breaking what's live.",
+  "description": "Pre-send QA for Braze, Klaviyo and Iterable: every email, text, push and in-app message is checked by code, as every kind of customer, before it goes out. Then, in your live account: what a change will break, and how to build it.",
   "author": {
     "name": "Harsh Singhal",
     "url": "https://github.com/har5h98"
@@ -27,9 +27,7 @@
   "mcpServers": {
     "crm-lifecycle-ops": {
       "command": "node",
-      "args": [
-        "${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.js"
-      ],
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.js"],
       "env": {
         "CLO_BRAZE_API_KEY": "${user_config.braze_api_key}",
         "CLO_BRAZE_REST_ENDPOINT": "${user_config.braze_rest_endpoint}",

@@ -119,7 +119,17 @@ export async function opsReport(days = 30, minutesPerManualCheck = 20, opts: { t
 }
 
 export function bulkEditPreview(snap: Snapshot, find: string, replace: string, opts: { regex?: boolean; activeOnly?: boolean } = {}) {
-  const pattern = opts.regex ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+  if (!find) throw new Error("Nothing to find: give the text (or pattern) to look for.");
+  let pattern: RegExp;
+  try {
+    pattern = opts.regex ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+  } catch (e) {
+    throw new Error(`"${find}" isn't a valid pattern: ${(e as Error).message.replace(/^Invalid regular expression: /, "")}`);
+  }
+  if (pattern.test("")) throw new Error(`"${find}" matches empty text, so it would insert the replacement between every character.`);
+  pattern.lastIndex = 0;
+  // A plain-text replacement is literal: "$1" or "$&" in it must not be read as a regex back-reference.
+  const replacement = opts.regex ? replace : replace.replace(/\$/g, "$$$$");
   const owner = new Map<string, { name: string; active: boolean }>();
   for (const c of snap.campaigns) for (const m of c.messageIds) owner.set(m, { name: c.name, active: isActive(c.status) });
   for (const j of snap.journeys)
@@ -149,6 +159,15 @@ export function bulkEditPreview(snap: Snapshot, find: string, replace: string, o
       }
       return `…${plain(s.slice(Math.max(0, i - 60), i + len + 60))}…`;
     };
+    // Each match's position in the edited text moves by what the earlier replacements added or removed.
+    let shift = 0;
+    const edited = text.replace(pattern, replacement);
+    const after = hits.map((h) => {
+      const now = h[0].replace(new RegExp(pattern.source, pattern.flags.replace("g", "")), replacement);
+      const at = (h.index ?? 0) + shift;
+      shift += now.length - h[0].length;
+      return { at, len: now.length };
+    });
     changes.push({
       where,
       item,
@@ -156,7 +175,7 @@ export function bulkEditPreview(snap: Snapshot, find: string, replace: string, o
       active,
       count: hits.length,
       before: hits.slice(0, 3).map((h) => ctx(text, h.index ?? 0, h[0].length)),
-      after: hits.slice(0, 3).map((h) => ctx(text.replace(pattern, replace), h.index ?? 0, replace.length)),
+      after: after.slice(0, 3).map((a) => ctx(edited, a.at, a.len)),
     });
   };
   for (const m of snap.messages) {

@@ -1785,14 +1785,14 @@ var require_code2 = __commonJS({
     }
     exports.callValidateCode = callValidateCode;
     var newRegExp = (0, codegen_1._)`new RegExp`;
-    function usePattern({ gen, it: { opts } }, pattern) {
+    function usePattern({ gen, it: { opts } }, pattern2) {
       const u = opts.unicodeRegExp ? "u" : "";
       const { regExp } = opts.code;
-      const rx = regExp(pattern, u);
+      const rx = regExp(pattern2, u);
       return gen.scopeValue("pattern", {
         key: rx.toString(),
         ref: rx,
-        code: (0, codegen_1._)`${regExp.code === "new RegExp" ? newRegExp : (0, util_2.useFunc)(gen, regExp)}(${pattern}, ${u})`
+        code: (0, codegen_1._)`${regExp.code === "new RegExp" ? newRegExp : (0, util_2.useFunc)(gen, regExp)}(${pattern2}, ${u})`
       });
     }
     exports.usePattern = usePattern;
@@ -3378,8 +3378,8 @@ var require_utils = __commonJS({
     var HOST_DELIMS = { "@": "%40", "/": "%2F", "?": "%3F", "#": "%23", ":": "%3A" };
     var HOST_DELIM_RE = /[@/?#:]/g;
     var HOST_DELIM_NO_COLON_RE = /[@/?#]/g;
-    function reescapeHostDelimiters(host, isIP) {
-      const re = isIP ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
+    function reescapeHostDelimiters(host, isIP2) {
+      const re = isIP2 ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
       re.lastIndex = 0;
       return host.replace(re, (ch) => HOST_DELIMS[ch]);
     }
@@ -4076,12 +4076,12 @@ var require_fast_uri = __commonJS({
       const host = matches[4];
       return hasMalformedPercentEncoding(matches[3]) || host !== void 0 && !isIPLiteral(host) && hasMalformedPercentEncoding(host) || hasMalformedPercentEncoding(matches[6]) || hasMalformedPercentEncoding(matches[7]) || hasMalformedPercentEncoding(matches[8]);
     }
-    function canonicalizeHost(parsed, options, schemeHandler, isIP) {
-      if (hasForbiddenDomainHost(parsed, options, schemeHandler, isIP)) {
+    function canonicalizeHost(parsed, options, schemeHandler, isIP2) {
+      if (hasForbiddenDomainHost(parsed, options, schemeHandler, isIP2)) {
         parsed.error = parsed.error || MALFORMED_HOST_ERROR;
         return true;
       }
-      if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP === false && nonSimpleDomain(parsed.host)) {
+      if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP2 === false && nonSimpleDomain(parsed.host)) {
         let url2;
         try {
           url2 = new URL("http://" + parsed.host);
@@ -4097,9 +4097,9 @@ var require_fast_uri = __commonJS({
       }
       return false;
     }
-    function hasForbiddenDomainHost(parsed, options, schemeHandler, isIP) {
+    function hasForbiddenDomainHost(parsed, options, schemeHandler, isIP2) {
       return Boolean(
-        parsed.host && isIP === false && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && FORBIDDEN_DOMAIN_HOST_CHARACTER.test(parsed.host)
+        parsed.host && isIP2 === false && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && FORBIDDEN_DOMAIN_HOST_CHARACTER.test(parsed.host)
       );
     }
     function isHostOnlyURL(url2) {
@@ -4122,7 +4122,7 @@ var require_fast_uri = __commonJS({
       let malformedHost = false;
       let malformedIPLiteral = false;
       let malformedScheme = false;
-      let isIP = false;
+      let isIP2 = false;
       if (options.reference === "suffix") {
         if (options.scheme) {
           uri = options.scheme + ":" + uri;
@@ -4184,15 +4184,15 @@ var require_fast_uri = __commonJS({
             const bracketedIPLiteral = isIPLiteral(parsed.host);
             const hasIPLiteralBracket = parsed.host.indexOf("[") !== -1 || parsed.host.indexOf("]") !== -1;
             const ipv6result = normalizeIPv6(parsed.host);
-            isIP = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
+            isIP2 = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
             malformedIPLiteral = hasIPLiteralBracket && (!bracketedIPLiteral || ipv6result.error === true);
-            parsed.host = isIP ? ipv6result.host : ipv6result.host.toLowerCase();
+            parsed.host = isIP2 ? ipv6result.host : ipv6result.host.toLowerCase();
             if (malformedIPLiteral) {
               parsed.error = parsed.error || MALFORMED_HOST_ERROR;
               malformedAuthorityOrPort = true;
             }
           } else {
-            isIP = true;
+            isIP2 = true;
           }
         }
         if (parsed.scheme === void 0 && parsed.userinfo === void 0 && parsed.host === void 0 && parsed.port === void 0 && parsed.query === void 0 && !parsed.path) {
@@ -4209,14 +4209,14 @@ var require_fast_uri = __commonJS({
         }
         const schemeHandler = getSchemeHandler(options.scheme || parsed.scheme);
         if (!malformedIPLiteral) {
-          malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP);
+          malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP2);
         }
         if (uri.indexOf("%") !== -1 && parsed.host !== void 0 && !malformedIPLiteral) {
-          let host = isIP ? parsed.host : normalizePercentEncoding(parsed.host, true);
-          if (!isIP) {
+          let host = isIP2 ? parsed.host : normalizePercentEncoding(parsed.host, true);
+          if (!isIP2) {
             host = normalizePercentEncoding(host.toLowerCase());
           }
-          parsed.host = isIP || options.scheme !== "null" ? reescapeHostDelimiters(host, isIP) : host;
+          parsed.host = isIP2 || options.scheme !== "null" ? reescapeHostDelimiters(host, isIP2) : host;
         }
         if (!schemeHandler || schemeHandler && !schemeHandler.skipNormalize) {
           if (parsed.path) {
@@ -7021,7 +7021,7 @@ var require_formats = __commonJS({
       return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     }
     var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
-    var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    var DAYS2 = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     function date5(str2) {
       const matches = DATE.exec(str2);
       if (!matches)
@@ -7029,7 +7029,7 @@ var require_formats = __commonJS({
       const year = +matches[1];
       const month = +matches[2];
       const day = +matches[3];
-      return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && isLeapYear(year) ? 29 : DAYS[month]);
+      return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && isLeapYear(year) ? 29 : DAYS2[month]);
     }
     function compareDate(d1, d2) {
       if (!(d1 && d2))
@@ -8146,7 +8146,7 @@ var require_runtime = __commonJS({
           }
           return void 0;
         },
-        lookup: function lookup(depths, name) {
+        lookup: function lookup2(depths, name) {
           var len = depths.length;
           for (var i = 0; i < len; i++) {
             var result = depths[i] && container.lookupProperty(depths[i], name);
@@ -12479,11 +12479,11 @@ var require_javascript_compiler = __commonJS({
         var len = parts.length;
         var _loop = function(i2) {
           _this2.replaceStack(function(current) {
-            var lookup = _this2.nameLookup(current, parts[i2], type);
+            var lookup2 = _this2.nameLookup(current, parts[i2], type);
             if (!falsy) {
-              return [" != null ? ", lookup, " : ", current];
+              return [" != null ? ", lookup2, " : ", current];
             } else {
-              return [" && ", lookup];
+              return [" && ", lookup2];
             }
           });
         };
@@ -12656,12 +12656,12 @@ var require_javascript_compiler = __commonJS({
         this.emptyHash();
         var helper = this.setupHelper(0, name, helperCall);
         var helperName = this.lastHelper = this.nameLookup("helpers", name, "helper");
-        var lookup = ["(", "(helper = ", helperName, " || ", nonHelper, ")"];
+        var lookup2 = ["(", "(helper = ", helperName, " || ", nonHelper, ")"];
         if (!this.options.strict) {
-          lookup[0] = "(helper = ";
-          lookup.push(" != null ? helper : ", this.aliasable("container.hooks.helperMissing"));
+          lookup2[0] = "(helper = ";
+          lookup2.push(" != null ? helper : ", this.aliasable("container.hooks.helperMissing"));
         }
-        this.push(["(", lookup, helper.paramsInit ? ["),(", helper.paramsInit] : [], "),", "(typeof helper === ", this.aliasable('"function"'), " ? ", this.source.functionCall("helper", "call", helper.callParams), " : helper))"]);
+        this.push(["(", lookup2, helper.paramsInit ? ["),(", helper.paramsInit] : [], "),", "(typeof helper === ", this.aliasable('"function"'), " ? ", this.source.functionCall("helper", "call", helper.callParams), " : helper))"]);
       },
       // [invokePartial]
       //
@@ -15482,9 +15482,9 @@ var require_liquid_node = __commonJS({
         }
         return true;
       }
-      rmatch(pattern) {
-        for (let i = 0; i < pattern.length; i++) {
-          if (pattern[pattern.length - 1 - i] !== this.input[this.p - 1 - i])
+      rmatch(pattern2) {
+        for (let i = 0; i < pattern2.length; i++) {
+          if (pattern2[pattern2.length - 1 - i] !== this.input[this.p - 1 - i])
             return false;
         }
         return true;
@@ -16796,12 +16796,12 @@ var require_liquid_node = __commonJS({
     }
     function remove_last(v, l) {
       const str2 = stringify(v);
-      const pattern = stringify(l);
-      this.context.memoryLimit.use(str2.length + pattern.length);
-      const index = str2.lastIndexOf(pattern);
+      const pattern2 = stringify(l);
+      this.context.memoryLimit.use(str2.length + pattern2.length);
+      const index = str2.lastIndexOf(pattern2);
       if (index === -1)
         return str2;
-      return str2.substring(0, index) + str2.substring(index + pattern.length);
+      return str2.substring(0, index) + str2.substring(index + pattern2.length);
     }
     function rstrip(str2, chars) {
       str2 = stringify(str2);
@@ -16847,12 +16847,12 @@ var require_liquid_node = __commonJS({
       this.context.memoryLimit.use(str2.length);
       return str2.charAt(0).toUpperCase() + str2.slice(1).toLowerCase();
     }
-    function replace(v, pattern, replacement) {
+    function replace(v, pattern2, replacement) {
       const str2 = stringify(v);
-      pattern = stringify(pattern);
+      pattern2 = stringify(pattern2);
       replacement = stringify(replacement);
-      const parts = str2.split(pattern);
-      const outputSize = str2.length + (parts.length - 1) * (replacement.length - pattern.length);
+      const parts = str2.split(pattern2);
+      const outputSize = str2.length + (parts.length - 1) * (replacement.length - pattern2.length);
       this.context.memoryLimit.use(outputSize);
       return parts.join(replacement);
     }
@@ -16865,13 +16865,13 @@ var require_liquid_node = __commonJS({
     }
     function replace_last(v, arg1, arg2) {
       const str2 = stringify(v);
-      const pattern = stringify(arg1);
+      const pattern2 = stringify(arg1);
       const replacement = stringify(arg2);
-      this.context.memoryLimit.use(str2.length + pattern.length + replacement.length);
-      const index = str2.lastIndexOf(pattern);
+      this.context.memoryLimit.use(str2.length + pattern2.length + replacement.length);
+      const index = str2.lastIndexOf(pattern2);
       if (index === -1)
         return str2;
-      return str2.substring(0, index) + replacement + str2.substring(index + pattern.length);
+      return str2.substring(0, index) + replacement + str2.substring(index + pattern2.length);
     }
     function truncate(v, l = 50, o = "...") {
       const str2 = stringify(v);
@@ -24232,8 +24232,8 @@ var $ZodCheckUpperCase = /* @__PURE__ */ $constructor("$ZodCheckUpperCase", (ins
 var $ZodCheckIncludes = /* @__PURE__ */ $constructor("$ZodCheckIncludes", (inst, def) => {
   $ZodCheck.init(inst, def);
   const escapedRegex = escapeRegex(def.includes);
-  const pattern = new RegExp(typeof def.position === "number" ? `^.{${def.position},}${escapedRegex}` : escapedRegex);
-  def.pattern = pattern;
+  const pattern2 = new RegExp(typeof def.position === "number" ? `^.{${def.position},}${escapedRegex}` : escapedRegex);
+  def.pattern = pattern2;
   inst._zod.check = (payload) => {
     if (payload.value.includes(def.includes, def.position))
       return;
@@ -24250,8 +24250,8 @@ var $ZodCheckIncludes = /* @__PURE__ */ $constructor("$ZodCheckIncludes", (inst,
 });
 var $ZodCheckStartsWith = /* @__PURE__ */ $constructor("$ZodCheckStartsWith", (inst, def) => {
   $ZodCheck.init(inst, def);
-  const pattern = new RegExp(`^${escapeRegex(def.prefix)}.*`);
-  def.pattern ?? (def.pattern = pattern);
+  const pattern2 = new RegExp(`^${escapeRegex(def.prefix)}.*`);
+  def.pattern ?? (def.pattern = pattern2);
   inst._zod.check = (payload) => {
     if (payload.value.startsWith(def.prefix))
       return;
@@ -24268,8 +24268,8 @@ var $ZodCheckStartsWith = /* @__PURE__ */ $constructor("$ZodCheckStartsWith", (i
 });
 var $ZodCheckEndsWith = /* @__PURE__ */ $constructor("$ZodCheckEndsWith", (inst, def) => {
   $ZodCheck.init(inst, def);
-  const pattern = new RegExp(`.*${escapeRegex(def.suffix)}$`);
-  def.pattern ?? (def.pattern = pattern);
+  const pattern2 = new RegExp(`.*${escapeRegex(def.suffix)}$`);
+  def.pattern ?? (def.pattern = pattern2);
   inst._zod.check = (payload) => {
     if (payload.value.endsWith(def.suffix))
       return;
@@ -26350,8 +26350,8 @@ var $ZodOptional = /* @__PURE__ */ $constructor("$ZodOptional", (inst, def) => {
     return values ? /* @__PURE__ */ new Set([...values, void 0]) : void 0;
   });
   defineLazyInternal(inst, "pattern", (zod) => {
-    const pattern = zod.def.innerType._zod.pattern;
-    return pattern ? new RegExp(`^(${cleanRegex(pattern.source)})?$`) : void 0;
+    const pattern2 = zod.def.innerType._zod.pattern;
+    return pattern2 ? new RegExp(`^(${cleanRegex(pattern2.source)})?$`) : void 0;
   });
   inst._zod.parse = (payload, ctx) => {
     if (payload.value === void 0) {
@@ -26378,8 +26378,8 @@ var $ZodNullable = /* @__PURE__ */ $constructor("$ZodNullable", (inst, def) => {
   defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin);
   defineLazyInternal(inst, "optout", (zod) => zod.def.innerType._zod.optout);
   defineLazyInternal(inst, "pattern", (zod) => {
-    const pattern = zod.def.innerType._zod.pattern;
-    return pattern ? new RegExp(`^(${cleanRegex(pattern.source)}|null)$`) : void 0;
+    const pattern2 = zod.def.innerType._zod.pattern;
+    return pattern2 ? new RegExp(`^(${cleanRegex(pattern2.source)}|null)$`) : void 0;
   });
   defineLazyInternal(inst, "values", (zod) => {
     return zod.def.innerType._zod.values ? /* @__PURE__ */ new Set([...zod.def.innerType._zod.values, null]) : void 0;
@@ -26624,14 +26624,14 @@ function handleReadonlyResult(payload) {
 }
 function leafPattern(schema) {
   const def = schema._zod.def;
-  let pattern = def.pattern;
+  let pattern2 = def.pattern;
   let isInt = !!def.format?.includes("int");
   let minimum;
   let maximum;
   for (const ch of def.checks ?? []) {
     const d = ch._zod.def;
     if (d.pattern)
-      pattern = d.pattern;
+      pattern2 = d.pattern;
     isInt || (isInt = !!d.format?.includes("int"));
     const lo = d.minimum ?? d.length;
     const hi = d.maximum ?? d.length;
@@ -26640,8 +26640,8 @@ function leafPattern(schema) {
     if (hi !== void 0 && (maximum === void 0 || hi < maximum))
       maximum = hi;
   }
-  if (pattern)
-    return pattern.source;
+  if (pattern2)
+    return pattern2.source;
   if (minimum !== void 0 && maximum !== void 0 && minimum > maximum)
     return "(?!)";
   if (minimum !== void 0 || maximum !== void 0)
@@ -36220,9 +36220,9 @@ function generateFileCheck(doc, accessor) {
 }
 function generateTemplateLiteralCheck(doc, ctx, schema, accessor) {
   doc.write(`if (typeof ${accessor} !== "string") return INVALID;`);
-  const pattern = schema._zod.pattern;
-  if (pattern) {
-    const patternConst = addConstant(ctx, pattern);
+  const pattern2 = schema._zod.pattern;
+  if (pattern2) {
+    const patternConst = addConstant(ctx, pattern2);
     doc.write(`${patternConst}.lastIndex = 0;`);
     doc.write(`if (!${patternConst}.test(${accessor})) return INVALID;`);
   }
@@ -36948,12 +36948,12 @@ function _length(length, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _regex(pattern, params) {
+function _regex(pattern2, params) {
   return new $ZodCheckRegex({
     check: "string_format",
     format: "regex",
     ...normalizeParams(params),
-    pattern
+    pattern: pattern2
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -37954,9 +37954,9 @@ var addDivisor = (agg, value) => {
   if (!agg.multipleOf.includes(value))
     agg.multipleOf.push(value);
 };
-var addPattern = (agg, pattern) => {
+var addPattern = (agg, pattern2) => {
   agg.patterns ?? (agg.patterns = /* @__PURE__ */ new Set());
-  agg.patterns.add(pattern);
+  agg.patterns.add(pattern2);
 };
 var intersectMime = (agg, mime) => {
   agg.mime = agg.mime ? agg.mime.filter((m) => mime.includes(m)) : [...mime];
@@ -38021,8 +38021,8 @@ function aggregateChecks(schema) {
   }
   if (bag.mime)
     intersectMime(agg, bag.mime);
-  for (const pattern of bag.patterns ?? [])
-    addPattern(agg, pattern);
+  for (const pattern2 of bag.patterns ?? [])
+    addPattern(agg, pattern2);
   return agg;
 }
 var formatMap = {
@@ -38204,11 +38204,11 @@ var nanProcessor = (schema, ctx, json3, params) => {
 };
 var templateLiteralProcessor = (schema, _ctx, json3, _params) => {
   const _json = json3;
-  const pattern = schema._zod.pattern;
-  if (!pattern)
+  const pattern2 = schema._zod.pattern;
+  if (!pattern2)
     throw new Error("Pattern not found in template literal");
   _json.type = "string";
-  _json.pattern = pattern.source;
+  _json.pattern = pattern2.source;
 };
 var fileProcessor = (schema, _ctx, json3, _params) => {
   const _json = json3;
@@ -38479,8 +38479,8 @@ var recordProcessor = (schema, ctx, _json, params) => {
       path: [...params.path, "patternProperties", "*"]
     });
     json3.patternProperties = {};
-    for (const pattern of patterns) {
-      assignProp(json3.patternProperties, exactPattern(pattern).source, valueSchema);
+    for (const pattern2 of patterns) {
+      assignProp(json3.patternProperties, exactPattern(pattern2).source, valueSchema);
     }
   } else {
     if (ctx.target === "draft-07" || ctx.target === "draft-2020-12") {
@@ -41704,9 +41704,9 @@ function convertBaseSchema(schema, ctx) {
         const patternProps = schema.patternProperties;
         const patternKeys = Object.keys(patternProps);
         const looseRecords = [];
-        for (const pattern of patternKeys) {
-          const patternValue = convertSchema(patternProps[pattern], ctx);
-          const keySchema = z.string().regex(new RegExp(pattern));
+        for (const pattern2 of patternKeys) {
+          const patternValue = convertSchema(patternProps[pattern2], ctx);
+          const keySchema = z.string().regex(new RegExp(pattern2));
           looseRecords.push(z.looseRecord(keySchema, patternValue));
         }
         const schemasToIntersect = [];
@@ -44123,13 +44123,13 @@ function stringifyRegExpWithFlags(regex, refs) {
     // `.` matches newlines
   };
   const source = flags.i ? regex.source.toLowerCase() : regex.source;
-  let pattern = "";
+  let pattern2 = "";
   let isEscaped = false;
   let inCharGroup = false;
   let inCharRange = false;
   for (let i = 0; i < source.length; i++) {
     if (isEscaped) {
-      pattern += source[i];
+      pattern2 += source[i];
       isEscaped = false;
       continue;
     }
@@ -44137,40 +44137,40 @@ function stringifyRegExpWithFlags(regex, refs) {
       if (inCharGroup) {
         if (source[i].match(/[a-z]/)) {
           if (inCharRange) {
-            pattern += source[i];
-            pattern += `${source[i - 2]}-${source[i]}`.toUpperCase();
+            pattern2 += source[i];
+            pattern2 += `${source[i - 2]}-${source[i]}`.toUpperCase();
             inCharRange = false;
           } else if (source[i + 1] === "-" && source[i + 2]?.match(/[a-z]/)) {
-            pattern += source[i];
+            pattern2 += source[i];
             inCharRange = true;
           } else {
-            pattern += `${source[i]}${source[i].toUpperCase()}`;
+            pattern2 += `${source[i]}${source[i].toUpperCase()}`;
           }
           continue;
         }
       } else if (source[i].match(/[a-z]/)) {
-        pattern += `[${source[i]}${source[i].toUpperCase()}]`;
+        pattern2 += `[${source[i]}${source[i].toUpperCase()}]`;
         continue;
       }
     }
     if (flags.m) {
       if (source[i] === "^") {
-        pattern += `(^|(?<=[\r
+        pattern2 += `(^|(?<=[\r
 ]))`;
         continue;
       } else if (source[i] === "$") {
-        pattern += `($|(?=[\r
+        pattern2 += `($|(?=[\r
 ]))`;
         continue;
       }
     }
     if (flags.s && source[i] === ".") {
-      pattern += inCharGroup ? `${source[i]}\r
+      pattern2 += inCharGroup ? `${source[i]}\r
 ` : `[${source[i]}\r
 ]`;
       continue;
     }
-    pattern += source[i];
+    pattern2 += source[i];
     if (source[i] === "\\") {
       isEscaped = true;
     } else if (inCharGroup && source[i] === "]") {
@@ -44180,12 +44180,12 @@ function stringifyRegExpWithFlags(regex, refs) {
     }
   }
   try {
-    new RegExp(pattern);
+    new RegExp(pattern2);
   } catch {
     console.warn(`Could not convert regex pattern at ${refs.currentPath.join("/")} to a flag-independent form! Falling back to the flag-ignorant source`);
     return regex.source;
   }
-  return pattern;
+  return pattern2;
 }
 
 // node_modules/zod-to-json-schema/dist/esm/parsers/record.js
@@ -47583,7 +47583,7 @@ function credentialEnv(raw = process.env) {
 // src/core/snapshot.ts
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 function normalizeChannel(raw) {
   const c = (raw ?? "").toLowerCase().replace(/[\s_-]+/g, "");
   if (c.includes("email")) return "email";
@@ -47649,7 +47649,7 @@ async function loadLatest(platform, workspace, since) {
   let prevFile;
   if (since) {
     const cutoff = since.replace(/[:.]/g, "-");
-    prevFile = [...files].reverse().find((f) => f.slice(f.lastIndexOf("/") + 1) <= `${cutoff}.json`);
+    prevFile = [...files].reverse().find((f) => basename(f) <= `${cutoff}.json`);
   } else {
     prevFile = files[files.length - 2];
   }
@@ -47828,11 +47828,26 @@ async function listAll(base, path, key, headers, opts, paging = "page") {
   }
   return out;
 }
+function brazeEndpoint(raw) {
+  const value = raw.trim().replace(/\/+$/, "");
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`;
+  let url2;
+  try {
+    url2 = new URL(withScheme);
+  } catch {
+    throw new Error(
+      `The Braze REST endpoint "${raw}" isn't a web address. It looks like https://rest.iad-01.braze.com (Braze: Settings \u2192 APIs and Identifiers).`
+    );
+  }
+  if (url2.protocol !== "https:")
+    throw new Error(`The Braze REST endpoint must start with https:// (got "${raw}"); the API key would otherwise travel unencrypted.`);
+  return withScheme;
+}
 function brazeAdapter(opts = {}) {
   const env = opts.env ?? credentialEnv();
   const key = env.BRAZE_API_KEY;
-  const base = env.BRAZE_REST_ENDPOINT?.replace(/\/$/, "");
-  if (!key || !base) throw missingEnv("braze", ["BRAZE_API_KEY", "BRAZE_REST_ENDPOINT"]);
+  if (!key || !env.BRAZE_REST_ENDPOINT?.trim()) throw missingEnv("braze", ["BRAZE_API_KEY", "BRAZE_REST_ENDPOINT"]);
+  const base = brazeEndpoint(env.BRAZE_REST_ENDPOINT);
   const headers = { authorization: `Bearer ${key}` };
   const get = (path) => getJson(`${base}${path}`, headers, { fetcher: opts.fetcher });
   const workspace = env.BRAZE_WORKSPACE ?? "default";
@@ -48017,6 +48032,36 @@ function brazeAdapter(opts = {}) {
 }
 
 // src/adapters/iterable.ts
+function parseCsv(csv) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  const text = csv.replace(/^\uFEFF/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      field = "";
+      if (row.some((f) => f.trim())) rows.push(row);
+      row = [];
+    } else field += ch;
+  }
+  row.push(field);
+  if (row.some((f) => f.trim())) rows.push(row);
+  return rows;
+}
 function campaignStatus(state) {
   switch ((state ?? "").toLowerCase()) {
     case "running":
@@ -48091,7 +48136,8 @@ function iterableAdapter(opts = {}) {
         if (stale) skippedOld++;
         if (messageId && !stale) {
           const prev = prevMessages.get(messageId);
-          if (prev && prevCampaigns.get(id)?.updatedAt === updatedAt) {
+          const final = ["finished", "archived", "aborted"].includes(state);
+          if (prev && final && prevCampaigns.get(id)?.updatedAt === updatedAt) {
             snap.messages.push(prev);
           } else {
             const kind = normalizeChannel(medium);
@@ -48214,10 +48260,10 @@ function iterableAdapter(opts = {}) {
         headers,
         opts.fetcher
       );
-      const [header, ...rows] = csv.trim().split(/\r?\n/).map((l) => l.split(","));
+      const [header, ...rows] = parseCsv(csv);
       const col = (name) => {
         const i = (header ?? []).findIndex((h) => name.test(h));
-        return i < 0 ? void 0 : rows.reduce((sum, r) => sum + Number(r[i] ?? 0), 0);
+        return i < 0 ? void 0 : rows.reduce((sum, r) => sum + (Number((r[i] ?? "").replace(/,/g, "")) || 0), 0);
       };
       return {
         period: "last 7 days",
@@ -48351,7 +48397,21 @@ function klaviyoAdapter(opts = {}) {
       const kindOf = new Map(snap.segments.map((s) => [s.id, s.kind]));
       const resolve = (refs) => refs.map((r) => r.kind === "unknown" && kindOf.has(r.id) ? { ...r, kind: kindOf.get(r.id) } : r);
       await section("Campaigns", async () => {
-        const camps = await all("/campaigns?filter=equals(archived,false)&include=campaign-messages,campaign-audiences");
+        const camps = { data: [], included: [] };
+        const failed = [];
+        for (const channel of ["email", "sms", "mobile_push"]) {
+          try {
+            const page = await all(
+              `/campaigns?filter=and(equals(messages.channel,'${channel}'),equals(archived,false))&include=campaign-messages,campaign-audiences`
+            );
+            camps.data.push(...page.data.filter((c) => !camps.data.some((seen) => seen.id === c.id)));
+            camps.included.push(...page.included);
+          } catch (e) {
+            failed.push(`${channel} (${e.message})`);
+          }
+        }
+        if (failed.length === 3) throw new Error(failed[0].replace(/^email \((.*)\)$/, "$1"));
+        if (failed.length) gaps.push(`Campaigns on these channels could not be read: ${failed.join("; ")}.`);
         const inc = new Map(camps.included.map((r) => [`${r.type}:${r.id}`, r]));
         await mapLimit(camps.data, 4, async (c) => {
           const def = obj(c.attributes.definition);
@@ -48367,9 +48427,9 @@ function klaviyoAdapter(opts = {}) {
             const mdef = obj(m?.attributes.definition);
             statuses.push(str(mdef.status) ?? "draft");
             messageIds.push(mid);
-            const updated = str(m?.attributes.updated);
             const prev = prevMessages.get(mid);
-            if (prev && updated && prev.ownerId === c.id && previous?.campaigns.find((x) => x.id === c.id)?.updatedAt === str(c.attributes.updated_at)) {
+            const final = /^(sent|cancel)/i.test(str(mdef.status) ?? "");
+            if (prev && final && prev.ownerId === c.id && previous?.campaigns.find((x) => x.id === c.id)?.updatedAt === str(c.attributes.updated_at)) {
               snap.messages.push(prev);
               continue;
             }
@@ -48676,6 +48736,25 @@ var LOCKED_CHECKS = /* @__PURE__ */ new Set([
   "personalization.render-error",
   "personalization.unrendered-syntax"
 ]);
+function safeRegex(pattern2, flags = "") {
+  if (!pattern2) return void 0;
+  try {
+    return new RegExp(pattern2, flags);
+  } catch {
+    return void 0;
+  }
+}
+var pattern = external_exports.string().superRefine((value, ctx) => {
+  if (!value) return;
+  try {
+    new RegExp(value);
+  } catch (e) {
+    ctx.addIssue({
+      code: "custom",
+      message: `"${value}" isn't a valid pattern (${e.message.replace(/^Invalid regular expression: /, "")})`
+    });
+  }
+});
 var persona = external_exports.object({ name: external_exports.string(), attributes: external_exports.record(external_exports.string(), external_exports.unknown()) });
 var RulebookSchema = external_exports.object({
   version: external_exports.literal(1).default(1),
@@ -48698,7 +48777,7 @@ var RulebookSchema = external_exports.object({
     /** Domains links may point to (subdomains included). Empty = don't check. */
     domains: external_exports.array(external_exports.string()).default([]),
     /** Required UTM params → regex the value must match ("" = must just be present). */
-    requiredUtm: external_exports.record(external_exports.string(), external_exports.string()).default({})
+    requiredUtm: external_exports.record(external_exports.string(), pattern).default({})
   }).default({ domains: [], requiredUtm: {} }),
   compliance: external_exports.object({
     /** Text that must appear in every email, e.g. the postal address or a legal line. */
@@ -48743,28 +48822,33 @@ var RulebookSchema = external_exports.object({
     bodyMax: external_exports.number().int().positive().default(150)
   }).default({ titleMax: 45, bodyMax: 150 }),
   /** Campaigns/journeys whose name matches this regex are transactional (no unsubscribe needed). */
-  transactional: external_exports.object({ namePattern: external_exports.string().optional() }).default({}),
-  naming: external_exports.object({ campaignPattern: external_exports.string().optional(), example: external_exports.string().optional() }).default({}),
+  transactional: external_exports.object({ namePattern: pattern.optional() }).default({}),
+  naming: external_exports.object({ campaignPattern: pattern.optional(), example: external_exports.string().optional() }).default({}),
   /** Per-check severity overrides. Locked checks ignore these. */
   severity: external_exports.record(external_exports.string(), external_exports.enum(["fail", "warn", "info", "off"])).default({}),
   /** "This is fine for us" decisions, each with a reason, so they're auditable later. */
   exceptions: external_exports.array(external_exports.object({ checkId: external_exports.string(), match: external_exports.string().optional(), reason: external_exports.string(), addedAt: external_exports.string() })).default([])
 });
 var DEFAULT_RULES = RulebookSchema.parse({});
+function parseRules(input2) {
+  const result = RulebookSchema.safeParse(input2);
+  if (result.success) return result.data;
+  throw new Error(result.error.issues.map((i) => `${i.path.join(".") || "rulebook"}: ${i.message}`).join("; "));
+}
 function rulesPath() {
   const shared = process.env.CLO_RULES?.trim();
   return shared && !shared.startsWith("${") ? shared : join2(homeDir(), "rules.json");
 }
 async function loadRules(path = rulesPath()) {
   try {
-    return { rules: RulebookSchema.parse(JSON.parse(await readFile2(path, "utf8"))), path, exists: true };
+    return { rules: parseRules(JSON.parse(await readFile2(path, "utf8"))), path, exists: true };
   } catch (e) {
     if (e.code === "ENOENT") return { rules: DEFAULT_RULES, path, exists: false };
     throw new Error(`The rulebook at ${path} is invalid: ${e.message}`);
   }
 }
 async function saveRules(input2) {
-  const rules = RulebookSchema.parse(input2);
+  const rules = parseRules(input2);
   for (const id of Object.keys(rules.severity)) {
     if (LOCKED_CHECKS.has(id)) delete rules.severity[id];
   }
@@ -50979,6 +51063,146 @@ var Parser = class {
   }
 };
 
+// src/checks/a11y.ts
+var VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|(read|learn|see|find out|view) more|more|more info|details|go|tap here|start here)[.!…]?$/i;
+var MIN_FONT_PX = 12;
+var BOILERPLATE = /^(view (this )?(email|message|it) (in|on) (your |a )?(web )?browser|view (in|on) (the )?(web|browser|online)|having trouble (viewing|reading)|can'?t see (this|images)|email not displaying)/i;
+var isHidden = (style) => /display:none|mso-hide:all|visibility:hidden|max-height:0|font-size:[01]px/.test(style);
+var squash = (s) => s.replace(/\s+/g, " ").trim();
+function scan(html) {
+  const findings = [];
+  let hasHtmlTag = false;
+  let hasLang = false;
+  let layoutTables = 0;
+  const vague = /* @__PURE__ */ new Set();
+  let namelessLinks = 0;
+  const tiny = /* @__PURE__ */ new Set();
+  const stack = [];
+  let skipText = 0;
+  let link = null;
+  let hiddenText;
+  let hiddenBuf = null;
+  let hiddenDepth = -1;
+  let visible = "";
+  const parser = new Parser(
+    {
+      onopentag(name, attrs) {
+        const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
+        const parentHidden = stack.some((s) => s.hidden);
+        const hidden = parentHidden || isHidden(style);
+        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
+        stack.push({ name, hidden, px: size ? Number(size[1]) : void 0 });
+        if (["head", "style", "script", "title"].includes(name)) skipText++;
+        if (name === "html") {
+          hasHtmlTag = true;
+          hasLang = Boolean(attrs.lang?.trim() || attrs["xml:lang"]?.trim());
+        }
+        if (name === "table" && !/^(presentation|none)$/i.test(attrs.role ?? "")) layoutTables++;
+        if (name === "a" && attrs.href !== void 0) link = { text: "", imgAlt: [] };
+        if (name === "img" && link) link.imgAlt.push(attrs.alt?.trim());
+        if (hidden && !parentHidden && hiddenText === void 0 && hiddenBuf === null) {
+          hiddenBuf = "";
+          hiddenDepth = stack.length;
+        }
+      },
+      ontext(text) {
+        if (skipText) return;
+        if (text.trim() && !stack.some((s) => s.hidden)) {
+          const px = [...stack].reverse().find((s) => s.px !== void 0)?.px;
+          if (px !== void 0 && px >= 2 && px < MIN_FONT_PX) tiny.add(px);
+        }
+        if (link) link.text += text;
+        if (hiddenBuf !== null) hiddenBuf += text;
+        else if (!stack.some((s) => s.hidden) && visible.length < 300) visible += text;
+      },
+      onclosetag(name) {
+        if (["head", "style", "script", "title"].includes(name)) skipText = Math.max(0, skipText - 1);
+        if (name === "a" && link) {
+          const text = squash(link.text);
+          if (text && VAGUE_LINK_TEXT.test(text)) vague.add(text);
+          if (!text && link.imgAlt.length && link.imgAlt.every((a) => a === "")) namelessLinks++;
+          link = null;
+        }
+        if (hiddenBuf !== null && stack.length === hiddenDepth) {
+          if (squash(hiddenBuf)) hiddenText = squash(hiddenBuf);
+          hiddenBuf = null;
+        }
+        stack.pop();
+      }
+    },
+    { decodeEntities: true, lowerCaseTags: true }
+  );
+  parser.write(html);
+  parser.end();
+  if (hasHtmlTag && !hasLang)
+    findings.push({
+      checkId: "a11y.no-lang",
+      severity: "warn",
+      message: "The <html> tag has no lang attribute, so screen readers guess the language and may mispronounce the whole email.",
+      fix: 'Add the language, e.g. <html lang="en">.'
+    });
+  if (vague.size)
+    findings.push({
+      checkId: "a11y.vague-link-text",
+      severity: "warn",
+      message: `Link text that means nothing on its own: ${[...vague].map((t) => `"${t}"`).join(", ")}. Screen-reader users often hear links as a list.`,
+      fix: 'Say where the link goes: "See the new arrivals" instead of "Click here".'
+    });
+  if (namelessLinks)
+    findings.push({
+      checkId: "a11y.image-link-no-alt",
+      severity: "warn",
+      message: `${namelessLinks} link(s) contain only an image marked decorative (alt=""), so they have no name for screen readers, or when images are blocked.`,
+      fix: "Give the image alt text that says where the link goes."
+    });
+  if (layoutTables)
+    findings.push({
+      checkId: "a11y.layout-table-role",
+      severity: "info",
+      message: `${layoutTables} table(s) have no role="presentation"; screen readers announce each layout table's rows and columns.`,
+      fix: 'Add role="presentation" to tables used for layout (not to real data tables).'
+    });
+  if (tiny.size)
+    findings.push({
+      checkId: "a11y.small-text",
+      severity: "info",
+      message: `Text set at ${[...tiny].sort((a, b) => a - b).join("px, ")}px; under ${MIN_FONT_PX}px is hard to read, and iOS enlarges it unpredictably.`,
+      fix: `Use at least ${MIN_FONT_PX}px for body copy and footers (14\u201316px is typical).`
+    });
+  return { findings, preview: { hidden: hiddenText, firstVisible: squash(visible).slice(0, 140) } };
+}
+function checkAccessibility(html) {
+  return scan(html).findings;
+}
+function previewText(html) {
+  return scan(html).preview;
+}
+function checkPreheader(html, opts) {
+  const findings = [];
+  const p = previewText(html);
+  const readable = (s) => s.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) => /name/i.test(tag) ? "[name]" : "[\u2026]");
+  const shown = squash(readable(opts.preheader ?? p.hidden ?? p.firstVisible));
+  if (!shown) return findings;
+  const source = opts.preheader !== void 0 ? "The preheader" : p.hidden ? "The hidden preheader" : "With no preheader, the inbox preview";
+  if (BOILERPLATE.test(shown))
+    findings.push({
+      checkId: "copy.preheader-boilerplate",
+      severity: "warn",
+      message: `${source} reads "${shown.slice(0, 60)}${shown.length > 60 ? "\u2026" : ""}", which wastes the second line of the inbox listing.`,
+      fix: "Set a preheader that adds to the subject line (an offer, a detail, a reason to open)."
+    });
+  const norm3 = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const subject = opts.subject ? norm3(opts.subject) : "";
+  if (subject.length >= 8 && norm3(shown).startsWith(subject))
+    findings.push({
+      checkId: "copy.preheader-repeats-subject",
+      severity: "warn",
+      message: `${source} repeats the subject line, so the inbox shows the same words twice.`,
+      fix: "Use the preheader for something the subject doesn't say."
+    });
+  return findings;
+}
+
 // src/checks/html.ts
 var GMAIL_CLIP_BYTES = 102 * 1024;
 var TRACKED_TAGS = /* @__PURE__ */ new Set(["table", "tbody", "thead", "tr", "td", "th", "div", "a", "center", "span"]);
@@ -51012,14 +51236,11 @@ function checkHtml(html) {
   }
   const stack = [];
   let imagesWithoutAlt = 0;
-  let hasHiddenPreheader = false;
   const parser = new Parser(
     {
       onopentag(name, attrs) {
         if (TRACKED_TAGS.has(name)) stack.push(name);
         if (name === "img" && attrs.alt === void 0) imagesWithoutAlt++;
-        const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
-        if (style.includes("display:none") || style.includes("mso-hide:all")) hasHiddenPreheader = true;
       },
       onclosetag(name, isImplied) {
         if (!TRACKED_TAGS.has(name) || isImplied) return;
@@ -51072,7 +51293,7 @@ function checkHtml(html) {
       fix: 'Add descriptive alt text (or alt="" for purely decorative images). Many clients block images by default.'
     });
   }
-  if (!hasHiddenPreheader) {
+  if (!previewText(html).hidden) {
     findings.push({
       checkId: "html.no-preheader",
       severity: "info",
@@ -51083,9 +51304,16 @@ function checkHtml(html) {
 }
 
 // src/checks/links.ts
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 var TEMPLATE_SYNTAX = /\{\{|\{%|\$\{/;
-var NON_PROD_LABEL = /^(localhost|staging|stage|stg|dev|test|qa|uat|sandbox|preview)$|-(staging|stage|dev|test|qa|uat|sandbox|preview)$/;
+var ENV = "staging|stage|stg|dev|test|qa|uat|sandbox|preview";
+var NON_PROD_LABEL = new RegExp(`^(localhost|${ENV})$|-(${ENV})$|^(${ENV})-`);
+var NON_PROD_DOMAIN_LABEL = /-(staging|stg|dev|qa|uat|sandbox)$|^(staging|stg|dev|qa|uat|sandbox)-/;
 var PLACEHOLDER_HOSTS = ["example.com", "example.org", "example.net"];
+var TUNNEL_HOSTS = ["ngrok.io", "ngrok.app", "ngrok.dev", "ngrok-free.app", "ngrok-free.dev", "loca.lt", "trycloudflare.com"];
+var PREVIEW_HOSTS = ["vercel.app", "netlify.app", "herokuapp.com"];
+var under = (h, domains) => domains.some((d) => h === d || h.endsWith(`.${d}`));
 var CLICK_TRACKING = /(^|\.)(sendgrid\.net|sparkpostmail\.com|klclick\d*\.com|ctrk\.klclick\.com|links\.iterable\.com|list-manage\.com|braze\.com|brz\.ai|mailchimp\.com|ct\.sendgrid\.net)$|^(click|clicks|links|email|em|track|t)\./i;
 var UTILITY_LINK = /unsubscrib|preference|opt-?out|\b(privacy|terms|legal|cookies?|help|support|faq|contact( us)?|account|log ?in|sign ?in)\b|view (this )?(email|message|it )?\s*(in|on) (your |a )?(web )?browser|web ?version|view online/i;
 function extractLinks(html) {
@@ -51138,21 +51366,50 @@ function registrableDomain(host) {
   const n = TWO_PART_SUFFIXES.has(labels.slice(-2).join(".")) ? 3 : 2;
   return labels.slice(-n).join(".");
 }
+function isPrivateAddress(address) {
+  const a = address.toLowerCase().replace(/^\[|\]$/g, "");
+  if (isIP(a) === 4) {
+    const [x, y] = a.split(".").map(Number);
+    return x === 0 || x === 10 || x === 127 || x === 169 && y === 254 || x === 172 && y >= 16 && y <= 31 || x === 192 && y === 168 || x === 100 && y >= 64 && y <= 127;
+  }
+  if (isIP(a) === 6) {
+    if (a === "::1" || a === "::") return true;
+    if (a.startsWith("::ffff:")) return isPrivateAddress(a.slice(7));
+    return /^f[cd]/.test(a) || /^fe[89ab]/.test(a);
+  }
+  return false;
+}
 function isNonProdHost(host) {
   const h = host.toLowerCase();
-  if (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || /\.(local|test|invalid|localhost)$/.test(h)) return true;
-  if (PLACEHOLDER_HOSTS.some((p) => h === p || h.endsWith(`.${p}`))) return true;
+  if (h === "localhost" || /\.(local|test|invalid|localhost|internal)$/.test(h) || isPrivateAddress(h)) return true;
+  if (under(h, PLACEHOLDER_HOSTS) || under(h, TUNNEL_HOSTS)) return true;
   const registrable = registrableDomain(h);
   const sub = h.slice(0, Math.max(0, h.length - registrable.length - 1));
   return sub !== "" && sub.split(".").some((label) => NON_PROD_LABEL.test(label));
+}
+function looksNonProdHost(host) {
+  const h = host.toLowerCase();
+  if (isNonProdHost(h) || isIP(h.replace(/^\[|\]$/g, ""))) return false;
+  if (under(h, PREVIEW_HOSTS)) return true;
+  return NON_PROD_DOMAIN_LABEL.test(registrableDomain(h).split(".")[0] ?? "");
+}
+var OPT_OUT = /unsubscrib|opt[-_ ]?out/i;
+var PREFERENCES = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i;
+var liveTags = (html) => html.replace(/<!--[\s\S]*?-->/g, " ").match(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g) ?? [];
+function hasUnsubscribe(html, links = extractLinks(html)) {
+  if (links.some((l) => l.href !== "" && l.href !== "#" && OPT_OUT.test(`${l.href} ${l.text}`))) return true;
+  return liveTags(html).some((t) => OPT_OUT.test(t) || /\bemail_footer\b/.test(t));
+}
+function hasPreferenceCenter(html, links) {
+  return links.some((l) => l.href !== "" && l.href !== "#" && PREFERENCES.test(`${l.href} ${l.text}`)) || liveTags(html).some((t) => PREFERENCES.test(t));
 }
 function checkLinks(html, opts = {}) {
   const findings = [];
   const links = extractLinks(html);
   if (opts.transactional) {
-  } else if (!/unsubscrib|opt[- ]?out/i.test(html)) {
+  } else if (!hasUnsubscribe(html, links)) {
     const blocks = [...html.matchAll(/content_blocks\.\$?\{?\s*([\w-]+)/g)].map((m) => m[1]);
-    const prefCenter = /preference_center|manage_preferences|manage[ -]?(your )?preferences|email preferences/i.test(html);
+    const prefCenter = hasPreferenceCenter(html, links);
     if (prefCenter)
       findings.push({
         checkId: "links.no-unsubscribe",
@@ -51164,7 +51421,7 @@ function checkLinks(html, opts = {}) {
       findings.push({
         checkId: "links.no-unsubscribe",
         severity: blocks.length ? "warn" : "fail",
-        message: blocks.length ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.` : "No unsubscribe link or unsubscribe tag found.",
+        message: blocks.length ? `No unsubscribe link found in this HTML; it may be inside content block ${blocks.map((b) => `"${b}"`).join(", ")}, which wasn't expanded. Check it with /check-campaign once connected, or paste the block.` : /unsubscrib|opt[- ]?out/i.test(html) ? "The email mentions unsubscribing, but no link or unsubscribe tag does it." : "No unsubscribe link or unsubscribe tag found.",
         fix: "Marketing email must include a working unsubscribe link (CAN-SPAM, GDPR, Gmail/Yahoo bulk-sender rules)."
       });
   }
@@ -51191,7 +51448,7 @@ function checkLinks(html, opts = {}) {
       });
       continue;
     }
-    const staticPart = href.split(TEMPLATE_SYNTAX)[0] ?? "";
+    const staticPart = (href.startsWith("//") ? `https:${href}` : href).split(TEMPLATE_SYNTAX)[0] ?? "";
     let url2;
     try {
       url2 = new URL(staticPart);
@@ -51208,6 +51465,22 @@ function checkLinks(html, opts = {}) {
         message: `Link "${label}" points at a non-production host (${url2.hostname}).`,
         evidence: href,
         fix: "Swap the staging/test/placeholder URL for the live one."
+      });
+    } else if (looksNonProdHost(url2.hostname)) {
+      findings.push({
+        checkId: "links.non-production-host",
+        severity: "warn",
+        message: `Link "${label}" points at what looks like a test or preview site (${url2.hostname}).`,
+        evidence: href,
+        fix: "Swap it for the live address. If this is your real site, add an exception for it."
+      });
+    }
+    if (href.startsWith("//")) {
+      findings.push({
+        checkId: "links.relative",
+        severity: "warn",
+        message: `Link "${label}" has no https: at the front (${href}); some email clients won't open it.`,
+        fix: "Write the full https:// address."
       });
     }
     if (url2.protocol === "http:") {
@@ -51236,7 +51509,19 @@ function checkLinks(html, opts = {}) {
   }
   return findings;
 }
-async function checkLinksLive(html, timeoutMs = 8e3) {
+var dnsResolve = async (host) => (await lookup(host, { all: true })).map((a) => a.address);
+async function refuseToRequest(url2, resolve) {
+  if (!/^https?:$/.test(url2.protocol)) return "not a web address";
+  if (isNonProdHost(url2.hostname)) return "a local, internal or test address";
+  let addresses = [];
+  try {
+    addresses = await resolve(url2.hostname);
+  } catch {
+    return void 0;
+  }
+  return addresses.some(isPrivateAddress) ? "it resolves to an internal network address" : void 0;
+}
+async function checkLinksLive(html, timeoutMs = 8e3, resolve = dnsResolve) {
   const findings = [];
   const notVerified = [];
   const unsafe = (l) => /unsubscrib|preference|optout|opt-out/i.test(l.href + l.text) || CLICK_TRACKING.test(new URL(l.href).hostname);
@@ -51257,7 +51542,26 @@ async function checkLinksLive(html, timeoutMs = 8e3) {
     await Promise.all(
       urls.slice(i, i + 5).map(async (href) => {
         try {
-          const res = await fetch(href, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+          let url2 = new URL(href);
+          let res;
+          for (let hop = 0; hop < 6; hop++) {
+            const refused = await refuseToRequest(url2, resolve);
+            if (refused) {
+              notVerified.push(
+                hop === 0 ? `${href} was not requested (${refused}).` : `${href} redirects to ${url2.host}, which was not requested (${refused}).`
+              );
+              return;
+            }
+            res = await fetch(url2, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(timeoutMs) });
+            const next = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+            if (!next) break;
+            url2 = new URL(next, url2);
+            res = void 0;
+          }
+          if (!res) {
+            notVerified.push(`${href} redirects too many times to check; open it by hand.`);
+            return;
+          }
           if (res.status === 405 || res.status === 403 || res.status === 429) {
             notVerified.push(`${href} doesn't answer link checks (HTTP ${res.status}); open it by hand.`);
             return;
@@ -51411,8 +51715,54 @@ function contextFor(persona3, platform) {
   if (platform === "iterable") ctx.unsubscribeUrl = ctx.unsubscribeUrl ?? "https://links.iterable.com/unsubscribe";
   return ctx;
 }
-function liquidEngine(notVerified) {
+function registerKlaviyoFilters(engine) {
+  const s = (v) => v === void 0 || v === null ? "" : String(v);
+  const words2 = (v, fn) => s(v).replace(/\S+/g, fn);
+  engine.registerFilter("upper", (v) => s(v).toUpperCase());
+  engine.registerFilter("lower", (v) => s(v).toLowerCase());
+  engine.registerFilter("title", (v) => words2(v, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()));
+  engine.registerFilter("capfirst", (v) => s(v).charAt(0).toUpperCase() + s(v).slice(1));
+  engine.registerFilter("floatformat", (v, places = -1) => {
+    const n = Number(v);
+    if (v === "" || v === void 0 || v === null || Number.isNaN(n)) return "";
+    const p = Number(places);
+    if (p < 0) return Number.isInteger(Number(n.toFixed(-p))) ? n.toFixed(0) : n.toFixed(-p);
+    return n.toFixed(Number.isFinite(p) ? p : 1);
+  });
+  engine.registerFilter("truncatechars", (v, n) => {
+    const max = Number(n);
+    return s(v).length > max && max > 0 ? `${s(v).slice(0, Math.max(0, max - 1))}\u2026` : s(v);
+  });
+  engine.registerFilter("truncatewords", (v, n) => {
+    const parts = s(v).trim().split(/\s+/);
+    return parts.length > Number(n) ? `${parts.slice(0, Number(n)).join(" ")} \u2026` : s(v);
+  });
+  engine.registerFilter("default_if_none", (v, fallback) => v === void 0 || v === null ? fallback : v);
+  engine.registerFilter("length", (v) => Array.isArray(v) ? v.length : s(v).length);
+  engine.registerFilter(
+    "add",
+    (v, n) => Number.isFinite(Number(v)) && Number.isFinite(Number(n)) ? Number(v) + Number(n) : s(v) + s(n)
+  );
+  engine.registerFilter("cut", (v, what) => s(v).split(s(what)).join(""));
+  engine.registerFilter("striptags", (v) => s(v).replace(/<[^>]*>/g, ""));
+  engine.registerFilter("urlencode", (v) => encodeURIComponent(s(v)));
+  engine.registerFilter(
+    "slugify",
+    (v) => s(v).toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s_-]+/g, "-")
+  );
+  engine.registerFilter("safe", (v) => v);
+}
+function unknownFilters(engine, src) {
+  const found = /* @__PURE__ */ new Set();
+  for (const tag of src.match(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g) ?? []) {
+    const code = tag.replace(/"[^"]*"|'[^']*'/g, '""');
+    for (const m of code.matchAll(/\|\s*([A-Za-z_][\w-]*)/g)) if (!Object.hasOwn(engine.filters, m[1])) found.add(m[1]);
+  }
+  return [...found];
+}
+function liquidEngine(notVerified, platform) {
   const engine = new import_liquidjs.Liquid({ jsTruthy: false });
+  if (platform === "klaviyo") registerKlaviyoFilters(engine);
   const note = (msg) => class extends import_liquidjs.Tag {
     constructor(token, remain, liquid) {
       super(token, remain, liquid);
@@ -51527,29 +51877,63 @@ function registerIterableHelpers(hb, notVerified) {
     "ifContainsStr",
     cmp((a, b) => String(a ?? "").includes(String(b)))
   );
-  hb.registerHelper("eq", function(a, b, opts) {
-    const r = String(a) === String(b);
+  const either = (test) => function(a, b, opts) {
+    const r = test(a, b);
     return opts && typeof opts.fn === "function" ? r ? opts.fn(this) : opts.inverse(this) : r;
-  });
-  for (const name of [
-    "capitalize",
-    "upper",
-    "lower",
-    "titleCase",
-    "trim",
-    "urlEncode",
-    "dateFormat",
-    "replace",
-    "truncate",
-    "formatNumber",
-    "toUpper",
-    "toLower"
-  ]) {
-    hb.registerHelper(name, (value) => typeof value === "string" || typeof value === "number" ? String(value) : "");
+  };
+  hb.registerHelper(
+    "eq",
+    either((a, b) => String(a) === String(b))
+  );
+  hb.registerHelper(
+    "lt",
+    either((a, b) => Number(a) < Number(b))
+  );
+  hb.registerHelper(
+    "gt",
+    either((a, b) => Number(a) > Number(b))
+  );
+  hb.registerHelper(
+    "lte",
+    either((a, b) => Number(a) <= Number(b))
+  );
+  hb.registerHelper(
+    "gte",
+    either((a, b) => Number(a) >= Number(b))
+  );
+  const s = (v) => typeof v === "string" || typeof v === "number" ? String(v) : "";
+  const num = (v) => typeof v === "number" || typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  const eachWord = (v) => v.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+  const text = {
+    upper: (v) => v.toUpperCase(),
+    toUpper: (v) => v.toUpperCase(),
+    upperCase: (v) => v.toUpperCase(),
+    lower: (v) => v.toLowerCase(),
+    toLower: (v) => v.toLowerCase(),
+    lowerCase: (v) => v.toLowerCase(),
+    capitalize: eachWord,
+    titleCase: (v) => eachWord(v.toLowerCase()),
+    capitalizeFirst: (v) => v.charAt(0).toUpperCase() + v.slice(1),
+    trim: (v) => v.trim(),
+    urlEncode: (v) => encodeURIComponent(v),
+    replace: (v, find, to) => typeof find === "string" && find ? v.split(find).join(typeof to === "string" ? to : "") : v,
+    substring: (v, from, to) => v.substring(Number.isNaN(num(from)) ? 0 : num(from), Number.isNaN(num(to)) ? void 0 : num(to)),
+    // Iterable's abbreviate counts the "..." in the length.
+    abbreviate: (v, n) => num(n) >= 4 && v.length > num(n) ? `${v.slice(0, num(n) - 3)}...` : v,
+    truncate: (v, n) => num(n) > 0 && v.length > num(n) ? v.slice(0, num(n)) : v
+  };
+  for (const [name, fn] of Object.entries(text)) hb.registerHelper(name, (value, a, b) => fn(s(value), a, b));
+  for (const name of ["dateFormat", "formatNumber", "numberFormat", "formatDate"]) {
+    hb.registerHelper(name, (value) => {
+      notVerified.add(`Iterable's {{${name}}} formatting wasn't applied; the value is shown as stored. Check it in Iterable's preview.`);
+      return s(value);
+    });
   }
-  hb.registerHelper("now", () => {
-    notVerified.add("Iterable's {{now}} was rendered as a sample date, not the send date.");
-    return "2026";
+  hb.registerHelper("now", (...args) => {
+    notVerified.add("Iterable's {{now}} was rendered with today's date, not the send date.");
+    const format = args[args.length - 1]?.hash?.format;
+    const first = typeof args[0] === "string" ? args[0] : void 0;
+    return javaDate(/* @__PURE__ */ new Date(), typeof format === "string" ? format : first ?? "yyyy-MM-dd");
   });
   hb.registerHelper("snippet", (name) => {
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
@@ -51569,6 +51953,59 @@ function registerIterableHelpers(hb, notVerified) {
       notVerified.add("Iterable catalog lookups were not executed (live catalog data).");
     return "";
   });
+}
+var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+function javaDate(d, format) {
+  const two = (n) => String(n).padStart(2, "0");
+  const month = MONTHS[d.getUTCMonth()];
+  const day = DAYS[d.getUTCDay()];
+  const parts = {
+    yyyy: String(d.getUTCFullYear()),
+    yy: String(d.getUTCFullYear()).slice(-2),
+    MMMM: month,
+    MMM: month.slice(0, 3),
+    MM: two(d.getUTCMonth() + 1),
+    M: String(d.getUTCMonth() + 1),
+    dd: two(d.getUTCDate()),
+    d: String(d.getUTCDate()),
+    EEEE: day,
+    EEE: day.slice(0, 3),
+    HH: two(d.getUTCHours()),
+    mm: two(d.getUTCMinutes()),
+    ss: two(d.getUTCSeconds())
+  };
+  return format.replace(
+    /'([^']*)'|yyyy|yy|MMMM|MMM|MM|M|dd|d|EEEE|EEE|HH|mm|ss/g,
+    (token, literal2) => literal2 ?? parts[token] ?? token
+  );
+}
+function unguardedComparisons(source) {
+  const out = [];
+  const open2 = [];
+  const guarded = (field) => open2.some((b) => b.field === field && b.guardsBody !== b.inElse);
+  for (const m of source.matchAll(/\{\{~?\s*([#/^]?)\s*([^}]*?)\s*~?\}\}/g)) {
+    const [, sigil, inner = ""] = m;
+    const [name = "", ...args] = inner.split(/\s+/);
+    if (sigil === "/") {
+      open2.pop();
+      continue;
+    }
+    if (sigil === "^" || name === "else") {
+      const top = open2[open2.length - 1];
+      if (top) top.inElse = true;
+      if (name !== "else" || args.length === 0) continue;
+    }
+    const cmp = /^\(?(eq|ifEq|ifNotEq|lt|gt|lte|gte)$/.exec(name);
+    const field = args[0];
+    if (cmp && field && /^[A-Za-z_][\w.]*$/.test(field) && !guarded(field))
+      out.push({ tag: m[0].replace(/\s*~?\}\}$/, "").replace(/^(\S+\s+\S+).*$/, "$1"), helper: cmp[1], field });
+    if (sigil === "#") {
+      const simple = args.length === 1 && /^[A-Za-z_][\w.]*$/.test(args[0]);
+      open2.push({ field: simple && (name === "if" || name === "unless") ? args[0] : void 0, guardsBody: name === "if", inElse: false });
+    }
+  }
+  return out;
 }
 function textOf(html) {
   return html.replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/[ \t]+/g, " ");
@@ -51590,7 +52027,8 @@ async function checkPersonalization(source, platform, personas) {
   const findings = [];
   const notVerified = /* @__PURE__ */ new Set();
   const variables = referencedVariables(source, platform);
-  const cast = personas && personas.length > 0 ? personas : defaultPersonas(variables);
+  const custom2 = Boolean(personas && personas.length > 0);
+  const cast = custom2 ? personas : defaultPersonas(variables);
   let src = source;
   if (platform === "braze") {
     src = normalizeBraze(source).replace(/\{\{\s*content_blocks\.([\w-]+)\s*\}\}/g, (_m, name) => {
@@ -51599,7 +52037,8 @@ async function checkPersonalization(source, platform, personas) {
     });
   }
   if (platform === "klaviyo") {
-    notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
+    if (/\{%|\{\{/.test(src))
+      notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
     src = src.replace(/\{%(-?)\s*elif\b/g, "{%$1 elsif");
   }
   if (platform === "iterable") {
@@ -51607,13 +52046,13 @@ async function checkPersonalization(source, platform, personas) {
       notVerified.add("Data feed values ([[ \u2026 ]]) weren't fetched; check them in Iterable's preview with a real user.");
       return "data feed value";
     });
-    for (const m of source.matchAll(/\{\{#?(eq|ifEq|ifNotEq|lt|gt|lte|gte)\s+([A-Za-z_][\w.]*)/g)) {
+    for (const c of unguardedComparisons(source)) {
       findings.push({
         checkId: "personalization.iterable-empty-comparison",
         severity: "warn",
-        message: `"${m[0]}}}" compares ${m[2]} directly; if it's empty for someone, Iterable fails the template and skips the send for them.`,
-        evidence: m[0],
-        fix: `Wrap the field: {{#${m[1]} (defaultIfEmpty ${m[2]} "") \u2026}}.`
+        message: `"${c.tag}}}" compares ${c.field} directly; if it's empty for someone, Iterable fails the template and skips the send for them.`,
+        evidence: c.tag,
+        fix: `Wrap the field: {{#${c.helper} (defaultIfEmpty ${c.field} "") \u2026}}, or put the comparison inside {{#if ${c.field}}}.`
       });
     }
   }
@@ -51626,8 +52065,12 @@ async function checkPersonalization(source, platform, personas) {
       tpl({});
       render = async (ctx) => tpl(ctx);
     } else {
-      const engine = liquidEngine(notVerified);
+      const engine = liquidEngine(notVerified, platform);
       const tpl = parseTolerant(engine, src, notVerified);
+      for (const name of unknownFilters(engine, src))
+        notVerified.add(
+          `The "${name}" filter isn't emulated locally, so the copy was checked without it. Check that value in the platform's preview.`
+        );
       render = (ctx) => engine.render(tpl, ctx);
     }
   } catch (err) {
@@ -51665,8 +52108,19 @@ async function checkPersonalization(source, platform, personas) {
       }
     }
   }
-  const baseline = renders.find((r) => r.output !== null);
-  const baselineText = baseline?.output ? textOf(baseline.output) : "";
+  const artifacts = (text) => ARTIFACTS.reduce((n, a) => n + count(text, a.pattern), 0);
+  let baseline;
+  let baselineText;
+  if (custom2) {
+    try {
+      baselineText = textOf(await render(contextFor(defaultPersonas(variables)[0], platform)));
+    } catch {
+    }
+  } else baseline = renders.find((r) => r.output !== null);
+  if (baselineText === void 0) {
+    baseline ??= renders.filter((r) => r.output !== null).sort((a, b) => artifacts(textOf(a.output)) - artifacts(textOf(b.output)))[0];
+    baselineText = baseline?.output ? textOf(baseline.output) : "";
+  }
   for (const r of renders) {
     if (r.output === null) continue;
     const text = textOf(r.output);
@@ -51687,7 +52141,7 @@ async function checkPersonalization(source, platform, personas) {
           severity: "warn",
           message: `For "${r.persona}" the copy shows ${a.message}.`,
           persona: r.persona,
-          evidence: text.match(new RegExp(`.{0,25}(${a.pattern.source}).{0,10}`))?.[0]?.trim(),
+          evidence: text.match(new RegExp(`.{0,25}(${a.pattern.source}).{0,10}`, "m"))?.[0]?.trim(),
           fix: `Add a fallback (Liquid: | default: 'there' \xB7 Iterable: {{defaultIfEmpty x "there"}}) or wrap the line in an if.`
         });
       }
@@ -51842,7 +52296,7 @@ function checkHouseRules(input2, rules) {
         });
     }
     if (!isUnsub && Object.keys(rules.links.requiredUtm).length > 0) {
-      for (const [param, pattern] of Object.entries(rules.links.requiredUtm)) {
+      for (const [param, pattern2] of Object.entries(rules.links.requiredUtm)) {
         const value = url2.searchParams.get(param);
         if (value === null) {
           findings.push({
@@ -51851,11 +52305,11 @@ function checkHouseRules(input2, rules) {
             message: `Link "${l.text || l.href}" is missing ${param}.`,
             evidence: l.href
           });
-        } else if (pattern && !TEMPLATE.test(value) && !new RegExp(pattern).test(value)) {
+        } else if (pattern2 && !TEMPLATE.test(value) && safeRegex(pattern2)?.test(value) === false) {
           findings.push({
             checkId: "house.utm-format",
             severity: "warn",
-            message: `${param}="${value}" doesn't match the team convention (${pattern}).`,
+            message: `${param}="${value}" doesn't match the team convention (${pattern2}).`,
             evidence: l.href
           });
         }
@@ -51926,8 +52380,7 @@ function checkHouseRules(input2, rules) {
   return findings;
 }
 function checkCampaignName(name, rules) {
-  const pattern = rules.naming.campaignPattern;
-  if (!pattern || new RegExp(pattern).test(name)) return [];
+  if (safeRegex(rules.naming.campaignPattern)?.test(name) !== false) return [];
   return [
     {
       checkId: "house.naming",
@@ -52020,6 +52473,14 @@ function linkFindings(urls, where) {
         severity: "fail",
         message: `${where} link points at a non-production host (${url2.hostname}).`,
         evidence: href
+      });
+    } else if (/^https?:$/.test(url2.protocol) && looksNonProdHost(url2.hostname)) {
+      out.push({
+        checkId: "links.non-production-host",
+        severity: "warn",
+        message: `${where} link points at what looks like a test or preview site (${url2.hostname}).`,
+        evidence: href,
+        fix: "Swap it for the live address. If this is your real site, add an exception for it."
       });
     }
     if (url2.protocol === "http:")
@@ -52352,146 +52813,6 @@ async function checkChannelMessage(input2, rules = DEFAULT_RULES) {
   };
 }
 
-// src/checks/a11y.ts
-var VAGUE_LINK_TEXT = /^(click( here)?|here|this|this link|link|(read|learn|see|find out|view) more|more|more info|details|go|tap here|start here)[.!…]?$/i;
-var MIN_FONT_PX = 12;
-var BOILERPLATE = /^(view (this )?(email|message|it) (in|on) (your |a )?(web )?browser|view (in|on) (the )?(web|browser|online)|having trouble (viewing|reading)|can'?t see (this|images)|email not displaying)/i;
-var isHidden = (style) => /display:none|mso-hide:all|visibility:hidden|max-height:0|font-size:[01]px/.test(style);
-var squash = (s) => s.replace(/\s+/g, " ").trim();
-function scan(html) {
-  const findings = [];
-  let hasHtmlTag = false;
-  let hasLang = false;
-  let layoutTables = 0;
-  const vague = /* @__PURE__ */ new Set();
-  let namelessLinks = 0;
-  const tiny = /* @__PURE__ */ new Set();
-  const stack = [];
-  let skipText = 0;
-  let link = null;
-  let hiddenText;
-  let hiddenBuf = null;
-  let hiddenDepth = -1;
-  let visible = "";
-  const parser = new Parser(
-    {
-      onopentag(name, attrs) {
-        const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
-        const parentHidden = stack.some((s) => s.hidden);
-        const hidden = parentHidden || isHidden(style);
-        const size = style.match(/font-size:(\d+(?:\.\d+)?)px/);
-        stack.push({ name, hidden, px: size ? Number(size[1]) : void 0 });
-        if (["head", "style", "script", "title"].includes(name)) skipText++;
-        if (name === "html") {
-          hasHtmlTag = true;
-          hasLang = Boolean(attrs.lang?.trim() || attrs["xml:lang"]?.trim());
-        }
-        if (name === "table" && !/^(presentation|none)$/i.test(attrs.role ?? "")) layoutTables++;
-        if (name === "a" && attrs.href !== void 0) link = { text: "", imgAlt: [] };
-        if (name === "img" && link) link.imgAlt.push(attrs.alt?.trim());
-        if (hidden && !parentHidden && hiddenText === void 0 && hiddenBuf === null) {
-          hiddenBuf = "";
-          hiddenDepth = stack.length;
-        }
-      },
-      ontext(text) {
-        if (skipText) return;
-        if (text.trim() && !stack.some((s) => s.hidden)) {
-          const px = [...stack].reverse().find((s) => s.px !== void 0)?.px;
-          if (px !== void 0 && px >= 2 && px < MIN_FONT_PX) tiny.add(px);
-        }
-        if (link) link.text += text;
-        if (hiddenBuf !== null) hiddenBuf += text;
-        else if (!stack.some((s) => s.hidden) && visible.length < 300) visible += text;
-      },
-      onclosetag(name) {
-        if (["head", "style", "script", "title"].includes(name)) skipText = Math.max(0, skipText - 1);
-        if (name === "a" && link) {
-          const text = squash(link.text);
-          if (text && VAGUE_LINK_TEXT.test(text)) vague.add(text);
-          if (!text && link.imgAlt.length && link.imgAlt.every((a) => a === "")) namelessLinks++;
-          link = null;
-        }
-        if (hiddenBuf !== null && stack.length === hiddenDepth) {
-          if (squash(hiddenBuf)) hiddenText = squash(hiddenBuf);
-          hiddenBuf = null;
-        }
-        stack.pop();
-      }
-    },
-    { decodeEntities: true, lowerCaseTags: true }
-  );
-  parser.write(html);
-  parser.end();
-  if (hasHtmlTag && !hasLang)
-    findings.push({
-      checkId: "a11y.no-lang",
-      severity: "warn",
-      message: "The <html> tag has no lang attribute, so screen readers guess the language and may mispronounce the whole email.",
-      fix: 'Add the language, e.g. <html lang="en">.'
-    });
-  if (vague.size)
-    findings.push({
-      checkId: "a11y.vague-link-text",
-      severity: "warn",
-      message: `Link text that means nothing on its own: ${[...vague].map((t) => `"${t}"`).join(", ")}. Screen-reader users often hear links as a list.`,
-      fix: 'Say where the link goes: "See the new arrivals" instead of "Click here".'
-    });
-  if (namelessLinks)
-    findings.push({
-      checkId: "a11y.image-link-no-alt",
-      severity: "warn",
-      message: `${namelessLinks} link(s) contain only an image marked decorative (alt=""), so they have no name for screen readers, or when images are blocked.`,
-      fix: "Give the image alt text that says where the link goes."
-    });
-  if (layoutTables)
-    findings.push({
-      checkId: "a11y.layout-table-role",
-      severity: "info",
-      message: `${layoutTables} table(s) have no role="presentation"; screen readers announce each layout table's rows and columns.`,
-      fix: 'Add role="presentation" to tables used for layout (not to real data tables).'
-    });
-  if (tiny.size)
-    findings.push({
-      checkId: "a11y.small-text",
-      severity: "info",
-      message: `Text set at ${[...tiny].sort((a, b) => a - b).join("px, ")}px; under ${MIN_FONT_PX}px is hard to read, and iOS enlarges it unpredictably.`,
-      fix: `Use at least ${MIN_FONT_PX}px for body copy and footers (14\u201316px is typical).`
-    });
-  return { findings, preview: { hidden: hiddenText, firstVisible: squash(visible).slice(0, 140) } };
-}
-function checkAccessibility(html) {
-  return scan(html).findings;
-}
-function previewText(html) {
-  return scan(html).preview;
-}
-function checkPreheader(html, opts) {
-  const findings = [];
-  const p = previewText(html);
-  const readable = (s) => s.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) => /name/i.test(tag) ? "[name]" : "[\u2026]");
-  const shown = squash(readable(opts.preheader ?? p.hidden ?? p.firstVisible));
-  if (!shown) return findings;
-  const source = opts.preheader !== void 0 ? "The preheader" : p.hidden ? "The hidden preheader" : "With no preheader, the inbox preview";
-  if (BOILERPLATE.test(shown))
-    findings.push({
-      checkId: "copy.preheader-boilerplate",
-      severity: "warn",
-      message: `${source} reads "${shown.slice(0, 60)}${shown.length > 60 ? "\u2026" : ""}", which wastes the second line of the inbox listing.`,
-      fix: "Set a preheader that adds to the subject line (an offer, a detail, a reason to open)."
-    });
-  const norm3 = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-  const subject = opts.subject ? norm3(opts.subject) : "";
-  if (subject.length >= 8 && norm3(shown).startsWith(subject))
-    findings.push({
-      checkId: "copy.preheader-repeats-subject",
-      severity: "warn",
-      message: `${source} repeats the subject line, so the inbox shows the same words twice.`,
-      fix: "Use the preheader for something the subject doesn't say."
-    });
-  return findings;
-}
-
 // src/checks/email.ts
 function checkSubject(subject, preheader) {
   const findings = [];
@@ -52547,6 +52868,13 @@ async function checkEmail(input2, rules = DEFAULT_RULES) {
 }
 
 // src/checks/campaign.ts
+function expandContentBlocks(html, blocks, depth = 5, open2 = []) {
+  return html.replace(/\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g, (whole, name) => {
+    const body = blocks.find((b) => b.name === name)?.body;
+    if (body === void 0 || depth <= 0 || open2.includes(name)) return whole;
+    return expandContentBlocks(body, blocks, depth - 1, [...open2, name]);
+  });
+}
 function findItem(snap, query) {
   const q = query.trim().toLowerCase();
   const all = [
@@ -52630,12 +52958,8 @@ async function checkCampaign(snap, query, rules = DEFAULT_RULES) {
       );
       continue;
     }
-    const html = m.body.replace(
-      /\{\{\s*content_blocks\.\$\{\s*([\w-]+)\s*\}\s*\}\}/g,
-      (whole, name) => snap.contentBlocks.find((b) => b.name === name)?.body ?? whole
-    );
-    const pattern = rules.transactional.namePattern;
-    const transactional = m.transactional === true || !!pattern && new RegExp(pattern, "i").test(`${item.name} ${m.name}`);
+    const html = expandContentBlocks(m.body, snap.contentBlocks);
+    const transactional = m.transactional === true || safeRegex(rules.transactional.namePattern, "i")?.test(`${item.name} ${m.name}`) === true;
     const r = await checkEmail(
       { html, platform: snap.platform, name: m.name, subject: m.subject, preheader: m.preheader, from: m.from, transactional },
       rules
@@ -52667,7 +52991,7 @@ async function checkCampaign(snap, query, rules = DEFAULT_RULES) {
 // src/cli/check.ts
 import { readdir as readdir2, readFile as readFile3, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { basename, dirname as dirname2, extname, join as join3, relative } from "node:path";
+import { basename as basename2, dirname as dirname2, extname, join as join3, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 var HELP = `Usage: crm-lifecycle-ops check <file.html | folder>... [options]
        crm-lifecycle-ops check --demo     (try it on the bundled sample emails)
@@ -52803,10 +53127,12 @@ async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
     );
     results.push({ file: file2, platformGuessed: !detected, ...r });
   }
+  const shared = [opts.subject !== void 0 && "--subject", opts.preheader !== void 0 && "--preheader"].filter(Boolean).join(" and ");
+  const notes = shared && results.length > 1 ? [`${shared} was applied to all ${results.length} files. Check one file at a time to give each email its own.`] : [];
   const failing = results.filter((r) => r.summary.fail > 0 || opts.failOn === "warn" && r.summary.warn > 0);
   if (opts.json) {
     write(
-      `${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, rules: rulesFile ?? "defaults", files: results }, null, 2)}
+      `${JSON.stringify({ passed: failing.length === 0, failOn: opts.failOn, rules: rulesFile ?? "defaults", notes, files: results }, null, 2)}
 `
     );
     return failing.length ? 1 : 0;
@@ -52816,7 +53142,7 @@ async function runCheckCli(argv, write = (s) => process.stdout.write(s)) {
   for (const r of results) {
     const open2 = unverified(r);
     const v = r.summary.fail ? "\u2717 Don't send" : r.summary.warn ? "! Fix before sending" : open2.length ? `\u2713 Ready, except ${open2.length} part${open2.length > 1 ? "s" : ""} not checked` : "\u2713 Ready";
-    const shown = opts.demo ? basename(r.file) : relative(process.cwd(), r.file);
+    const shown = opts.demo ? basename2(r.file) : relative(process.cwd(), r.file);
     write(`
 ${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform}${r.platformGuessed ? ", guessed" : ""})
 `);
@@ -52830,7 +53156,8 @@ ${shown && !shown.startsWith("..") ? shown : r.file}  ${v}  (${r.platform}${r.pl
     `
 ${results.length} file${results.length === 1 ? "" : "s"} checked: ${total.fail} blocking, ${total.warn} warnings. ${failing.length ? `${failing.length} failed (--fail-on ${opts.failOn}).` : "Passed."}
 ${rulesLabel}. Links were checked for format and host, not opened.
-`
+` + notes.map((n) => `Note: ${n}
+`).join("")
   );
   return failing.length ? 1 : 0;
 }
@@ -52854,11 +53181,23 @@ var CHECKS = [
   { id: "a11y.small-text", severity: "info", catches: "Visible text set under 12px (spacer cells with no text are ignored)" },
   { id: "copy.preheader-boilerplate", severity: "warn", catches: 'Inbox preview that reads "View this email in your browser" or similar' },
   { id: "copy.preheader-repeats-subject", severity: "warn", catches: "Preheader that starts by repeating the subject line" },
-  { id: "links.no-unsubscribe", severity: "fail", catches: "No unsubscribe link or tag anywhere in the email" },
+  {
+    id: "links.no-unsubscribe",
+    severity: "fail",
+    catches: "No unsubscribe link or tag anywhere in the email (the word alone, in copy or a comment, doesn't count)"
+  },
   { id: "links.empty-href", severity: "warn", catches: 'Links with href="" or "#"' },
   { id: "links.malformed", severity: "fail", catches: "Links that are not valid URLs" },
-  { id: "links.non-production-host", severity: "fail", catches: "Links to staging, dev, test, localhost or example.com hosts" },
-  { id: "links.relative", severity: "warn", catches: "Relative links (/path), which don't work in an inbox" },
+  {
+    id: "links.non-production-host",
+    severity: "fail",
+    catches: "Links to staging, dev, test, localhost, internal-network, tunnel or example.com hosts (a warning for look-alikes such as brand-dev.com or a vercel.app preview)"
+  },
+  {
+    id: "links.relative",
+    severity: "warn",
+    catches: "Relative links (/path) and links with no https: at the front (//host/path), which don't work in an inbox"
+  },
   { id: "links.insecure-http", severity: "warn", catches: "Links using http:// instead of https://" },
   {
     id: "links.utm-inconsistent",
@@ -53371,7 +53710,16 @@ async function opsReport(days = 30, minutesPerManualCheck = 20, opts = {}) {
   };
 }
 function bulkEditPreview(snap, find, replace, opts = {}) {
-  const pattern = opts.regex ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+  if (!find) throw new Error("Nothing to find: give the text (or pattern) to look for.");
+  let pattern2;
+  try {
+    pattern2 = opts.regex ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+  } catch (e) {
+    throw new Error(`"${find}" isn't a valid pattern: ${e.message.replace(/^Invalid regular expression: /, "")}`);
+  }
+  if (pattern2.test("")) throw new Error(`"${find}" matches empty text, so it would insert the replacement between every character.`);
+  pattern2.lastIndex = 0;
+  const replacement = opts.regex ? replace : replace.replace(/\$/g, "$$$$");
   const owner = /* @__PURE__ */ new Map();
   for (const c of snap.campaigns) for (const m of c.messageIds) owner.set(m, { name: c.name, active: isActive(c.status) });
   for (const j of snap.journeys)
@@ -53379,7 +53727,7 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
   const changes = [];
   const scan2 = (where, item, text, active, inside) => {
     if (!text) return;
-    const hits = [...text.matchAll(pattern)];
+    const hits = [...text.matchAll(pattern2)];
     if (hits.length === 0 || opts.activeOnly && !active) return;
     const plain = (x) => x.replace(/<[^>]*>/g, " ").replace(/<[^>]*$|^[^<]*>/g, " ").replace(/\s+/g, " ").trim();
     const ctx = (s, i, len) => {
@@ -53393,6 +53741,14 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
       }
       return `\u2026${plain(s.slice(Math.max(0, i - 60), i + len + 60))}\u2026`;
     };
+    let shift = 0;
+    const edited = text.replace(pattern2, replacement);
+    const after = hits.map((h) => {
+      const now = h[0].replace(new RegExp(pattern2.source, pattern2.flags.replace("g", "")), replacement);
+      const at = (h.index ?? 0) + shift;
+      shift += now.length - h[0].length;
+      return { at, len: now.length };
+    });
     changes.push({
       where,
       item,
@@ -53400,7 +53756,7 @@ function bulkEditPreview(snap, find, replace, opts = {}) {
       active,
       count: hits.length,
       before: hits.slice(0, 3).map((h) => ctx(text, h.index ?? 0, h[0].length)),
-      after: hits.slice(0, 3).map((h) => ctx(text.replace(pattern, replace), h.index ?? 0, replace.length))
+      after: after.slice(0, 3).map((a) => ctx(edited, a.at, a.len))
     });
   };
   for (const m of snap.messages) {
@@ -54696,7 +55052,9 @@ tool(
       webhook_url: external_exports.string().optional().describe("Webhook destination URL."),
       webhook_method: external_exports.string().optional().describe("Webhook HTTP method (POST, GET\u2026)."),
       name: external_exports.string().optional(),
-      personas: external_exports.array(persona2).optional()
+      personas: external_exports.array(persona2).optional(),
+      platform_channel: external_exports.string().optional().describe(`The platform's own channel name when it matters, e.g. "android_push" (Braze Android pushes need a title).`),
+      opt_out_appended: external_exports.boolean().optional().describe("True when the platform adds the SMS opt-out wording itself, so the text doesn't need its own.")
     }
   },
   async (args) => {
@@ -54705,6 +55063,8 @@ tool(
       {
         channel: args.channel,
         platform: args.platform,
+        platformChannel: args.platform_channel,
+        optOutAppended: args.opt_out_appended,
         name: args.name,
         title: args.title,
         body: args.body,
@@ -54825,6 +55185,16 @@ tool(
   },
   async ({ check_id, reason, match }) => {
     if (LOCKED_CHECKS.has(check_id)) return fail(`${check_id} is locked: it's wrong for every team, so it can't be waived.`);
+    if (!CHECKS.some((c) => c.id === check_id)) {
+      const near = closest(
+        check_id,
+        CHECKS.map((c) => c.id)
+      );
+      return fail(
+        `There's no check called "${check_id}".${near.length ? ` Did you mean ${near.join(" or ")}?` : ""} list_checks shows them all.`
+      );
+    }
+    if (!reason.trim()) return fail("Give a reason, so whoever reads the rulebook later knows why this was waived.");
     const { rules } = await loadRules();
     rules.exceptions.push({ checkId: check_id, reason, match, addedAt: (/* @__PURE__ */ new Date()).toISOString() });
     const saved = await saveRules(rules);
@@ -55138,11 +55508,11 @@ tool(
   {
     title: "Launch health",
     description: "Recent delivery numbers for a campaign or journey (sent, delivered, bounces, unsubscribes, spam complaints, opens, clicks) judged against stated thresholds. Needs a connected account.",
-    inputSchema: { platform: platformArg, name_or_id: external_exports.string() }
+    inputSchema: { platform: platformArg, workspace: workspaceArg, name_or_id: external_exports.string() }
   },
-  async ({ platform, name_or_id }) => {
+  async ({ platform, workspace, name_or_id }) => {
     try {
-      const snap = await latest(platform);
+      const snap = await latest(platform, workspace);
       if (snap.demo) return fail("Launch health needs a connected account; the demo has no delivery data.");
       const found = findItem(snap, name_or_id);
       if ("candidates" in found)

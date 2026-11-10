@@ -143,7 +143,23 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
 
       // Campaigns → audiences → messages → template + variation (subject line).
       await section("Campaigns", async () => {
-        const camps = await all("/campaigns?filter=equals(archived,false)&include=campaign-messages,campaign-audiences");
+        // Klaviyo refuses to list campaigns without a channel filter, so ask once per channel. A channel
+        // the account doesn't have (or the key can't read) costs that channel only.
+        const camps: { data: Resource[]; included: Resource[] } = { data: [], included: [] };
+        const failed: string[] = [];
+        for (const channel of ["email", "sms", "mobile_push"]) {
+          try {
+            const page = await all(
+              `/campaigns?filter=and(equals(messages.channel,'${channel}'),equals(archived,false))&include=campaign-messages,campaign-audiences`,
+            );
+            camps.data.push(...page.data.filter((c) => !camps.data.some((seen) => seen.id === c.id)));
+            camps.included.push(...page.included);
+          } catch (e) {
+            failed.push(`${channel} (${(e as Error).message})`);
+          }
+        }
+        if (failed.length === 3) throw new Error(failed[0]!.replace(/^email \((.*)\)$/, "$1"));
+        if (failed.length) gaps.push(`Campaigns on these channels could not be read: ${failed.join("; ")}.`);
         const inc = new Map(camps.included.map((r) => [`${r.type}:${r.id}`, r]));
         await mapLimit(camps.data, 4, async (c) => {
           const def = obj(c.attributes.definition);
@@ -159,11 +175,13 @@ export function klaviyoAdapter(opts: AdapterOptions = {}): Adapter {
             const mdef = obj(m?.attributes.definition);
             statuses.push(str(mdef.status) ?? "draft");
             messageIds.push(mid);
-            const updated = str(m?.attributes.updated);
             const prev = prevMessages.get(mid);
+            // Reuse saved content only for a message that can no longer change. A draft's template can be
+            // edited without the campaign's own "updated" time moving, and stale content would be QA'd as current.
+            const final = /^(sent|cancel)/i.test(str(mdef.status) ?? "");
             if (
               prev &&
-              updated &&
+              final &&
               prev.ownerId === c.id &&
               previous?.campaigns.find((x) => x.id === c.id)?.updatedAt === str(c.attributes.updated_at)
             ) {

@@ -1,4 +1,5 @@
 import { Parser } from "htmlparser2";
+import { previewText } from "./a11y.js";
 import type { Finding } from "../core/model.js";
 
 // Gmail clips messages whose HTML exceeds ~102 KB, hiding the footer (and the unsubscribe link).
@@ -47,14 +48,11 @@ export function checkHtml(html: string): Finding[] {
 
   const stack: string[] = [];
   let imagesWithoutAlt = 0;
-  let hasHiddenPreheader = false;
   const parser = new Parser(
     {
       onopentag(name, attrs) {
         if (TRACKED_TAGS.has(name)) stack.push(name);
         if (name === "img" && attrs.alt === undefined) imagesWithoutAlt++;
-        const style = (attrs.style ?? "").replace(/\s/g, "").toLowerCase();
-        if (style.includes("display:none") || style.includes("mso-hide:all")) hasHiddenPreheader = true;
       },
       onclosetag(name, isImplied) {
         if (!TRACKED_TAGS.has(name) || isImplied) return;
@@ -115,7 +113,8 @@ export function checkHtml(html: string): Finding[] {
     });
   }
 
-  if (!hasHiddenPreheader) {
+  // A preheader is hidden *text*. A hidden tracking pixel or spacer isn't one.
+  if (!previewText(html).hidden) {
     findings.push({
       checkId: "html.no-preheader",
       severity: "info",

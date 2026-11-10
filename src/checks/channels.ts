@@ -2,7 +2,7 @@ import { summarize, type CheckReport, type Finding, type Persona, type Platform 
 import { applyRules, DEFAULT_RULES, type Rulebook } from "../core/rules.js";
 import type { Button } from "../core/snapshot.js";
 import { checkHtml } from "./html.js";
-import { checkLinks, isNonProdHost } from "./links.js";
+import { checkLinks, isNonProdHost, looksNonProdHost } from "./links.js";
 import { ACCENTED_PERSONA, checkPersonalization } from "./personalization.js";
 import { checkHouseRules } from "./house.js";
 import { SMS_BEHAVIOUR } from "../guides/facts.js";
@@ -70,6 +70,14 @@ function linkFindings(urls: string[], where: string): Finding[] {
         severity: "fail",
         message: `${where} link points at a non-production host (${url.hostname}).`,
         evidence: href,
+      });
+    } else if (/^https?:$/.test(url.protocol) && looksNonProdHost(url.hostname)) {
+      out.push({
+        checkId: "links.non-production-host",
+        severity: "warn",
+        message: `${where} link points at what looks like a test or preview site (${url.hostname}).`,
+        evidence: href,
+        fix: "Swap it for the live address. If this is your real site, add an exception for it.",
       });
     }
     if (url.protocol === "http:")

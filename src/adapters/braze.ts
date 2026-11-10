@@ -65,11 +65,28 @@ async function listAll(
   return out;
 }
 
+/** The REST endpoint as a usable address: "rest.iad-01.braze.com" gets https://; plain http is refused. */
+export function brazeEndpoint(raw: string): string {
+  const value = raw.trim().replace(/\/+$/, "");
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error(
+      `The Braze REST endpoint "${raw}" isn't a web address. It looks like https://rest.iad-01.braze.com (Braze: Settings → APIs and Identifiers).`,
+    );
+  }
+  if (url.protocol !== "https:")
+    throw new Error(`The Braze REST endpoint must start with https:// (got "${raw}"); the API key would otherwise travel unencrypted.`);
+  return withScheme;
+}
+
 export function brazeAdapter(opts: AdapterOptions = {}): Adapter {
   const env = opts.env ?? credentialEnv();
   const key = env.BRAZE_API_KEY;
-  const base = env.BRAZE_REST_ENDPOINT?.replace(/\/$/, "");
-  if (!key || !base) throw missingEnv("braze", ["BRAZE_API_KEY", "BRAZE_REST_ENDPOINT"]);
+  if (!key || !env.BRAZE_REST_ENDPOINT?.trim()) throw missingEnv("braze", ["BRAZE_API_KEY", "BRAZE_REST_ENDPOINT"]);
+  const base = brazeEndpoint(env.BRAZE_REST_ENDPOINT);
   const headers = { authorization: `Bearer ${key}` };
   const get = (path: string) => getJson<Record<string, unknown>>(`${base}${path}`, headers, { fetcher: opts.fetcher });
   const workspace = env.BRAZE_WORKSPACE ?? "default";

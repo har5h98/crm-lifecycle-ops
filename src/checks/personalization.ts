@@ -169,8 +169,63 @@ function contextFor(persona: Persona, platform: Platform): Record<string, unknow
   return ctx;
 }
 
-function liquidEngine(notVerified: Set<string>): Liquid {
+// Klaviyo's templates are Django-style, so its filters differ from Liquid's. These are the common ones
+// with a clear, mechanical result; anything else is named in "not verified" by unknownFilters().
+function registerKlaviyoFilters(engine: Liquid) {
+  const s = (v: unknown) => (v === undefined || v === null ? "" : String(v));
+  const words = (v: unknown, fn: (w: string) => string) => s(v).replace(/\S+/g, fn);
+  engine.registerFilter("upper", (v: unknown) => s(v).toUpperCase());
+  engine.registerFilter("lower", (v: unknown) => s(v).toLowerCase());
+  engine.registerFilter("title", (v: unknown) => words(v, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()));
+  engine.registerFilter("capfirst", (v: unknown) => s(v).charAt(0).toUpperCase() + s(v).slice(1));
+  engine.registerFilter("floatformat", (v: unknown, places: unknown = -1) => {
+    const n = Number(v);
+    if (v === "" || v === undefined || v === null || Number.isNaN(n)) return "";
+    const p = Number(places);
+    // Django: a negative count shows decimals only when there are any.
+    if (p < 0) return Number.isInteger(Number(n.toFixed(-p))) ? n.toFixed(0) : n.toFixed(-p);
+    return n.toFixed(Number.isFinite(p) ? p : 1);
+  });
+  engine.registerFilter("truncatechars", (v: unknown, n: unknown) => {
+    const max = Number(n);
+    return s(v).length > max && max > 0 ? `${s(v).slice(0, Math.max(0, max - 1))}…` : s(v);
+  });
+  engine.registerFilter("truncatewords", (v: unknown, n: unknown) => {
+    const parts = s(v).trim().split(/\s+/);
+    return parts.length > Number(n) ? `${parts.slice(0, Number(n)).join(" ")} …` : s(v);
+  });
+  engine.registerFilter("default_if_none", (v: unknown, fallback: unknown) => (v === undefined || v === null ? fallback : v));
+  engine.registerFilter("length", (v: unknown) => (Array.isArray(v) ? v.length : s(v).length));
+  engine.registerFilter("add", (v: unknown, n: unknown) =>
+    Number.isFinite(Number(v)) && Number.isFinite(Number(n)) ? Number(v) + Number(n) : s(v) + s(n),
+  );
+  engine.registerFilter("cut", (v: unknown, what: unknown) => s(v).split(s(what)).join(""));
+  engine.registerFilter("striptags", (v: unknown) => s(v).replace(/<[^>]*>/g, ""));
+  engine.registerFilter("urlencode", (v: unknown) => encodeURIComponent(s(v)));
+  engine.registerFilter("slugify", (v: unknown) =>
+    s(v)
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/[\s_-]+/g, "-"),
+  );
+  engine.registerFilter("safe", (v: unknown) => v);
+}
+
+/** Filters the template uses that this engine doesn't have. liquidjs skips those silently, so say so. */
+function unknownFilters(engine: Liquid, src: string): string[] {
+  const found = new Set<string>();
+  for (const tag of src.match(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g) ?? []) {
+    // Drop quoted text first: a "|" inside a string isn't a filter.
+    const code = tag.replace(/"[^"]*"|'[^']*'/g, '""');
+    for (const m of code.matchAll(/\|\s*([A-Za-z_][\w-]*)/g)) if (!Object.hasOwn(engine.filters, m[1]!)) found.add(m[1]!);
+  }
+  return [...found];
+}
+
+function liquidEngine(notVerified: Set<string>, platform?: Platform): Liquid {
   const engine = new Liquid({ jsTruthy: false });
+  if (platform === "klaviyo") registerKlaviyoFilters(engine);
   const note = (msg: string) =>
     class extends Tag {
       constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
@@ -297,29 +352,69 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
     "ifContainsStr",
     cmp((a, b) => String(a ?? "").includes(String(b))),
   );
-  hb.registerHelper("eq", function (this: unknown, a: unknown, b: unknown, opts: Opts) {
-    const r = String(a) === String(b);
-    return opts && typeof opts.fn === "function" ? (r ? opts.fn(this) : opts.inverse(this)) : r;
-  });
-  for (const name of [
-    "capitalize",
-    "upper",
-    "lower",
-    "titleCase",
-    "trim",
-    "urlEncode",
-    "dateFormat",
-    "replace",
-    "truncate",
-    "formatNumber",
-    "toUpper",
-    "toLower",
-  ]) {
-    hb.registerHelper(name, (value: unknown) => (typeof value === "string" || typeof value === "number" ? String(value) : ""));
+  // Usable as a block ({{#eq a b}}…{{/eq}}) or inside another helper ({{#if (eq a b)}}).
+  const either = (test: (a: unknown, b: unknown) => boolean) =>
+    function (this: unknown, a: unknown, b: unknown, opts: Opts) {
+      const r = test(a, b);
+      return opts && typeof opts.fn === "function" ? (r ? opts.fn(this) : opts.inverse(this)) : r;
+    };
+  hb.registerHelper(
+    "eq",
+    either((a, b) => String(a) === String(b)),
+  );
+  hb.registerHelper(
+    "lt",
+    either((a, b) => Number(a) < Number(b)),
+  );
+  hb.registerHelper(
+    "gt",
+    either((a, b) => Number(a) > Number(b)),
+  );
+  hb.registerHelper(
+    "lte",
+    either((a, b) => Number(a) <= Number(b)),
+  );
+  hb.registerHelper(
+    "gte",
+    either((a, b) => Number(a) >= Number(b)),
+  );
+
+  // Text helpers change what the reader sees, so they're applied, not passed through.
+  const s = (v: unknown) => (typeof v === "string" || typeof v === "number" ? String(v) : "");
+  // Handlebars passes its options object last; a helper's own arguments are whatever comes before it.
+  const num = (v: unknown) => (typeof v === "number" || (typeof v === "string" && v.trim() !== "") ? Number(v) : NaN);
+  const eachWord = (v: string) => v.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+  const text: Record<string, (v: string, a?: unknown, b?: unknown) => string> = {
+    upper: (v) => v.toUpperCase(),
+    toUpper: (v) => v.toUpperCase(),
+    upperCase: (v) => v.toUpperCase(),
+    lower: (v) => v.toLowerCase(),
+    toLower: (v) => v.toLowerCase(),
+    lowerCase: (v) => v.toLowerCase(),
+    capitalize: eachWord,
+    titleCase: (v) => eachWord(v.toLowerCase()),
+    capitalizeFirst: (v) => v.charAt(0).toUpperCase() + v.slice(1),
+    trim: (v) => v.trim(),
+    urlEncode: (v) => encodeURIComponent(v),
+    replace: (v, find, to) => (typeof find === "string" && find ? v.split(find).join(typeof to === "string" ? to : "") : v),
+    substring: (v, from, to) => v.substring(Number.isNaN(num(from)) ? 0 : num(from), Number.isNaN(num(to)) ? undefined : num(to)),
+    // Iterable's abbreviate counts the "..." in the length.
+    abbreviate: (v, n) => (num(n) >= 4 && v.length > num(n) ? `${v.slice(0, num(n) - 3)}...` : v),
+    truncate: (v, n) => (num(n) > 0 && v.length > num(n) ? v.slice(0, num(n)) : v),
+  };
+  for (const [name, fn] of Object.entries(text)) hb.registerHelper(name, (value: unknown, a?: unknown, b?: unknown) => fn(s(value), a, b));
+  // Date and number formats depend on Iterable's own locale and pattern rules; show the raw value and say so.
+  for (const name of ["dateFormat", "formatNumber", "numberFormat", "formatDate"]) {
+    hb.registerHelper(name, (value: unknown) => {
+      notVerified.add(`Iterable's {{${name}}} formatting wasn't applied; the value is shown as stored. Check it in Iterable's preview.`);
+      return s(value);
+    });
   }
-  hb.registerHelper("now", () => {
-    notVerified.add("Iterable's {{now}} was rendered as a sample date, not the send date.");
-    return "2026";
+  hb.registerHelper("now", (...args: unknown[]) => {
+    notVerified.add("Iterable's {{now}} was rendered with today's date, not the send date.");
+    const format = (args[args.length - 1] as Opts | undefined)?.hash?.format;
+    const first = typeof args[0] === "string" ? args[0] : undefined;
+    return javaDate(new Date(), typeof format === "string" ? format : (first ?? "yyyy-MM-dd"));
   });
   hb.registerHelper("snippet", (name: unknown) => {
     notVerified.add(`Snippet "${String(name)}" was not expanded; check it separately.`);
@@ -341,6 +436,67 @@ function registerIterableHelpers(hb: typeof Handlebars, notVerified: Set<string>
       notVerified.add("Iterable catalog lookups were not executed (live catalog data).");
     return "";
   });
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** A date in the common Java pattern letters Iterable uses (yyyy, MM, MMMM, dd, EEEE, HH, mm, ss), in UTC. */
+function javaDate(d: Date, format: string): string {
+  const two = (n: number) => String(n).padStart(2, "0");
+  const month = MONTHS[d.getUTCMonth()]!;
+  const day = DAYS[d.getUTCDay()]!;
+  const parts: Record<string, string> = {
+    yyyy: String(d.getUTCFullYear()),
+    yy: String(d.getUTCFullYear()).slice(-2),
+    MMMM: month,
+    MMM: month.slice(0, 3),
+    MM: two(d.getUTCMonth() + 1),
+    M: String(d.getUTCMonth() + 1),
+    dd: two(d.getUTCDate()),
+    d: String(d.getUTCDate()),
+    EEEE: day,
+    EEE: day.slice(0, 3),
+    HH: two(d.getUTCHours()),
+    mm: two(d.getUTCMinutes()),
+    ss: two(d.getUTCSeconds()),
+  };
+  return format.replace(
+    /'([^']*)'|yyyy|yy|MMMM|MMM|MM|M|dd|d|EEEE|EEE|HH|mm|ss/g,
+    (token, literal?: string) => literal ?? parts[token] ?? token,
+  );
+}
+
+/**
+ * Iterable comparisons on a bare field ({{#eq plan "pro"}}) that nothing protects. A comparison inside
+ * {{#if plan}} (or the else of {{#unless plan}}) only runs when the field has a value, so it's safe.
+ */
+function unguardedComparisons(source: string): { tag: string; helper: string; field: string }[] {
+  const out: { tag: string; helper: string; field: string }[] = [];
+  const open: { field?: string; guardsBody: boolean; inElse: boolean }[] = [];
+  const guarded = (field: string) => open.some((b) => b.field === field && b.guardsBody !== b.inElse);
+  for (const m of source.matchAll(/\{\{~?\s*([#/^]?)\s*([^}]*?)\s*~?\}\}/g)) {
+    const [, sigil, inner = ""] = m;
+    const [name = "", ...args] = inner.split(/\s+/);
+    if (sigil === "/") {
+      open.pop();
+      continue;
+    }
+    if (sigil === "^" || name === "else") {
+      const top = open[open.length - 1];
+      if (top) top.inElse = true;
+      if (name !== "else" || args.length === 0) continue;
+    }
+    const cmp = /^\(?(eq|ifEq|ifNotEq|lt|gt|lte|gte)$/.exec(name);
+    const field = args[0];
+    if (cmp && field && /^[A-Za-z_][\w.]*$/.test(field) && !guarded(field))
+      out.push({ tag: m[0].replace(/\s*~?\}\}$/, "").replace(/^(\S+\s+\S+).*$/, "$1"), helper: cmp[1]!, field });
+    if (sigil === "#") {
+      const simple = args.length === 1 && /^[A-Za-z_][\w.]*$/.test(args[0]!);
+      open.push({ field: simple && (name === "if" || name === "unless") ? args[0] : undefined, guardsBody: name === "if", inElse: false });
+    }
+  }
+  return out;
 }
 
 function textOf(html: string): string {
@@ -379,7 +535,8 @@ export async function checkPersonalization(source: string, platform: Platform, p
   const findings: Finding[] = [];
   const notVerified = new Set<string>();
   const variables = referencedVariables(source, platform);
-  const cast = personas && personas.length > 0 ? personas : defaultPersonas(variables);
+  const custom = Boolean(personas && personas.length > 0);
+  const cast = custom ? personas! : defaultPersonas(variables);
 
   let src = source;
   if (platform === "braze") {
@@ -389,7 +546,9 @@ export async function checkPersonalization(source: string, platform: Platform, p
     });
   }
   if (platform === "klaviyo") {
-    notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
+    // Only worth saying when the email actually has template logic to approximate.
+    if (/\{%|\{\{/.test(src))
+      notVerified.add("Klaviyo's template language was approximated with Liquid; uncommon tags may render differently.");
     src = src.replace(/\{%(-?)\s*elif\b/g, "{%$1 elsif");
   }
 
@@ -401,13 +560,13 @@ export async function checkPersonalization(source: string, platform: Platform, p
     });
     // In Iterable, eq/ifEq/lt/gt on an empty or missing field fails the template, and the message
     // isn't sent to that person at all. Fields wrapped in defaultIfEmpty are safe.
-    for (const m of source.matchAll(/\{\{#?(eq|ifEq|ifNotEq|lt|gt|lte|gte)\s+([A-Za-z_][\w.]*)/g)) {
+    for (const c of unguardedComparisons(source)) {
       findings.push({
         checkId: "personalization.iterable-empty-comparison",
         severity: "warn",
-        message: `"${m[0]}}}" compares ${m[2]} directly; if it's empty for someone, Iterable fails the template and skips the send for them.`,
-        evidence: m[0],
-        fix: `Wrap the field: {{#${m[1]} (defaultIfEmpty ${m[2]} "") …}}.`,
+        message: `"${c.tag}}}" compares ${c.field} directly; if it's empty for someone, Iterable fails the template and skips the send for them.`,
+        evidence: c.tag,
+        fix: `Wrap the field: {{#${c.helper} (defaultIfEmpty ${c.field} "") …}}, or put the comparison inside {{#if ${c.field}}}.`,
       });
     }
   }
@@ -421,8 +580,12 @@ export async function checkPersonalization(source: string, platform: Platform, p
       tpl({}); // compile is lazy: surface syntax errors now
       render = async (ctx) => tpl(ctx);
     } else {
-      const engine = liquidEngine(notVerified);
+      const engine = liquidEngine(notVerified, platform);
       const tpl: Template[] = parseTolerant(engine, src, notVerified);
+      for (const name of unknownFilters(engine, src))
+        notVerified.add(
+          `The "${name}" filter isn't emulated locally, so the copy was checked without it. Check that value in the platform's preview.`,
+        );
       render = (ctx) => engine.render(tpl, ctx);
     }
   } catch (err) {
@@ -462,8 +625,22 @@ export async function checkPersonalization(source: string, platform: Platform, p
     }
   }
 
-  const baseline = renders.find((r) => r.output !== null);
-  const baselineText = baseline?.output ? textOf(baseline.output) : "";
+  // Blanks are judged against a profile that has everything. A team's own personas may all be missing
+  // a field, so with custom personas the comparison is a complete profile rendered just for this.
+  const artifacts = (text: string) => ARTIFACTS.reduce((n, a) => n + count(text, a.pattern), 0);
+  let baseline: PersonalizationResult["renders"][number] | undefined;
+  let baselineText: string | undefined;
+  if (custom) {
+    try {
+      baselineText = textOf(await render(contextFor(defaultPersonas(variables)[0]!, platform)));
+    } catch {
+      /* fall back to the cleanest of the given personas below */
+    }
+  } else baseline = renders.find((r) => r.output !== null);
+  if (baselineText === undefined) {
+    baseline ??= renders.filter((r) => r.output !== null).sort((a, b) => artifacts(textOf(a.output!)) - artifacts(textOf(b.output!)))[0];
+    baselineText = baseline?.output ? textOf(baseline.output) : "";
+  }
   for (const r of renders) {
     if (r.output === null) continue;
     const text = textOf(r.output);
@@ -484,7 +661,7 @@ export async function checkPersonalization(source: string, platform: Platform, p
           severity: "warn",
           message: `For "${r.persona}" the copy shows ${a.message}.`,
           persona: r.persona,
-          evidence: text.match(new RegExp(`.{0,25}(${a.pattern.source}).{0,10}`))?.[0]?.trim(),
+          evidence: text.match(new RegExp(`.{0,25}(${a.pattern.source}).{0,10}`, "m"))?.[0]?.trim(),
           fix: "Add a fallback (Liquid: | default: 'there' · Iterable: {{defaultIfEmpty x \"there\"}}) or wrap the line in an if.",
         });
       }

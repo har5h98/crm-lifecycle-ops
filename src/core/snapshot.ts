@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Confidence, Platform } from "./model.js";
 
 // A snapshot is one point-in-time, platform-neutral copy of an account's lifecycle program.
@@ -209,7 +209,7 @@ export async function loadLatest(
   let prevFile: string | undefined;
   if (since) {
     const cutoff = since.replace(/[:.]/g, "-");
-    prevFile = [...files].reverse().find((f) => f.slice(f.lastIndexOf("/") + 1) <= `${cutoff}.json`);
+    prevFile = [...files].reverse().find((f) => basename(f) <= `${cutoff}.json`);
   } else {
     prevFile = files[files.length - 2];
   }

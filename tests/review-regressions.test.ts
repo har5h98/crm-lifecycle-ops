@@ -2,9 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkChannelMessage } from "../src/checks/channels.js";
 import { checkEmail } from "../src/checks/email.js";
 import { checkHouseRules } from "../src/checks/house.js";
-import { checkLinksLive, isNonProdHost } from "../src/checks/links.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { brazeEndpoint } from "../src/adapters/braze.js";
+import { parseCsv } from "../src/adapters/iterable.js";
+import { expandContentBlocks } from "../src/checks/campaign.js";
+import { checkLinksLive, isNonProdHost, looksNonProdHost } from "../src/checks/links.js";
+import { checkPersonalization } from "../src/checks/personalization.js";
+import { runCheckCli } from "../src/cli/check.js";
 import { whatBreaks } from "../src/core/graph.js";
-import { RulebookSchema } from "../src/core/rules.js";
+import { bulkEditPreview } from "../src/core/ops.js";
+import { loadRules, RulebookSchema } from "../src/core/rules.js";
+import type { Snapshot } from "../src/core/snapshot.js";
 import { demoSnapshot } from "../src/demo/fernbrook.js";
 
 // Each case here is a false alarm or a miss found in an independent review (2026-11-02).
@@ -259,5 +269,171 @@ describe("guide freshness (0.5.2)", () => {
     const { DEFAULT_RULES } = await import("../src/core/rules.js");
     const plan = howTo("braze", "edit-live-journey", DEFAULT_RULES);
     expect(plan.freshness.verifiedAt).toBe(plan.verifiedAt);
+  });
+});
+
+// Each case here was reproduced in the plugin audit of 2026-11-09.
+describe("audit fixes (0.5.6)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const page = (body: string) => `<html lang="en"><body>${body}</body></html>`;
+  const linkFindings = async (body: string) =>
+    (await checkEmail({ platform: "braze", html: page(body) })).findings
+      .filter((f) => f.checkId.startsWith("links."))
+      .map((f) => `${f.severity} ${f.checkId}`);
+
+  it("the word unsubscribe in copy or a comment is not an unsubscribe route", async () => {
+    const f = await linkFindings(
+      '<p>To unsubscribe, reply.</p><!-- {{unsubscribe_url}} --><a href="https://www.brand.com/x">Shop the sale</a>',
+    );
+    expect(f).toContain("fail links.no-unsubscribe");
+    expect(await linkFindings('<a href="{{${set_user_to_unsubscribed_url}}}">Unsubscribe</a>')).not.toContain("fail links.no-unsubscribe");
+  });
+
+  it("private addresses and tunnels block; preview-looking hosts warn", async () => {
+    for (const h of ["10.0.0.4", "192.168.1.9", "abc.ngrok-free.app", "api.corp.internal"]) expect(isNonProdHost(h), h).toBe(true);
+    for (const h of ["brand-dev.com", "x.vercel.app"]) {
+      expect(isNonProdHost(h), h).toBe(false);
+      expect(looksNonProdHost(h), h).toBe(true);
+    }
+    expect(looksNonProdHost("www.brand.com")).toBe(false);
+    const f = await linkFindings(
+      '<a href="https://brand-dev.com/a">Dev shop</a><a href="http://10.0.0.4/a">Internal shop</a><a href="//www.brand.com/a">Shop</a><a href="https://www.brand.com/unsubscribe">Unsubscribe</a>',
+    );
+    expect(f).toContain("fail links.non-production-host");
+    expect(f).toContain("warn links.non-production-host");
+    expect(f).toContain("warn links.relative");
+  });
+
+  it("a push link to a preview-looking host warns", async () => {
+    const r = await checkChannelMessage({
+      channel: "push",
+      platform: "braze",
+      body: "Your order shipped",
+      deepLink: "https://x.vercel.app/orders",
+    });
+    expect(r.findings.find((f) => f.checkId === "links.non-production-host")?.severity).toBe("warn");
+  });
+
+  it("the live link check never requests internal addresses", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await checkLinksLive('<a href="http://169.254.169.254/latest">x</a><a href="https://localhost/a">y</a>', 2000);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(r.notVerified).toHaveLength(2);
+  });
+
+  it("the live link check stops at a redirect to an internal address", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 302, headers: { location: "http://169.254.169.254/latest" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await checkLinksLive('<a href="https://www.brand.example/go">Shop</a>', 2000, async () => ["93.184.216.34"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(r.notVerified.join(" ")).toMatch(/not requested|internal/);
+  });
+
+  it("a hidden image is not a preheader", async () => {
+    const r = await checkEmail({
+      platform: "braze",
+      html: page(
+        '<img src="https://www.brand.com/p.gif" style="display:none" alt=""><p>Hello</p><a href="https://www.brand.com/unsubscribe">Unsubscribe</a>',
+      ),
+    });
+    expect(ids(r)).toContain("html.no-preheader");
+  });
+
+  it("a rulebook with a broken pattern is rejected in plain words", async () => {
+    expect(RulebookSchema.safeParse({ naming: { campaignPattern: "(" } }).success).toBe(false);
+    expect(RulebookSchema.safeParse({ links: { requiredUtm: { utm_source: "[a-" } } }).success).toBe(false);
+    const file = join(mkdtempSync(join(tmpdir(), "clo-rules-")), "rules.json");
+    writeFileSync(file, JSON.stringify({ naming: { campaignPattern: "(" } }));
+    const err = await loadRules(file).then(
+      () => "",
+      (e: Error) => e.message,
+    );
+    expect(err).toMatch(/naming\.campaignPattern: .*isn't a valid pattern/);
+    expect(err).not.toContain('"code"');
+  });
+
+  it("custom personas that all lack a field still show the blank", async () => {
+    const r = await checkPersonalization("Hi {{ first_name }}, welcome", "braze", [
+      { name: "A", attributes: { plan: "x" } },
+      { name: "B", attributes: {} },
+    ]);
+    expect(r.findings.map((f) => f.checkId)).toContain("personalization.dangling-punctuation");
+  });
+
+  it("Klaviyo filters render, and an unknown one is reported as not checked", async () => {
+    const r = await checkPersonalization("Total {{ total|floatformat:2 }} {{ first_name|title }} {{ x|weird_one }}", "klaviyo", [
+      { name: "A", attributes: { total: 12.5, first_name: "ana maria" } },
+    ]);
+    expect(r.renders[0]!.output).toContain("Total 12.50 Ana Maria");
+    expect(r.findings.filter((f) => f.severity === "fail")).toEqual([]);
+    expect(r.notVerified.join(" ")).toMatch(/"weird_one" filter isn't emulated/);
+  });
+
+  it("Iterable text helpers render and date formatting is reported, not faked", async () => {
+    const r = await checkPersonalization('{{upper firstName}} {{capitalize city}} {{dateFormat signup format="MM/dd"}}', "iterable", [
+      { name: "A", attributes: { firstName: "ana", city: "new york", signup: "2026-01-01" } },
+    ]);
+    expect(r.renders[0]!.output).toBe("ANA New York 2026-01-01");
+    expect(r.notVerified.join(" ")).toMatch(/dateFormat/);
+  });
+
+  it("an Iterable comparison inside a guard for the same field is not flagged", async () => {
+    const flagged = async (src: string) =>
+      (await checkPersonalization(src, "iterable")).findings.filter((f) => f.checkId === "personalization.iterable-empty-comparison")
+        .length;
+    expect(await flagged('{{#if plan}}{{#eq plan "pro"}}P{{/eq}}{{/if}}')).toBe(0);
+    expect(await flagged("{{#unless age}}{{else}}{{#gt age 3}}old{{/gt}}{{/unless}}")).toBe(0);
+    expect(await flagged('{{#if plan}}ok{{else}}{{#eq plan "x"}}no{{/eq}}{{/if}}')).toBe(1);
+    expect(await flagged('{{#eq tier "a"}}T{{/eq}}')).toBe(1);
+  });
+
+  it("bulk edit: literal replacement text, real after-text, and no empty patterns", () => {
+    const snap = {
+      campaigns: [],
+      journeys: [],
+      segments: [],
+      contentBlocks: [],
+      messages: [{ id: "m", name: "M", channel: "email", subject: "Sale now: sale ends", body: "<p>sale sale</p>" }],
+    } as unknown as Snapshot;
+    const r = bulkEditPreview(snap, "sale", "SUPER SALE $1");
+    expect(r.totalMatches).toBe(3);
+    expect(r.places.find((p) => p.where === "body")!.after[0]).toBe("…SUPER SALE $1 SUPER SALE $1…");
+    expect(() => bulkEditPreview(snap, "", "y")).toThrow(/Nothing to find/);
+    expect(() => bulkEditPreview(snap, "x*", "y", { regex: true })).toThrow(/matches empty text/);
+    expect(() => bulkEditPreview(snap, "(", "y", { regex: true })).toThrow();
+  });
+
+  it("Iterable metrics CSV: quoted commas and thousands separators", () => {
+    expect(parseCsv('﻿name,"Total Email Sends"\r\n"Promo, big","1,200"\n')).toEqual([
+      ["name", "Total Email Sends"],
+      ["Promo, big", "1,200"],
+    ]);
+  });
+
+  it("Braze endpoint: adds https, refuses http", () => {
+    expect(brazeEndpoint("rest.iad-01.braze.com/")).toBe("https://rest.iad-01.braze.com");
+    expect(() => brazeEndpoint("http://rest.iad-01.braze.com")).toThrow(/https/);
+  });
+
+  it("content blocks expand inside content blocks, and a loop ends", () => {
+    const blocks = [
+      { name: "a", body: "A[{{content_blocks.${b}}}]" },
+      { name: "b", body: "B{{content_blocks.${a}}}" },
+    ];
+    expect(expandContentBlocks("{{content_blocks.${a}}}", blocks)).toBe("A[B{{content_blocks.${a}}}]");
+    expect(expandContentBlocks("{{content_blocks.${a}}}", [blocks[0]!, { name: "b", body: "B" }])).toBe("A[B]");
+  });
+
+  it("the CLI says when one subject was applied to several files", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "clo-cli-notes-"));
+    for (const n of ["a.html", "b.html"])
+      writeFileSync(join(dir, n), page('<p>Hi</p><a href="https://www.brand.com/unsubscribe">Unsubscribe</a>'));
+    let out = "";
+    await runCheckCli([dir, "--subject", "Hello there", "--json"], (s) => (out += s));
+    expect(JSON.parse(out).notes[0]).toMatch(/--subject was applied to all 2 files/);
+    out = "";
+    await runCheckCli([join(dir, "a.html"), "--subject", "Hello there", "--json"], (s) => (out += s));
+    expect(JSON.parse(out).notes).toEqual([]);
   });
 });

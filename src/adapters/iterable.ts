@@ -7,6 +7,38 @@ import { missingEnv, type Adapter, type AdapterOptions, type LaunchStats } from 
 // Known gap: the API lists journeys but doesn't return their step graph, so journey steps are
 // reconstructed from the campaigns attached to each journey, in unknown order.
 
+/** CSV rows, with quoted fields (commas, quotes and line breaks inside them) read correctly. */
+export function parseCsv(csv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  const text = csv.replace(/^\uFEFF/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      field = "";
+      if (row.some((f) => f.trim())) rows.push(row);
+      row = [];
+    } else field += ch;
+  }
+  row.push(field);
+  if (row.some((f) => f.trim())) rows.push(row);
+  return rows;
+}
+
 function campaignStatus(state: string | undefined): Status {
   switch ((state ?? "").toLowerCase()) {
     case "running":
@@ -90,7 +122,10 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         if (stale) skippedOld++;
         if (messageId && !stale) {
           const prev = prevMessages.get(messageId);
-          if (prev && prevCampaigns.get(id)?.updatedAt === updatedAt) {
+          // Reuse saved content only for a campaign that has finished. A template can be edited without
+          // its campaign's updatedAt moving, and stale content would be QA'd as current.
+          const final = ["finished", "archived", "aborted"].includes(state);
+          if (prev && final && prevCampaigns.get(id)?.updatedAt === updatedAt) {
             snap.messages.push(prev);
           } else {
             const kind = normalizeChannel(medium);
@@ -219,13 +254,10 @@ export function iterableAdapter(opts: AdapterOptions = {}): Adapter {
         headers,
         opts.fetcher,
       );
-      const [header, ...rows] = csv
-        .trim()
-        .split(/\r?\n/)
-        .map((l) => l.split(","));
+      const [header, ...rows] = parseCsv(csv);
       const col = (name: RegExp) => {
         const i = (header ?? []).findIndex((h) => name.test(h));
-        return i < 0 ? undefined : rows.reduce((sum, r) => sum + Number(r[i] ?? 0), 0);
+        return i < 0 ? undefined : rows.reduce((sum, r) => sum + (Number((r[i] ?? "").replace(/,/g, "")) || 0), 0);
       };
       return {
         period: "last 7 days",
