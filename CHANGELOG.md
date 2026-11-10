@@ -3,6 +3,13 @@
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org);
 entries are generated from Conventional Commits by release-please.
 
+## [0.5.6](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.5...v0.5.6) (2026-11-10)
+
+
+### Bug Fixes
+
+* close the gaps found in the plugin audit ([564559a](https://github.com/har5h98/crm-lifecycle-ops/commit/564559ad143a19e0ca8013cbfc5fcc5eddc9635c))
+
 ## [0.5.5](https://github.com/har5h98/crm-lifecycle-ops/compare/v0.5.4...v0.5.5) (2026-11-09)
 
 
